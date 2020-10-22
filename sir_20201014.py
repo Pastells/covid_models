@@ -152,9 +152,10 @@ h=float(day_max)/T_steps
 while (I[t]>0.01 and t<T_steps-1):
     t+=1
     S[t] = S[t-1] - h*beta_func(t)*I[t-1]*S[t-1]
-    I[t] = I[t-1] + h*beta_func(t)*I[t-1]*S[t-1] - h*delta * I[t-1]
+    I[t] = I[t-1] + h*(beta_func(t)*S[t-1] - delta)*I[t-1]
     R[t] = R[t-1] + h*delta * I[t-1]
     T[t] = T[t-1] + h
+
 
 # -------------------------
 # Plot
@@ -164,7 +165,7 @@ while (I[t]>0.01 and t<T_steps-1):
 #plt.errorbar(np.arange(day_max),S_m[:day_max],yerr=S_std[:day_max],marker='o',ls='',label='S')
 plt.errorbar(np.arange(day_max),I_m[:day_max],yerr=I_std[:day_max],marker='o',ls='',label='I')
 #plt.errorbar(np.arange(day_max),R_m[:day_max],yerr=R_std[:day_max],marker='o',ls='',label='R')
-plt.plot(infected_time_series,'o',label='data')
+#plt.plot(infected_time_series,'o',label='data')
 plt.legend()
 plt.show()
 

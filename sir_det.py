@@ -4,6 +4,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import argparse
+from scipy.integrate import odeint
 
 # -------------------------
 # parser
@@ -42,6 +43,7 @@ def poisson_time(x):
 
 
 # Initialization
+# Euler
 T_steps = int(1e4)
 S,I,R,T = np.zeros(T_steps),np.zeros(T_steps),np.zeros(T_steps),np.zeros(T_steps)
 I[0] = I0
@@ -63,4 +65,17 @@ plt.plot(T[:t],S[:t],label='S')
 plt.plot(T[:t],I[:t],label='I')
 plt.plot(T[:t],R[:t],label='R')
 plt.legend()
+plt.show()
+
+#scipy
+ts = np.linspace(0, 50, num=2000)
+initial_S_I_R = (N - I0, I0, R0)
+def differential_SIR(initial_S_I_R, t,beta,delta):
+        n_S, n_I, n_R = initial_S_I_R
+        dS_dt = -beta * n_S * n_I
+        dI_dt = (beta * n_S - delta) * n_I
+        dR_dt = delta * n_I
+        return dS_dt, dI_dt, dR_dt
+solution = odeint(differential_SIR, initial_S_I_R, ts,args=(beta,delta))
+plt.plot(ts,solution)
 plt.show()
