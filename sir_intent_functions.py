@@ -64,9 +64,53 @@ def time_dist(x,k):
     random,erlang = np.random.random(k),1
     for i in random:
         erlang *= i
-
     return -np.log(1-erlang)/x
 
+def initial_conditions():
+    S,I,R = np.zeros(T_steps),np.zeros(T_steps),np.zeros(T_steps)
+    I[0] = I0
+    R[0] = R0
+    S[0] = N-I[0]-R[0]
+    I_day[mc_step,0]=I[0]
+    R_day[mc_step,0]=R[0]
+    #T = np.zeros(T_steps)
+    #T[0]=0
+    #S_day[mc_step,0]=S[0]
+
+
+def gillespie_step():
+    # Add individuals periodically
+    #if(time//add_n==1):
+        #add_n += 30
+        #S[t] += float(N)/2
+    if(time//day==1):
+        day_max = max(day_max,day)
+        #S_day[mc_step,day]=S[t]
+        I_day[mc_step,day]=I[t]
+        R_day[mc_step,day]=R[t]
+        day += 1
+    lambda_sum = delta*I[t]+beta_func(t)*I[t]*S[t]
+    prob_heal = delta*I[t]/lambda_sum
+    t+=1
+    time += time_dist(lambda_sum,erlang_k)
+    #T[t] = time
+    if(np.random.random()<prob_heal):
+        # heal
+        S[t] = S[t-1]
+        I[t] = I[t-1] - 1
+        R[t] = R[t-1] + 1
+    else:
+        # infect
+        S[t] = S[t-1] - 1
+        I[t] = I[t-1] + 1
+        R[t] = R[t-1]
+
+def print_cost():
+    cost = 0
+    for i in range(len(infected_time_series)):
+        cost += (I_m[i]-infected_time_series[i])**2/(1+I_std[i])
+    cost = np.sqrt(cost)
+    print("GGA SUCCESS {}".format(cost))
 
 # results per day and seed
 #S_day,S_m,S_95 = np.zeros([nseed,t_total]),np.zeros(t_total),np.zeros([t_total,2])
@@ -79,50 +123,12 @@ mc_step,day_max = 0,0
 # =========================
 for seed in range(seed0,seed0+nseed):
     np.random.seed(seed)
+    initial_conditions()
 
-    # -------------------------
-    # Initialization
-    S,I,R = np.zeros(T_steps),np.zeros(T_steps),np.zeros(T_steps)
-    I[0] = I0
-    R[0] = R0
-    S[0] = N-I[0]-R[0]
-    I_day[mc_step,0]=I[0]
-    R_day[mc_step,0]=R[0]
-    #T = np.zeros(T_steps)
-    #T[0]=0
-    #S_day[mc_step,0]=S[0]
-
-    # -------------------------
     # Time loop
-    # -------------------------
     t,time,day,add_n=0,0,1,20
     while (I[t]>0 and day<t_total-1):
-        # Add individuals periodically
-        #if(time//add_n==1):
-            #add_n += 30
-            #S[t] += float(N)/2
-        if(time//day==1):
-            day_max = max(day_max,day)
-            #S_day[mc_step,day]=S[t]
-            I_day[mc_step,day]=I[t]
-            R_day[mc_step,day]=R[t]
-            day += 1
-        lambda_sum = delta*I[t]+beta_func(t)*I[t]*S[t]
-        prob_heal = delta*I[t]/lambda_sum
-        t+=1
-        time += time_dist(lambda_sum,erlang_k)
-        #T[t] = time
-        if(np.random.random()<prob_heal):
-            # heal
-            S[t] = S[t-1]
-            I[t] = I[t-1] - 1
-            R[t] = R[t-1] + 1
-        else:
-            # infect
-            S[t] = S[t-1] - 1
-            I[t] = I[t-1] + 1
-            R[t] = R[t-1]
-    # -------------------------
+        gillespie_step()
 
     # final value for the rest of time, otherwise it contributes with a zero when averaged
     #S_day[mc_step,day:] = S_day[mc_step,day-1]
@@ -130,14 +136,10 @@ for seed in range(seed0,seed0+nseed):
     R_day[mc_step,day:] = R_day[mc_step,day-1]
 
     plt.plot(I_day[mc_step,:])
-
     mc_step += 1
 # =========================
 
 plt.show()
-
-
-
 
 # ~~~~~~~~~~~~~~~~~~~
 #Plots
@@ -170,9 +172,4 @@ plt.show()
 
 # ~~~~~~~~~~~~~~~~~~~
 # Output
-# ~~~~~~~~~~~~~~~~~~~
-cost = 0
-for i in range(len(infected_time_series)):
-    cost += (I_m[i]-infected_time_series[i])**2/(1+I_std[i])
-cost = np.sqrt(cost)
-print("GGA SUCCESS {}".format(cost))
+print_cost()
