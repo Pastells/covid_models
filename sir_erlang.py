@@ -82,12 +82,14 @@ for seed in range(seed0,seed0+nseed):
 
     # -------------------------
     # Initialization
-    S,I,R = np.zeros([T_steps,k_inf]),np.zeros([T_steps,k_rec]),np.zeros(T_steps)
-    S[0] = (N-I0-R0)/k_inf
-    I[0] = I0/k_rec
-    R[0] = R0
+    # S[-1] = I
+    # I[-1] = R
+    S,I,R = np.zeros([T_steps,k_inf+1]),np.zeros([T_steps,k_rec+1]),np.zeros(T_steps)
+    S[0,:-1] = (N-I0-R0)/k_inf
+    S[0,-1],I[0,:-1] = I0/k_rec,I0/k_rec
+    I[0,-1],R[0] = R0,R0
     I_day[mc_step,0]=I0
-    R_day[mc_step,0]=R0
+    #R_day[mc_step,0]=R0
     #T = np.zeros(T_steps)
     #T[0]=0
     #S_day[mc_step,0]=S[0]
@@ -96,7 +98,7 @@ for seed in range(seed0,seed0+nseed):
     # Time loop
     # -------------------------
     t,time,day,add_n=0,0,1,20
-    while (I[t].sum()>0 and day<t_total-1):
+    while (I[t,:-1].sum()>0 and day<t_total-1):
         #print(t,S[t],I[t],R[t])
         # Add individuals periodically
         #if(time//add_n==1):
@@ -105,66 +107,51 @@ for seed in range(seed0,seed0+nseed):
         if(time//day==1):
             day_max = max(day_max,day)
             #S_day[mc_step,day]=S[t].sum()
-            I_day[mc_step,day]=I[t].sum()
-            R_day[mc_step,day]=R[t]
+            I_day[mc_step,day]=I[t,:-1].sum()
+            #R_day[mc_step,day]=R[t]
             day += 1
-        lambda_sum = (delta+beta_func(t)*S[t].sum())*I[t].sum()
-        prob_heal = delta*I[t]/lambda_sum
-        prob_infect = beta_func(t)*S[t]*I[t].sum()/lambda_sum
+
+        Stot = S[t,:-1].sum()
+        Itot = I[t,:-1].sum()
+        lambda_sum = (delta+beta_func(t)*Stot)*Itot
+        prob_heal = delta*I[t,:-1]/lambda_sum
+        prob_heal_tot = prob_heal.sum()
+        prob_infect = beta_func(t)*S[t,:-1]*Itot/lambda_sum
         t+=1
         time += time_dist(lambda_sum)
         #T[t] = time
         random = np.random.random()
         #print(prob_heal,prob_infect,random)
-        end=False
 
-        # I(k)-> I(k+1)
-        for k in range(k_rec-1):
-            if(random<prob_heal[:k+1].sum()):
-                S[t] = S[t-1]
-                I[t] = I[t-1]
-                I[t,k] = I[t-1,k] - 1
-                I[t,k+1] = I[t-1,k+1] + 1
-                R[t] = R[t-1]
-                end = True
-        if(end==True):
-            pass
-
-        # I(k)-> R
-        elif(random<prob_heal.sum()):
-            S[t] = S[t-1]
-            I[t] = I[t-1]
-            I[t,k_rec-1] = I[t-1,k_rec-1] - 1
-            R[t] = R[t-1] + 1
-            end = True
-
-        # S(k)-> S(k+1)
-        else:
-            for k in range(k_inf-1):
-                if(random<(prob_heal.sum()+prob_infect[:k+1].sum())):
+        # I(k)-> I(k+1)/R
+        if(random<prob_heal_tot):
+            for k in range(k_rec):
+                if(random<prob_heal[:k+1].sum()):
                     S[t] = S[t-1]
-                    S[t,k] = S[t-1,k] - 1
-                    S[t,k+1] = S[t-1,k+1] + 1
+                    I[t] = I[t-1]
+                    I[t,k] = I[t-1,k] - 1
+                    I[t,k+1] = I[t-1,k+1] + 1
+                    R[t]=I[t,k_rec]
+                    S[t,k_inf]=I[t,0]
+                    break
+
+        # S(k)-> S(k+1)/I(0)
+        else:
+            for k in range(k_inf):
+                if(random<(prob_heal_tot+prob_infect[:k+1].sum())):
+                    S[t] = S[t-1]
                     I[t] = I[t-1]
                     R[t] = R[t-1]
-                    end = True
-        if(end==True):
-            pass
-
-        # S(k)-> I(0)
-        else:
-            # infect
-            S[t] = S[t-1]
-            S[t,k_inf-1] = S[t-1,k_inf-1] -1
-            I[t] = I[t-1]
-            I[t,0] = I[t-1,0] + 1
-            R[t] = R[t-1]
+                    S[t,k] = S[t-1,k] - 1
+                    S[t,k+1] = S[t-1,k+1] + 1
+                    I[t,0] = S[t,k_inf]
+                    break
     # -------------------------
 
     # final value for the rest of time, otherwise it contributes with a zero when averaged
     #S_day[mc_step,day:] = S_day[mc_step,day-1]
     I_day[mc_step,day:] = I_day[mc_step,day-1]
-    R_day[mc_step,day:] = R_day[mc_step,day-1]
+    #R_day[mc_step,day:] = R_day[mc_step,day-1]
 
     plt.plot(I_day[mc_step,:])
 
@@ -179,10 +166,10 @@ plt.show()
 
 #S_m = S_day.mean(0)
 I_m = I_day.mean(0)
-R_m = R_day.mean(0)
+#R_m = R_day.mean(0)
 #S_std = S_day.std(0)
 I_std = I_day.std(0)
-R_std = R_day.std(0)
+#R_std = R_day.std(0)
 #print(R_m[day_max],"Recovered individuals")
 plt.errorbar(np.arange(day_max),I_m[:day_max],yerr=I_std[:day_max],marker='o',ls='',label='I mean')
 
