@@ -10,7 +10,6 @@
 
 import numpy as np
 from numpy import genfromtxt
-import matplotlib.pyplot as plt
 import argparse
 import sys
 
@@ -34,6 +33,7 @@ parser.add_argument('--day_max',type=int,default=58,help="Last day to consider o
 
 parser.add_argument('--nseed',type=int,default=int(1e2),help="Number of realizations, not really a parameter")
 parser.add_argument('--seed0',type=int,default=1,help="Initial seed, not really a parameter")
+parser.add_argument('--plot',action='store_true',help="Specify for plots")
 
 args = parser.parse_args()
 # -------------------------
@@ -49,6 +49,8 @@ T_steps = int(1e7) # max simulation steps
 t_total = (args.day_max-args.day_min)*2 # max simulated days
 nseed = args.nseed # MC realizations
 seed0 = args.seed0
+plot = args.plot
+if(plot): import matplotlib.pyplot as plt;
 infected_time_series = genfromtxt(args.data, delimiter=',')[args.day_min:args.day_max]
 
 print(args)
@@ -113,10 +115,12 @@ for seed in range(seed0,seed0+nseed):
 
         Stot = S[t,:-1].sum()
         Itot = I[t,:-1].sum()
+
         lambda_sum = (delta+beta_func(t)*Stot)*Itot
         prob_heal = delta*I[t,:-1]/lambda_sum
-        prob_heal_tot = prob_heal.sum()
         prob_infect = beta_func(t)*S[t,:-1]*Itot/lambda_sum
+
+        prob_heal_tot = prob_heal.sum()
         t+=1
         time += time_dist(lambda_sum)
         #T[t] = time
@@ -127,67 +131,65 @@ for seed in range(seed0,seed0+nseed):
         if(random<prob_heal_tot):
             for k in range(k_rec):
                 if(random<prob_heal[:k+1].sum()):
-                    S[t] = S[t-1]
-                    I[t] = I[t-1]
-                    I[t,k] = I[t-1,k] - 1
-                    I[t,k+1] = I[t-1,k+1] + 1
-                    R[t]=I[t,k_rec]
-                    S[t,k_inf]=I[t,0]
+                    S[t,:-1] = S[t-1,:-1]
+                    I[t,k]   = -1
+                    I[t,k+1] = 1
+                    R[t]     = R[t-1] + I[t,k_rec]
+                    I[t]    += I[t-1]
                     break
 
         # S(k)-> S(k+1)/I(0)
         else:
             for k in range(k_inf):
                 if(random<(prob_heal_tot+prob_infect[:k+1].sum())):
-                    S[t] = S[t-1]
-                    I[t] = I[t-1]
-                    R[t] = R[t-1]
-                    S[t,k] = S[t-1,k] - 1
-                    S[t,k+1] = S[t-1,k+1] + 1
-                    I[t,0] = S[t,k_inf]
+                    R[t]     = R[t-1]
+                    I[t,:-1] = I[t-1,:-1]
+                    S[t,k]   = -1
+                    S[t,k+1] = 1
+                    I[t,0]  += S[t,k_inf]
+                    S[t]    += S[t-1]
                     break
-    # -------------------------
 
+
+    # -------------------------
     # final value for the rest of time, otherwise it contributes with a zero when averaged
     #S_day[mc_step,day:] = S_day[mc_step,day-1]
     I_day[mc_step,day:] = I_day[mc_step,day-1]
     #R_day[mc_step,day:] = R_day[mc_step,day-1]
 
-    plt.plot(I_day[mc_step,:])
-
+    if(plot): plt.plot(I_day[mc_step,:]);
     mc_step += 1
 # =========================
-
-plt.show()
 
 # ~~~~~~~~~~~~~~~~~~~
 #Plots
 # ~~~~~~~~~~~~~~~~~~~
-
-#S_m = S_day.mean(0)
-I_m = I_day.mean(0)
-#R_m = R_day.mean(0)
-#S_std = S_day.std(0)
 I_std = I_day.std(0)
-#R_std = R_day.std(0)
-#print(R_m[day_max],"Recovered individuals")
-plt.errorbar(np.arange(day_max),I_m[:day_max],yerr=I_std[:day_max],marker='o',ls='',label='I mean')
+if(plot):
+    plt.show();
+    #S_m = S_day.mean(0)
+    I_m = I_day.mean(0)
+    #R_m = R_day.mean(0)
+    #S_std = S_day.std(0)
+    #R_std = R_day.std(0)
+    #print(R_m[day_max],"Recovered individuals")
+    plt.errorbar(np.arange(day_max),I_m[:day_max],yerr=I_std[:day_max],marker='o',ls='',label='I mean')
 
-I_m = np.median(I_day,0)
+    I_m = np.median(I_day,0)
 
-alpha = 0.70
-p_l = ((1.0-alpha)/2.0) * 100
-p_u = (alpha+((1.0-alpha)/2.0)) * 100
-I_95[:,0] = np.percentile(I_day, p_l,0)
-I_95[:,1] = np.percentile(I_day, p_u,0)
+    alpha = 0.70
+    p_l = ((1.0-alpha)/2.0) * 100
+    p_u = (alpha+((1.0-alpha)/2.0)) * 100
+    I_95[:,0] = np.percentile(I_day, p_l,0)
+    I_95[:,1] = np.percentile(I_day, p_u,0)
 
-plt.plot(I_m,'o',c='orange',label='I median')
-plt.plot(I_95[:,0],c='orange')
-plt.plot(I_95[:,1],c='orange')
+    plt.plot(I_m,'o',c='orange',label='I median')
+    plt.plot(I_95[:,0],c='orange')
+    plt.plot(I_95[:,1],c='orange')
 
-plt.plot(infected_time_series,'o',label='data')
-plt.legend()
-plt.show()
+    plt.plot(infected_time_series,'o',label='data')
+    plt.legend()
+    plt.show()
 
 # ~~~~~~~~~~~~~~~~~~~
 # Output
@@ -196,4 +198,4 @@ cost = 0
 for i in range(len(infected_time_series)):
     cost += (I_m[i]-infected_time_series[i])**2/(1+I_std[i])
 cost = np.sqrt(cost)
-#print("GGA SUCCESS {}".format(cost))
+print("GGA SUCCESS {}".format(cost))
