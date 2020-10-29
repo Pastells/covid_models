@@ -25,7 +25,7 @@ parser.add_argument('--beta',type=float,default=0.5,help="Ratio of infection [1e
 parser.add_argument('--erlang_k',type=int,default=1,help="k parameter for the Erlang distribution, if set to 1 is an exponential distribution")
 
 parser.add_argument('--llavor',type=int,default=1,help="Llavor from the automatic configuration")
-parser.add_argument('--data',type=str,default="italy_i.csv",help="File with time series")
+parser.add_argument('--data',type=str,default="../data/italy_i.csv",help="File with time series")
 parser.add_argument('--day_min',type=int,default=33,help="First day to consider on data series")
 parser.add_argument('--day_max',type=int,default=58,help="Last day to consider on data series")
 
