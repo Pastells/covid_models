@@ -1,4 +1,4 @@
-# Stochastic mean-fiel SIR model using the Gillespie algorithm
+# Stochastic mean-field SIR model using the Gillespie algorithm
 # Pol Pastells, october 2020
 
 # Equations of the deterministic system

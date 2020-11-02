@@ -6,14 +6,35 @@
 #I[t] = I[t-1] + beta*I[t-1]*S[t-1] - delta * I[t-1]
 #R[t] = R[t-1] + delta * I[t-1]
 
+# delta is the mean from an Erlang distribution
+
 import numpy as np
 import matplotlib.pyplot as plt;
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%
 # %%%%%%%%%%%%%%%%%%%%%%%%%
 def main():
+    from numpy import genfromtxt
+
+# Parameters
     args = parsing()
-    I0,R0,T_steps,t_total,nseed,seed0,plot,infected_time_series,N,k_inf,k_rec,beta,delta = parameters_init(args)
+    N = args.N
+    k_inf=args.k_inf
+    k_rec=args.k_rec
+    beta = args.beta/N*k_inf
+    delta = args.delta*k_rec
+    I0 = args.I0
+    R0 = args.R0
+    T_steps = int(1e7) # max simulation steps
+    t_total = (args.day_max-args.day_min)*2 # max simulated days
+    nseed = args.nseed # MC realizations
+    seed0 = args.seed0
+    plot = args.plot
+    infected_time_series = genfromtxt(args.data, delimiter=',')[args.day_min:args.day_max]
+
+    print(args)
+    #print(infected_time_series)
+
 
 
 # results per day and seed
@@ -30,16 +51,17 @@ def main():
 
         # -------------------------
         # Initialization
+        # S[-1] = I
+        # I[-1] = R
         S,I,R = np.zeros([T_steps,k_inf+1]),np.zeros([T_steps,k_rec+1]),np.zeros(T_steps)
         S[0,:-1] = (N-I0-R0)/k_inf
         S[0,-1],I[0,:-1] = I0/k_rec,I0/k_rec
         I[0,-1],R[0] = R0,R0
-
+        T = np.zeros(T_steps)
+        T[0]=0
         #S_day[mc_step,0]=S[0]
         I_day[mc_step,0]=I0
         #R_day[mc_step,0]=R0
-        #T = np.zeros(T_steps)
-        #T[0]=0
 
         # -------------------------
         # Time loop
@@ -53,7 +75,7 @@ def main():
             if(time//day==1):
                 day += int(time-day)
                 day_max = max(day_max,day)
-                #S_day[mc_step,day]=S[t,:-1].sum()
+                #S_day[mc_step,day]=S[t].sum()
                 I_day[mc_step,day]=I[t,:-1].sum()
                 #R_day[mc_step,day]=R[t]
                 day += 1
@@ -67,7 +89,7 @@ def main():
 
             t+=1
             time += time_dist(lambda_sum)
-            #T[t] = time
+            T[t] = time
 
             gillespie_step(t,S,I,R,prob_heal,prob_infect,k_rec,k_inf)
         # -------------------------
@@ -75,8 +97,10 @@ def main():
         #S_day[mc_step,day:] = S_day[mc_step,day-1]
         I_day[mc_step,day:] = I_day[mc_step,day-1]
         #R_day[mc_step,day:] = R_day[mc_step,day-1]
+        T[t:] = T[t]
 
-        if(plot): plt.plot(I_day[mc_step,:]);
+        #if(plot): plt.plot(I_day[mc_step,:]);
+        plt.plot(T,I[:,0])
         mc_step += 1
 # =========================
 
@@ -91,7 +115,7 @@ def main():
 # -------------------------
 def parsing():
     import argparse
-    parser = argparse.ArgumentParser(description='Stochastic mean-field SIR model using the Gillespie algorithm and Erlang distribution transition times',
+    parser = argparse.ArgumentParser(description='Stochastic mean-field SIR model using the Gillespie algorithm',
                                  formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument('--N',type=int,default=int(1e4),help="Fixed number of (effecitve) people [1000,1000000]")
@@ -112,30 +136,7 @@ def parsing():
     parser.add_argument('--plot',action='store_true',help="Specify for plots")
 
     args = parser.parse_args()
-    print(args)
     return args
-
-# -------------------------
-# Parameters
-
-def parameters_init(args):
-    from numpy import genfromtxt
-    I0 = args.I0
-    R0 = args.R0
-    T_steps = int(1e7) # max simulation steps
-    t_total = (args.day_max-args.day_min)*2 # max simulated days
-    nseed = args.nseed # MC realizations
-    seed0 = args.seed0
-    plot = args.plot
-    infected_time_series = genfromtxt(args.data, delimiter=',')[args.day_min:args.day_max]
-    #print(infected_time_series)
-    N = args.N
-    k_inf=args.k_inf
-    k_rec=args.k_rec
-    beta = args.beta/N*k_inf
-    delta = args.delta*k_rec
-    return I0,R0,T_steps,t_total,nseed,seed0,plot,infected_time_series,N,k_inf,k_rec,beta,delta
-
 # -------------------------
 
 def beta_func(beta,t):
@@ -147,17 +148,15 @@ def beta_func(beta,t):
     #else:
         #return beta*alpha + beta*(1-alpha)*np.exp(-(t-t_conf)/delta_t)
 
-# Time intervals of a Poisson process follow an exponential distribution
 def time_dist(x):
+    # Time intervals of a Poisson process follow an exponential distribution
     return -np.log(1-np.random.random())/x
 # -------------------------
 
 def gillespie_step(t,S,I,R,prob_heal,prob_infect,k_rec,k_inf):
-# S and I have one extra dimension to temporally store the infected and recovered after k stages, due to the Erlang distribution
+    # I(k)-> I(k+1)/R
     random = np.random.random()
     prob_heal_tot = prob_heal.sum()
-
-    # I(k)-> I(k+1)/R
     if(random<prob_heal_tot):
         for k in range(k_rec):
             if(random<prob_heal[:k+1].sum()):
@@ -216,15 +215,8 @@ def cost_func(infected_time_series,I_m,I_std):
     for i in range(len(infected_time_series)):
         cost += (I_m[i]-infected_time_series[i])**2/(1+I_std[i])
     cost = np.sqrt(cost)
-    print(f"GGA SUCCESS {cost}")
+    print("GGA SUCCESS {}".format(cost))
 # ~~~~~~~~~~~~~~~~~~~
 
-
-
 if __name__ == "__main__":
-    #import traceback
-    try:
         main()
-    except:
-        print(f"GGA CRASHED {1e20}")
-        traceback.print.exc()

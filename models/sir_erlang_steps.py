@@ -13,7 +13,8 @@ import matplotlib.pyplot as plt;
 # %%%%%%%%%%%%%%%%%%%%%%%%%
 def main():
     args = parsing()
-    I0,R0,T_steps,t_total,nseed,seed0,plot,infected_time_series,N,k_inf,k_rec,beta,delta = parameters_init(args)
+    I0,R0,T_steps,t_total,nseed,seed0,plot,infected_time_series = parameters_init(args)
+    N,k_inf,k_rec,beta,delta = parameters_step(args,0)
 
 
 # results per day and seed
@@ -30,16 +31,17 @@ def main():
 
         # -------------------------
         # Initialization
+        # S[-1] = I
+        # I[-1] = R
         S,I,R = np.zeros([T_steps,k_inf+1]),np.zeros([T_steps,k_rec+1]),np.zeros(T_steps)
         S[0,:-1] = (N-I0-R0)/k_inf
         S[0,-1],I[0,:-1] = I0/k_rec,I0/k_rec
         I[0,-1],R[0] = R0,R0
-
-        #S_day[mc_step,0]=S[0]
         I_day[mc_step,0]=I0
         #R_day[mc_step,0]=R0
         #T = np.zeros(T_steps)
         #T[0]=0
+        #S_day[mc_step,0]=S[0]
 
         # -------------------------
         # Time loop
@@ -53,7 +55,7 @@ def main():
             if(time//day==1):
                 day += int(time-day)
                 day_max = max(day_max,day)
-                #S_day[mc_step,day]=S[t,:-1].sum()
+                #S_day[mc_step,day]=S[t].sum()
                 I_day[mc_step,day]=I[t,:-1].sum()
                 #R_day[mc_step,day]=R[t]
                 day += 1
@@ -94,13 +96,13 @@ def parsing():
     parser = argparse.ArgumentParser(description='Stochastic mean-field SIR model using the Gillespie algorithm and Erlang distribution transition times',
                                  formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    parser.add_argument('--N',type=int,default=int(1e4),help="Fixed number of (effecitve) people [1000,1000000]")
+    parser.add_argument('--N',type=int,default=[int(1e4)],nargs='*',help="Fixed number of (effecitve) people [1000,1000000]")
     parser.add_argument('--I0',type=int,default=20,help="Initial number of infected individuals [1,N]")
     parser.add_argument('--R0',type=int,default=0,help="Initial number of inmune individuals [0,N]")
-    parser.add_argument('--delta',type=float,default=0.2,help="Mean ratio of recovery [1e-2,1]")
-    parser.add_argument('--beta',type=float,default=0.5,help="Ratio of infection [1e-2,1]")
-    parser.add_argument('--k_rec',type=int,default=1,help="k parameter for the recovery time Erlang distribution, if set to 1 is an exponential distribution")
-    parser.add_argument('--k_inf',type=int,default=1,help="k parameter for the infection time Erlang distribution, if set to 1 is an exponential distribution")
+    parser.add_argument('--delta',type=float,default=[0.2],nargs='*',help="Mean ratio of recovery [1e-2,1]")
+    parser.add_argument('--beta',type=float,default=[0.5],nargs='*',help="Ratio of infection [1e-2,1]")
+    parser.add_argument('--k_rec',type=int,default=[1],nargs='*',help="k parameter for the recovery time Erlang distribution, if set to 1 is an exponential distribution")
+    parser.add_argument('--k_inf',type=int,default=[1],nargs='*',help="k parameter for the infection time Erlang distribution, if set to 1 is an exponential distribution")
 
     parser.add_argument('--llavor',type=int,default=1,help="Llavor from the automatic configuration")
     parser.add_argument('--data',type=str,default="../data/italy_i.csv",help="File with time series")
@@ -129,12 +131,14 @@ def parameters_init(args):
     plot = args.plot
     infected_time_series = genfromtxt(args.data, delimiter=',')[args.day_min:args.day_max]
     #print(infected_time_series)
-    N = args.N
-    k_inf=args.k_inf
-    k_rec=args.k_rec
-    beta = args.beta/N*k_inf
-    delta = args.delta*k_rec
-    return I0,R0,T_steps,t_total,nseed,seed0,plot,infected_time_series,N,k_inf,k_rec,beta,delta
+    return I0,R0,T_steps,t_total,nseed,seed0,plot,infected_time_series
+def parameters_step(args,step):
+    N = args.N[step]
+    k_inf=args.k_inf[step]
+    k_rec=args.k_rec[step]
+    beta = args.beta[step]/N*k_inf
+    delta = args.delta[step]*k_rec
+    return N,k_inf,k_rec,beta,delta
 
 # -------------------------
 
