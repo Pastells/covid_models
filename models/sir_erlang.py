@@ -17,9 +17,9 @@ def main():
 
 
 # results per day and seed
-    #S_day,S_m,S_95 = np.zeros([nseed,t_total]),np.zeros(t_total),np.zeros([t_total,2])
-    I_day,I_m,I_95 = np.zeros([nseed,t_total]),np.zeros(t_total),np.zeros([t_total,2])
-    R_day,R_m,R_95 = np.zeros([nseed,t_total]),np.zeros(t_total),np.zeros([t_total,2])
+    #S_day,S_m,S_95 = np.zeros([nseed,t_total+10]),np.zeros(t_total+10),np.zeros([t_total+10,2])
+    I_day,I_m,I_95 = np.zeros([nseed,t_total+10]),np.zeros(t_total+10),np.zeros([t_total+10,2])
+    R_day,R_m,R_95 = np.zeros([nseed,t_total+10]),np.zeros(t_total+10),np.zeros([t_total+10,2])
 
     mc_step,day_max = 0,0
 # =========================
@@ -45,17 +45,18 @@ def main():
         # Time loop
         # -------------------------
         t,time,day,add_n=0,0,1,20
-        while (I[t,:-1].sum()>0 and day<t_total-1):
+        while (I[t,:-1].sum()>0.1 and day<t_total-1):
             # Add individuals periodically
             #if(time//add_n==1):
                 #add_n += 30
                 #S[t] += float(N)/2
             if(time//day==1):
-                day += int(time-day)
+                days_jumped = int(time-day)
+                #S_day[mc_step,day:day+days_jumped+1]=S[t:-1].sum()
+                I_day[mc_step,day:day+days_jumped+1]=I[t,:-1].sum()
+                #R_day[mc_step,day:day+days_jumped+1]=R[t]
+                day += days_jumped
                 day_max = max(day_max,day)
-                #S_day[mc_step,day]=S[t,:-1].sum()
-                I_day[mc_step,day]=I[t,:-1].sum()
-                #R_day[mc_step,day]=R[t]
                 day += 1
 
             Stot = S[t,:-1].sum()
@@ -65,24 +66,67 @@ def main():
             prob_heal = delta*I[t,:-1]/lambda_sum
             prob_infect = beta_func(beta,t)*S[t,:-1]*Itot/lambda_sum
 
+            #print(I[t],R[t])
             t+=1
             time += time_dist(lambda_sum)
             #T[t] = time
 
             gillespie_step(t,S,I,R,prob_heal,prob_infect,k_rec,k_inf)
+            #print(I[t],R[t])
+            #print(I[t,:-1].sum())
         # -------------------------
+        if(time//day==1):
+            days_jumped = int(time-day)
+            I_day[mc_step,day:day+days_jumped+1]=I[t,:-1].sum()
+            day += days_jumped
+            day_max = max(day_max,day)
+            day += 1
+        else:
+            I_day[mc_step,day]=I[t,:-1].sum()
+            day_max = max(day_max,day)
+            day += 1
+
+
         # final value for the rest of time, otherwise it contributes with a zero when averaged
         #S_day[mc_step,day:] = S_day[mc_step,day-1]
         I_day[mc_step,day:] = I_day[mc_step,day-1]
         #R_day[mc_step,day:] = R_day[mc_step,day-1]
 
-        if(plot): plt.plot(I_day[mc_step,:]);
+        if(plot):
+            plt.plot(I_day[mc_step,:])
+            #plt.plot(T[:t],I[:t,:-1].sum(1),c='c')
         mc_step += 1
 # =========================
 
-    I_std = I_day.std(0)
-    I_m = I_day.mean(0)
-    if(plot): plotting(infected_time_series,I_day,day_max,I_95);
+    check_realization_alive=day_max//2
+
+    for i in range(nseed):
+        if(I_day[i,check_realization_alive]!=0):
+            x_var = I_day[i]
+            alive_realizations = 1
+            S_var = np.zeros(t_total+10)
+            I_m = x_var
+            break
+
+    for j in range(i+1,nseed):
+        if(I_day[j,check_realization_alive]!=0):
+            alive_realizations += 1
+            x_var = I_day[j]
+            I_m_1 = I_m
+            I_m = I_m_1 + (x_var-I_m_1)/alive_realizations
+            S_var = S_var + (x_var-I_m_1)*(x_var-I_m)
+
+    I_std = np.sqrt(S_var/(alive_realizations-1))
+
+    if(nseed-alive_realizations>nseed*0.1):
+        print('The initial number of infected may be too low')
+        print(f'Alive realizations after {check_realization_alive} days = {alive_realizations}, out of {nseed}')
+
+
+    plt.errorbar(np.arange(day_max),I_m[:day_max],yerr=I_std[:day_max],marker='o',ls='',label='I mean')
+    plt.show();
+
+    #if(plot): plotting(infected_time_series,I_day,day_max,I_95,I_m,I_std);
 
     cost_func(infected_time_series,I_m,I_std)
 # %%%%%%%%%%%%%%%%%%%%%%%%%
@@ -123,7 +167,7 @@ def parameters_init(args):
     I0 = args.I0
     R0 = args.R0
     T_steps = int(1e7) # max simulation steps
-    t_total = (args.day_max-args.day_min)*2 # max simulated days
+    t_total = 100 #(args.day_max-args.day_min)*2 # max simulated days
     nseed = args.nseed # MC realizations
     seed0 = args.seed0
     plot = args.plot
@@ -181,8 +225,7 @@ def gillespie_step(t,S,I,R,prob_heal,prob_infect,k_rec,k_inf):
                 break
 # -------------------------
 
-def plotting(infected_time_series,I_day,day_max,I_95):
-    plt.show();
+def plotting(infected_time_series,I_day,day_max,I_95,I_m,I_std):
     #S_m = S_day.mean(0)
     I_m = I_day.mean(0)
     I_std = I_day.std(0)
@@ -190,6 +233,8 @@ def plotting(infected_time_series,I_day,day_max,I_95):
     #S_std = S_day.std(0)
     #R_std = R_day.std(0)
     #print(R_m[day_max],"Recovered individuals")
+    plt.errorbar(np.arange(day_max),I_m[:day_max],yerr=I_std[:day_max],marker='o',ls='',label='I mean')
+    plt.show();
     plt.errorbar(np.arange(day_max),I_m[:day_max],yerr=I_std[:day_max],marker='o',ls='',label='I mean')
 
     I_m = np.median(I_day,0)

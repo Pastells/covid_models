@@ -15,10 +15,10 @@ def main():
     E0,I0,R0,T_steps,t_total,nseed,seed0,plot,infected_time_series,N,k_inf,k_rec,k_lat,beta1,beta2,delta1,epsilon,delta2 = parameters_init(args)
 
 # results per day and seed
-    #S_day,S_m,S_95 = np.zeros([nseed,t_total]),np.zeros(t_total),np.zeros([t_total,2])
-    #E_day,E_m,E_95 = np.zeros([nseed,t_total]),np.zeros(t_total),np.zeros([t_total,2])
-    I_day,I_m,I_95 = np.zeros([nseed,t_total]),np.zeros(t_total),np.zeros([t_total,2])
-    #R_day,R_m,R_95 = np.zeros([nseed,t_total]),np.zeros(t_total),np.zeros([t_total,2])
+    #S_day,S_m,S_95 = np.zeros([nseed,t_total+10]),np.zeros(t_total+10),np.zeros([t_total+10,2])
+    #E_day,E_m,E_95 = np.zeros([nseed,t_total+10]),np.zeros(t_total+10),np.zeros([t_total+10,2])
+    I_day,I_m,I_95 = np.zeros([nseed,t_total+10]),np.zeros(t_total+10),np.zeros([t_total+10,2])
+    #R_day,R_m,R_95 = np.zeros([nseed,t_total+10]),np.zeros(t_total+10),np.zeros([t_total+10,2])
 
     mc_step,day_max = 0,0
 # =========================
@@ -51,12 +51,13 @@ def main():
                 #add_n += 30
                 #S[t] += float(N)/2
             if(time//day==1):
-                day += int(time-day)
+                days_jumped = int(time-day)
+                #S_day[mc_step,day:day+days_jumped+1]=S[t:-1].sum()
+                #E_day[mc_step,day:day+days_jumped+1]=E[t:-1].sum()
+                I_day[mc_step,day:day+days_jumped+1]=I[t,:-1].sum()
+                #R_day[mc_step,day:day+days_jumped+1]=R[t]
+                day += days_jumped
                 day_max = max(day_max,day)
-                #S_day[mc_step,day]=S[t:-1].sum()
-                #E_day[mc_step,day]=E[t:-1].sum()
-                I_day[mc_step,day]=I[t,:-1].sum()
-                #R_day[mc_step,day]=R[t]
                 day += 1
 
             Stot = S[t,:-1].sum()
