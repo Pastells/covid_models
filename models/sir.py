@@ -1,16 +1,17 @@
-# Stochastic mean-field SIR model using the Gillespie algorithm
-# Pol Pastells, october 2020
+"""
+Stochastic mean-field SIR model using the Gillespie algorithm
+Pol Pastells, october 2020
 
-# Equations of the deterministic system
-#S[t] = S[t-1] - beta*I[t-1]*S[t-1]
-#I[t] = I[t-1] + beta*I[t-1]*S[t-1] - delta * I[t-1]
-#R[t] = R[t-1] + delta * I[t-1]
+Equations of the deterministic system
+S[t] = S[t-1] - beta*I[t-1]*S[t-1]
+I[t] = I[t-1] + beta*I[t-1]*S[t-1] - delta * I[t-1]
+R[t] = R[t-1] + delta * I[t-1]
+"""
 
+import argparse
 import numpy as np
 from numpy import genfromtxt
 import matplotlib.pyplot as plt
-import argparse
-import sys
 
 # -------------------------
 # parser
@@ -22,7 +23,6 @@ parser.add_argument('--I0',type=int,default=20,help="Initial number of infected 
 parser.add_argument('--R0',type=int,default=0,help="Initial number of inmune individuals [0,N]")
 parser.add_argument('--delta',type=float,default=0.2,help="Ratio of recovery [1e-2,1]")
 parser.add_argument('--beta',type=float,default=0.5,help="Ratio of infection [1e-2,1]")
-parser.add_argument('--erlang_k',type=int,default=1,help="k parameter for the Erlang distribution, if set to 1 is an exponential distribution")
 
 parser.add_argument('--llavor',type=int,default=1,help="Llavor from the automatic configuration")
 parser.add_argument('--data',type=str,default="../data/italy_i.csv",help="File with time series")
@@ -40,7 +40,6 @@ beta = args.beta/N
 delta = args.delta
 I0 = args.I0
 R0 = args.R0
-erlang_k = args.erlang_k
 T_steps = int(1e7) # max simulation steps
 t_total = 100 # max simulated days
 nseed = args.nseed # MC realizations
@@ -59,13 +58,10 @@ def beta_func(t):
     #else:
         #return beta*alpha + beta*(1-alpha)*np.exp(-(t-t_conf)/delta_t)
 
-def time_dist(x,k):
+def time_dist(x):
     # Time intervals of a Poisson process follow an exponential distribution
-    random,erlang = np.random.random(k),1
-    for i in random:
-        erlang *= i
-
-    return -np.log(1-erlang)/x
+    random = np.random.random()
+    return -np.log(1-random)/x
 
 
 # results per day and seed
@@ -101,7 +97,7 @@ for seed in range(seed0,seed0+nseed):
         #if(time//add_n==1):
             #add_n += 30
             #S[t] += float(N)/2
-        if(time//day==1):
+        if time//day==1:
             day_max = max(day_max,day)
             #S_day[mc_step,day]=S[t]
             I_day[mc_step,day]=I[t]
@@ -110,9 +106,9 @@ for seed in range(seed0,seed0+nseed):
         lambda_sum = delta*I[t]+beta_func(t)*I[t]*S[t]
         prob_heal = delta*I[t]/lambda_sum
         t+=1
-        time += time_dist(lambda_sum,erlang_k)
+        time += time_dist(lambda_sum)
         #T[t] = time
-        if(np.random.random()<prob_heal):
+        if np.random.random()<prob_heal:
             # heal
             S[t] = S[t-1]
             I[t] = I[t-1] - 1
@@ -172,7 +168,7 @@ plt.show()
 # Output
 # ~~~~~~~~~~~~~~~~~~~
 cost = 0
-for i in range(len(infected_time_series)):
+for i,_ in enumerate(infected_time_series):
     cost += (I_m[i]-infected_time_series[i])**2/(1+I_std[i])
 cost = np.sqrt(cost)
 print("GGA SUCCESS {}".format(cost))
