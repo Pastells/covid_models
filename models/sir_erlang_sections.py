@@ -1,6 +1,7 @@
 """
-stochastic mean-field sir model
+Stochastic mean-field sir model
 using the Gillespie algorithm and Erlang distribution transition times
+It allows for different sections with different n, delta and beta
 Pol Pastells, october 2020
 
 Equations of the deterministic system
@@ -16,15 +17,14 @@ import matplotlib.pyplot as plt
 # %%%%%%%%%%%%%%%%%%%%%%%%%
 def main():
     args = parsing()
-    section = 0
     i_0,r_0,t_steps,t_total,nseed,seed0,plot,infected_time_series,n_sections = parameters_init(args)
-    n,k_inf,k_rec,beta,delta,section_day = parameters_section(args,section)
 
 
 # results per day and seed
-    #s_day,s_m,s_95 = np.zeros([nseed,t_total]),np.zeros(t_total),np.zeros([t_total,2])
-    i_day,i_m,i_95 = np.zeros([nseed,t_total]),np.zeros(t_total),np.zeros([t_total,2])
-    #r_day,r_m,r_95 = np.zeros([nseed,t_total]),np.zeros(t_total),np.zeros([t_total,2])
+    days_gap = 10
+    #s_day,s_m,s_95 = np.zeros([nseed,t_total+days_gap]),np.zeros(t_total+days_gap),np.zeros([t_total+days_gap,2])
+    i_day,i_m,i_95 = np.zeros([nseed,t_total+days_gap]),np.zeros(t_total+days_gap),np.zeros([t_total+days_gap,2])
+    #r_day,r_m,r_95 = np.zeros([nseed,t_total+days_gap]),np.zeros(t_total+days_gap),np.zeros([t_total+days_gap,2])
 
 
     mc_step,day_max = 0,0
@@ -34,41 +34,33 @@ def main():
     for seed in range(seed0,seed0+nseed):
         np.random.seed(seed)
 
+        # initialization
+        section = 0
+        n,k_inf,k_rec,beta,delta,section_day = parameters_section(args,section)
         s,i,r = np.zeros([t_steps,k_inf+1]),np.zeros([t_steps,k_rec+1]),np.zeros(t_steps)
         t,time,day=0,0,1
         i_day[mc_step,0]=i_0
-        # -------------------------
-        # Sections
-        # -------------------------
-        #for section in range(n_sections):
-            # end of section:
-            #i_0,r_0 = i[t,:-1].sum(),r[t]
-            #n,k_inf,k_rec,beta,delta,section_day = parameters_section(args,section)
-        # -------------------------
-        # initialization
-        # s[-1] = i
-        # i[-1] = r
+
         s[t,:-1] = (n-i_0-r_0)/k_inf
         s[t,-1],i[t,:-1] = i_0/k_rec,i_0/k_rec
         i[t,-1],r[t] = r_0,r_0
-        #r_day[mc_step,0]=r_0
         #T = np.zeros(t_steps)
         #T[0]=0
-        #s_day[mc_step,0]=s[0]
 
+        # Sections
+        while section<n_sections:
+            # Time loop
+            while (i[t,:-1].sum()>0 and day<section_day):
+                day = day_data(mc_step,t,time,day,day_max,i,i_day)
+                t,time = gillespie(t,time,s,i,r,beta,delta,k_rec,k_inf)
 
+            section += 1
+            if section<n_sections:
+                n,k_inf,k_rec,beta,delta,section_day = parameters_section(args,section)
+                s[t,:-1] = (n-i[t:-1].sum()-r[t])/k_inf
 
         # -------------------------
-        # Time loop
-        # -------------------------
-        while (i[t,:-1].sum()>0 and day<section_day-1):
-            day_data(mc_step,t,time,day,day_max,i,i_day)
-            t,time = master_func(mc_step,t,time,s,i,r,beta,delta,k_rec,k_inf)
-            print('t',t,'time',time)
-            print(s[t])
-            print(i[t])
-            print(r[t])
-        # -------------------------
+        day = day_data(mc_step,t,time,day,day_max,i,i_day,True)
         # final value for the rest of time, otherwise it contributes with a zero when averaged
         #s_day[mc_step,day:] = s_day[mc_step,day-1]
         i_day[mc_step,day:] = i_day[mc_step,day-1]
@@ -76,6 +68,9 @@ def main():
 
         if plot:
             plt.plot(i_day[mc_step,:])
+            #plt.show()
+            #plt.plot(i[:t,:-1].sum(1),label='i')
+            #plt.plot(s[:t,:-1].sum(1),label='s')
         mc_step += 1
 # =========================
 
@@ -89,39 +84,18 @@ def main():
 # %%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-def day_data(mc_step,t,time,day,day_max,i,i_day):
-    if time//day == 1:
-        day += int(time-day)
-        day_max = max(day_max,day)
-        #s_day[mc_step,day]=s[t].sum()
-        i_day[mc_step,day]=i[t,:-1].sum()
-        #r_day[mc_step,day]=r[t]
-        day += 1
-
-def master_func(mc_step,t,time,s,i,r,beta,delta,k_rec,k_inf):
-    stot = s[t,:-1].sum()
-    itot = i[t,:-1].sum()
-
-    lambda_sum = (delta+beta_func(beta,t)*stot)*itot
-    prob_heal = delta*i[t,:-1]/lambda_sum
-    prob_infect = beta_func(beta,t)*s[t,:-1]*itot/lambda_sum
-
-    t+=1
-    time += time_dist(lambda_sum)
-    #T[t] = time
-
-    gillespie_step(t,s,i,r,prob_heal,prob_infect,k_rec,k_inf)
-    #return t,time,s,i,r
-    return t,time
 # -------------------------
 def parsing():
     """
     input parameters
     """
     import argparse
-    parser = argparse.ArgumentParser(description='stochastic mean-field sir model using the \
-                                     Gillespie algorithm and Erlang distribution transition times',
-                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser = argparse.ArgumentParser(description=\
+            'Stochastic mean-field sir model using the Gillespie algorithm and Erlang \
+            distribution transition times. It allows for different sections with different \
+            n, delta and beta: same number of arguments must be specified for all three, \
+            and one more for section_days.',
+            formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument('--n',type=int,default=[int(1e4)],nargs='*',
                         help="Fixed number of (effecitve) people [1000,1000000]")
@@ -133,9 +107,9 @@ def parsing():
                         help="Mean ratio of recovery [1e-2,1]")
     parser.add_argument('--beta',type=float,default=[0.5],nargs='*',
                         help="ratio of infection [1e-2,1]")
-    parser.add_argument('--k_rec',type=int,default=[1],nargs='*',
+    parser.add_argument('--k_rec',type=int,default=1,
                         help="k parameter for the recovery time Erlang distribution [1,5]")
-    parser.add_argument('--k_inf',type=int,default=[1],nargs='*',
+    parser.add_argument('--k_inf',type=int,default=1,
                         help="k parameter for the infection time Erlang distribution [1,5]")
     parser.add_argument("--section_days",type=int,default=[0,100],nargs='*',
                         help="starting day for each section, firts one must be 0,\
@@ -165,6 +139,9 @@ def parsing():
 # Parameters
 
 def parameters_init(args):
+    """
+    Initial parameters from argparse
+    """
     from numpy import genfromtxt
     i_0 = args.i_0
     r_0 = args.r_0
@@ -179,12 +156,15 @@ def parameters_init(args):
     return i_0,r_0,t_steps,t_total,nseed,seed0,plot,infected_time_series,n_sections
 
 def parameters_section(args,section):
+    """
+    Section dependent parameters from argparse
+    """
     n = args.n[section]
-    k_inf=args.k_inf[section]
-    k_rec=args.k_rec[section]
+    k_inf=args.k_inf
+    k_rec=args.k_rec
     beta = args.beta[section]/n*k_inf
     delta = args.delta[section]*k_rec
-    section_day = args.section_days[section+1]-1
+    section_day = args.section_days[section+1]
     return n,k_inf,k_rec,beta,delta,section_day
 
 # -------------------------
@@ -208,9 +188,52 @@ def time_dist(lambd):
     return -np.log(1-np.random.random())/lambd
 # -------------------------
 
+def day_data(mc_step,t,time,day,day_max,i,i_day,last_event=False):
+    """
+    Write number of infected per day instead of event
+    Also tracks day_max
+    """
+    if time//day == 1:
+        days_jumped = int(time-day)
+        i_day[mc_step,day:day+days_jumped+1]=i[t,:-1].sum()
+        day += days_jumped
+        day_max = max(day_max,day)
+        day += 1
+        return day
+    if last_event:
+        i_day[mc_step,day]=i[t,:-1].sum()
+        day_max = max(day_max,day)
+        day += 1
+        return day
+    return day
+# -------------------------
+
+def gillespie(t,time,s,i,r,beta,delta,k_rec,k_inf):
+    """
+    Time elapsed for the next event
+    Calls gillespie_step
+    """
+    stot = s[t,:-1].sum()
+    itot = i[t,:-1].sum()
+
+    lambda_sum = (delta+beta_func(beta,t)*stot)*itot
+    prob_heal = delta*i[t,:-1]/lambda_sum
+    prob_infect = beta_func(beta,t)*s[t,:-1]*itot/lambda_sum
+
+    t+=1
+    time += time_dist(lambda_sum)
+    #T[t] = time
+
+    gillespie_step(t,s,i,r,prob_heal,prob_infect,k_rec,k_inf)
+    return t,time
+# -------------------------
+
 def gillespie_step(t,s,i,r,prob_heal,prob_infect,k_rec,k_inf):
-# s and i have one extra dimension to temporally store the infected and recovered after k stages
-#, due to the Erlang distribution
+    """
+    Perform an event of the algorithm, either infect or recover a single individual
+    s and i have one extra dimension to temporally store the infected and recovered after k stages,
+    due to the Erlang distribution
+    """
     random = np.random.random()
     prob_heal_tot = prob_heal.sum()
 
@@ -289,6 +312,10 @@ if __name__ == "__main__":
     import traceback
     try:
         main()
+    # handle error when running with --help
+    except SystemExit as error:
+        print(f"GGA CRASHED {1e20}")
+        print(repr(error))
     except:
         print(f"GGA CRASHED {1e20}")
         traceback.print.exc()

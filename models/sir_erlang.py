@@ -45,51 +45,18 @@ def main():
         #r_day[mc_step,0]=r_0
         #T = np.zeros(t_steps)
         #T[0]=0
+        t,time,day=0,0,1
 
-        # -------------------------
         # Time loop
-        # -------------------------
-        t,time,day,add_n=0,0,1,20
         while (i[t,:-1].sum()>0.1 and day<t_total-1):
             # Add individuals periodically
             #if time//add_n==1:
                 #add_n += 30
                 #s[t] += float(n)/2
-            if time//day==1:
-                days_jumped = int(time-day)
-                #s_day[mc_step,day:day+days_jumped+1]=s[t:-1].sum()
-                i_day[mc_step,day:day+days_jumped+1]=i[t,:-1].sum()
-                #r_day[mc_step,day:day+days_jumped+1]=r[t]
-                day += days_jumped
-                day_max = max(day_max,day)
-                day += 1
-
-            stot = s[t,:-1].sum()
-            itot = i[t,:-1].sum()
-
-            lambda_sum = (delta+beta_func(beta,t)*stot)*itot
-            prob_heal = delta*i[t,:-1]/lambda_sum
-            prob_infect = beta_func(beta,t)*s[t,:-1]*itot/lambda_sum
-
-            #print(i[t],r[t])
-            t+=1
-            time += time_dist(lambda_sum)
-            #T[t] = time
-
-            gillespie_step(t,s,i,r,prob_heal,prob_infect,k_rec,k_inf)
-            #print(i[t],r[t])
-            #print(i[t,:-1].sum())
+            day = day_data(mc_step,t,time,day,day_max,i,i_day)
+            t,time = gillespie(t,time,s,i,r,beta,delta,k_rec,k_inf)
         # -------------------------
-        if time//day==1:
-            days_jumped = int(time-day)
-            i_day[mc_step,day:day+days_jumped+1]=i[t,:-1].sum()
-            day += days_jumped
-            day_max = max(day_max,day)
-            day += 1
-        else:
-            i_day[mc_step,day]=i[t,:-1].sum()
-            day_max = max(day_max,day)
-            day += 1
+        day = day_data(mc_step,t,time,day,day_max,i,i_day,True)
 
 
         # final value for the rest of time, otherwise it contributes with a zero when averaged
@@ -174,7 +141,7 @@ def parsing():
     parser.add_argument('--day_max',type=int,default=58,
                         help="Last day to consider on data series")
 
-    parser.add_argument('--nseed',type=int,default=int(1e2),
+    parser.add_argument('--nseed',type=int,default=int(3),
                         help="number of realizations, not really a parameter")
     parser.add_argument('--seed0',type=int,default=1,
                         help="initial seed, not really a parameter")
@@ -220,6 +187,48 @@ def beta_func(beta,t):
 # Time intervals of a Poisson process follow an exponential distribution
 def time_dist(x):
     return -np.log(1-np.random.random())/x
+# -------------------------
+
+def day_data(mc_step,t,time,day,day_max,i,i_day,last_event=False):
+    """
+    Write number of infected per day instead of event
+    Also tracks day_max
+    """
+    if time//day == 1:
+        days_jumped = int(time-day)
+        #s_day[mc_step,day:day+days_jumped+1]=s[t:-1].sum()
+        #r_day[mc_step,day:day+days_jumped+1]=r[t]
+        i_day[mc_step,day:day+days_jumped+1]=i[t,:-1].sum()
+        day += days_jumped
+        day_max = max(day_max,day)
+        day += 1
+        return day
+    if last_event:
+        i_day[mc_step,day]=i[t,:-1].sum()
+        day_max = max(day_max,day)
+        day += 1
+        return day
+    return day
+# -------------------------
+
+def gillespie(t,time,s,i,r,beta,delta,k_rec,k_inf):
+    """
+    Time elapsed for the next event
+    Calls gillespie_step
+    """
+    stot = s[t,:-1].sum()
+    itot = i[t,:-1].sum()
+
+    lambda_sum = (delta+beta_func(beta,t)*stot)*itot
+    prob_heal = delta*i[t,:-1]/lambda_sum
+    prob_infect = beta_func(beta,t)*s[t,:-1]*itot/lambda_sum
+
+    t+=1
+    time += time_dist(lambda_sum)
+    #T[t] = time
+
+    gillespie_step(t,s,i,r,prob_heal,prob_infect,k_rec,k_inf)
+    return t,time
 # -------------------------
 
 def gillespie_step(t,s,i,r,prob_heal,prob_infect,k_rec,k_inf):
@@ -295,9 +304,13 @@ def cost_func(infected_time_series,i_m,i_std):
 
 
 if __name__ == "__main__":
-    #import traceback
+    import traceback
     try:
         main()
+    # handle error when running with --help
+    except SystemExit as error:
+        print(f"GGA CRASHED {1e20}")
+        print(repr(error))
     except:
-        print(f"GGA CRAHSED {1e20}")
-        #traceback.print.exc()
+        print(f"GGA CRASHED {1e20}")
+        traceback.print.exc()
