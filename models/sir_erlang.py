@@ -1,5 +1,5 @@
 """
-Stochastic mean-field sir model
+Stochastic mean-field SIR model
 Uses the Gillespie algorithm and erlang distribution transition times
 Pol Pastells, october 2020
 
@@ -76,7 +76,9 @@ def main():
     cost_func(infected_time_series,i_m,i_std)
 
     if save:
-        out_file = open("sir_erlang.dat","w")
+        import time
+        filename = "results/sir_erlang"+time.strftime("%d%m_%H%M%S")+".dat"
+        out_file = open(filename,"w")
         out_file.write(f"#{args}\n")
         for day in range(day_max):
             out_file.write(f"{i_m[day]}, {i_std[day]}\n")
@@ -93,9 +95,10 @@ def parsing():
     input parameters
     """
     import argparse
-    parser = argparse.ArgumentParser(description='stochastic mean-field sir model using the \
-                                     Gillespie algorithm and erlang distribution transition times',
-                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser = argparse.ArgumentParser(description=\
+            'Stochastic mean-field SIR model using the Gillespie algorithm and Erlang \
+            distribution transition times.',
+            formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument('--n',type=int,default=int(1e4),
                         help="Fixed number of (effecitve) people [1000,1000000]")
@@ -121,7 +124,7 @@ def parsing():
     parser.add_argument('--day_max',type=int,default=58,
                         help="Last day to consider on data series")
 
-    parser.add_argument('--nseed',type=int,default=int(3),
+    parser.add_argument('--nseed',type=int,default=int(5),
                         help="number of realizations, not really a parameter")
     parser.add_argument('--seed0',type=int,default=1,
                         help="initial seed, not really a parameter")
@@ -339,7 +342,6 @@ def cost_func(infected_time_series,i_m,i_std):
     cost = np.sqrt(cost)
     print(f"GGA SUCCESS {cost}")
 # ~~~~~~~~~~~~~~~~~~~
-
 
 
 if __name__ == "__main__":

@@ -1,5 +1,5 @@
 """
-Stochastic mean-field sir model
+Stochastic mean-field SIR model
 using the Gillespie algorithm and Erlang distribution transition times
 It allows for different sections with different n, delta and beta
 Pol Pastells, october 2020
@@ -78,7 +78,9 @@ def main():
     cost_func(infected_time_series,i_m,i_std)
 
     if save:
-        out_file = open("sir_erlang_sections.dat","w")
+        import time
+        filename = "results/sir_erlang_sections"+time.strftime("%d%m_%H%M%S")+".dat"
+        out_file = open(filename,"w")
         out_file.write(f"#{args}\n")
         for day in range(day_max):
             out_file.write(f"{i_m[day]}, {i_std[day]}\n")
@@ -98,7 +100,7 @@ def parsing():
     """
     import argparse
     parser = argparse.ArgumentParser(description=\
-            'Stochastic mean-field sir model using the Gillespie algorithm and Erlang \
+            'Stochastic mean-field SIR model using the Gillespie algorithm and Erlang \
             distribution transition times. It allows for different sections with different \
             n, delta and beta: same number of arguments must be specified for all three, \
             and one more for section_days.',
