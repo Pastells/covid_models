@@ -1,5 +1,5 @@
 """
-stochastic mean-field sir model
+Stochastic mean-field sir model
 Uses the Gillespie algorithm and erlang distribution transition times
 Pol Pastells, october 2020
 
@@ -16,8 +16,8 @@ import matplotlib.pyplot as plt
 # %%%%%%%%%%%%%%%%%%%%%%%%%
 def main():
     args = parsing()
-    i_0,r_0,t_steps,t_total,nseed,seed0,plot,infected_time_series,n, \
-    k_inf,k_rec,beta,delta = parameters_init(args)
+    i_0,r_0,t_steps,t_total,nseed,seed0,plot,save,infected_time_series, \
+    n,k_inf,k_rec,beta,delta = parameters_init(args)
 
 
 # results per day and seed
@@ -53,10 +53,10 @@ def main():
             #if time//add_n==1:
                 #add_n += 30
                 #s[t] += float(n)/2
-            day = day_data(mc_step,t,time,day,day_max,i,i_day)
+            day,day_max = day_data(mc_step,t,time,day,day_max,i,i_day)
             t,time = gillespie(t,time,s,i,r,beta,delta,k_rec,k_inf)
         # -------------------------
-        day = day_data(mc_step,t,time,day,day_max,i,i_day,True)
+        day,day_max = day_data(mc_step,t,time,day,day_max,i,i_day,True)
 
 
         # final value for the rest of time, otherwise it contributes with a zero when averaged
@@ -64,46 +64,26 @@ def main():
         i_day[mc_step,day:] = i_day[mc_step,day-1]
         #r_day[mc_step,day:] = r_day[mc_step,day-1]
 
-        if plot:
-            plt.plot(i_day[mc_step,:])
+        # plot all trajectories
+        #if plot:
+            #plt.plot(i_day[mc_step,:])
             #plt.plot(T[:t],i[:t,:-1].sum(1),c='c')
         mc_step += 1
 # =========================
 
-    check_realization_alive=day_max//2
-
-    for i in range(nseed):
-        if i_day[i,check_realization_alive]!=0:
-            x_var = i_day[i]
-            alive_realizations = 1
-            s_var = np.zeros(t_total+days_gap)
-            i_m = x_var
-            break
-
-    for j in range(i+1,nseed):
-        if i_day[j,check_realization_alive]!=0:
-            alive_realizations += 1
-            x_var = i_day[j]
-            i_m_1 = i_m
-            i_m = i_m_1 + (x_var-i_m_1)/alive_realizations
-            s_var = s_var + (x_var-i_m_1)*(x_var-i_m)
-
-    i_std = np.sqrt(s_var/(alive_realizations-1))
-
-    if nseed-alive_realizations>nseed*0.1:
-        print('The initial number of infected may be too low')
-        print(f'Alive realizations after {check_realization_alive} days = {alive_realizations},\
-              out of {nseed}')
-
-
-    plt.errorbar(np.arange(day_max),i_m[:day_max],yerr=i_std[:day_max],\
-                 marker='o',ls='',label='i mean')
-    plt.show()
-
-    #if plot:
-        #plotting(infected_time_series,i_day,day_max,i_95,i_m,i_std)
+    i_m, i_std = mean_alive(i_day,t_total,day_max,nseed,days_gap)
 
     cost_func(infected_time_series,i_m,i_std)
+
+    if save:
+        out_file = open("sir_erlang.dat","w")
+        out_file.write(f"#{args}\n")
+        for day in range(day_max):
+            out_file.write(f"{i_m[day]}, {i_std[day]}\n")
+        out_file.close()
+
+    if plot:
+        plotting(infected_time_series,i_day,day_max,i_95,i_m,i_std)
 # %%%%%%%%%%%%%%%%%%%%%%%%%
 # %%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -147,6 +127,8 @@ def parsing():
                         help="initial seed, not really a parameter")
     parser.add_argument('--plot',action='store_true',
                         help="specify for plots")
+    parser.add_argument('--save',action='store_true',
+                        help="specify for outputfile")
 
     args = parser.parse_args()
     print(args)
@@ -156,6 +138,9 @@ def parsing():
 # Parameters
 
 def parameters_init(args):
+    """
+    Initial parameters from argparse
+    """
     from numpy import genfromtxt
     i_0 = args.i_0
     r_0 = args.r_0
@@ -164,6 +149,7 @@ def parameters_init(args):
     nseed = args.nseed # MC realizations
     seed0 = args.seed0
     plot = args.plot
+    save = args.save
     infected_time_series = genfromtxt(args.data, delimiter=',')[args.day_min:args.day_max]
     #print(infected_time_series)
     n = args.n
@@ -171,22 +157,27 @@ def parameters_init(args):
     k_rec=args.k_rec
     beta = args.beta/n*k_inf
     delta = args.delta*k_rec
-    return i_0,r_0,t_steps,t_total,nseed,seed0,plot,infected_time_series,n,k_inf,k_rec,beta,delta
+    return i_0,r_0,t_steps,t_total,nseed,seed0,plot,save,infected_time_series,n,k_inf,k_rec,beta,delta
 
 # -------------------------
 
 def beta_func(beta,t):
+    """
+    returns beta as a function of time
+    """
     #t_conf = 20 # day of confinement
     #alpha = 0.5
     #delta_t = 5
     #if t<t_conf:
-        return beta
+    return beta
     #else:
         #return beta*alpha + beta*(1-alpha)*np.exp(-(t-t_conf)/delta_t)
 
-# Time intervals of a Poisson process follow an exponential distribution
-def time_dist(x):
-    return -np.log(1-np.random.random())/x
+def time_dist(lambd):
+    """
+    Time intervals of a Poisson process follow an exponential distribution
+    """
+    return -np.log(1-np.random.random())/lambd
 # -------------------------
 
 def day_data(mc_step,t,time,day,day_max,i,i_day,last_event=False):
@@ -200,15 +191,15 @@ def day_data(mc_step,t,time,day,day_max,i,i_day,last_event=False):
         #r_day[mc_step,day:day+days_jumped+1]=r[t]
         i_day[mc_step,day:day+days_jumped+1]=i[t,:-1].sum()
         day += days_jumped
-        day_max = max(day_max,day)
         day += 1
-        return day
+        day_max = max(day_max,day)
+        return day,day_max
     if last_event:
         i_day[mc_step,day]=i[t,:-1].sum()
-        day_max = max(day_max,day)
         day += 1
-        return day
-    return day
+        day_max = max(day_max,day)
+        return day,day_max
+    return day,day_max
 # -------------------------
 
 def gillespie(t,time,s,i,r,beta,delta,k_rec,k_inf):
@@ -232,7 +223,11 @@ def gillespie(t,time,s,i,r,beta,delta,k_rec,k_inf):
 # -------------------------
 
 def gillespie_step(t,s,i,r,prob_heal,prob_infect,k_rec,k_inf):
-# s and i have one extra dimension to temporally store the infected and recovered after k stages, due to the erlang distribution
+    """
+    Perform an event of the algorithm, either infect or recover a single individual
+    s and i have one extra dimension to temporally store the infected and recovered after k stages,
+    due to the Erlang distribution
+    """
     random = np.random.random()
     prob_heal_tot = prob_heal.sum()
 
@@ -260,32 +255,73 @@ def gillespie_step(t,s,i,r,prob_heal,prob_infect,k_rec,k_inf):
                 break
 # -------------------------
 
+def mean_alive(i_day,t_total,day_max,nseed,days_gap):
+    """
+    Given that we already have a pandemic to study,
+    we average only the alive realizations after an
+    (arbitrary) time equal to half the time of the longest
+    realization
+    The running variance is computed according to:
+        https://www.johndcook.com/blog/standard_deviation/
+    """
+    check_realization_alive=day_max//2
+
+    for i in range(nseed):
+        if i_day[i,check_realization_alive]!=0:
+            x_var = i_day[i]
+            alive_realizations = 1
+            s_var = np.zeros(t_total+days_gap)
+            i_m = x_var
+            break
+
+    for j in range(i+1,nseed):
+        if i_day[j,check_realization_alive]!=0:
+            alive_realizations += 1
+            x_var = i_day[j]
+            i_m_1 = i_m
+            i_m = i_m_1 + (x_var-i_m_1)/alive_realizations
+            s_var = s_var + (x_var-i_m_1)*(x_var-i_m)
+
+    i_std = np.sqrt(s_var/(alive_realizations-1))
+
+    if nseed-alive_realizations>nseed*0.1:
+        print('The initial number of infected may be too low')
+        print(f'Alive realizations after {check_realization_alive} days = {alive_realizations},\
+              out of {nseed}')
+    return i_m, i_std
+# -------------------------
+
 def plotting(infected_time_series,i_day,day_max,i_95,i_m,i_std):
+    """
+    If --plot is added makes some plots
+    """
+
     #s_m = s_day.mean(0)
-    i_m = i_day.mean(0)
-    i_std = i_day.std(0)
+    #i_m = i_day.mean(0)
+    #i_std = i_day.std(0)
     #r_m = r_day.mean(0)
     #s_std = s_day.std(0)
     #r_std = r_day.std(0)
     #print(r_m[day_max],"recovered individuals")
+
     plt.errorbar(np.arange(day_max),i_m[:day_max],yerr=i_std[:day_max],\
                  marker='o',ls='',label='i mean')
     plt.show()
+
+    #i_m = np.median(i_day,0)
+
+    #alpha = 0.70
+    #p_l = ((1.0-alpha)/2.0) * 100
+    #p_u = (alpha+((1.0-alpha)/2.0)) * 100
+    #i_95[:,0] = np.percentile(i_day, p_l,0)
+    #i_95[:,1] = np.percentile(i_day, p_u,0)
+
+    #plt.plot(i_m,'o',c='orange',label='i median')
+    #plt.plot(i_95[:,0],c='orange')
+    #plt.plot(i_95[:,1],c='orange')
+
     plt.errorbar(np.arange(day_max),i_m[:day_max],yerr=i_std[:day_max],\
                  marker='o',ls='',label='i mean')
-
-    i_m = np.median(i_day,0)
-
-    alpha = 0.70
-    p_l = ((1.0-alpha)/2.0) * 100
-    p_u = (alpha+((1.0-alpha)/2.0)) * 100
-    i_95[:,0] = np.percentile(i_day, p_l,0)
-    i_95[:,1] = np.percentile(i_day, p_u,0)
-
-    plt.plot(i_m,'o',c='orange',label='i median')
-    plt.plot(i_95[:,0],c='orange')
-    plt.plot(i_95[:,1],c='orange')
-
     plt.plot(infected_time_series,'o',label='data')
     plt.legend()
     plt.show()
@@ -294,6 +330,9 @@ def plotting(infected_time_series,i_day,day_max,i_95,i_m,i_std):
 # Output
 # ~~~~~~~~~~~~~~~~~~~
 def cost_func(infected_time_series,i_m,i_std):
+    """
+    compute cost function with a weighted mean squared error
+    """
     cost = 0
     for i,_ in enumerate(infected_time_series):
         cost += (i_m[i]-infected_time_series[i])**2/(1+i_std[i])
