@@ -144,6 +144,7 @@ def cost_func(infected_time_series, i_m, i_std):
     compute cost function with a weighted mean squared error
     """
     import sys
+
     cost = 0
     for i, _ in enumerate(infected_time_series):
         cost += (i_m[i] - infected_time_series[i]) ** 2 / (1 + i_std[i])

@@ -14,6 +14,8 @@ import utils
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%
 # %%%%%%%%%%%%%%%%%%%%%%%%%
+
+
 def main():
     args = parsing()
     (
@@ -35,12 +37,10 @@ def main():
 
     # results per day and seed
     days_gap = 5
-    # s_day,s_m,s_95 = np.zeros([mc_nseed,t_total+days_gap]),np.zeros(t_total+days_gap),np.zeros([t_total+days_gap,2])
     i_day, i_m = (
         np.zeros([mc_nseed, t_total + days_gap]),
         np.zeros(t_total + days_gap),
     )
-    # r_day,r_m,r_95 = np.zeros([mc_nseed,t_total+days_gap]),np.zeros(t_total+days_gap),np.zeros([t_total+days_gap,2])
 
     mc_step, day_max = 0, 0
     # =========================

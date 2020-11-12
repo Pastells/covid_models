@@ -13,6 +13,8 @@ import utils
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%
 # %%%%%%%%%%%%%%%%%%%%%%%%%
+
+
 def main():
     args = parsing()
     (
@@ -135,11 +137,14 @@ def parsing():
     parser.add_argument(
         "--mc_nseed",
         type=int,
-        default=int(5),
+        default=int(1e3),
         help="Number of MC realizations, not really a parameter",
     )
     parser.add_argument(
-        "--mc_seed0", type=int, default=1, help="Initial MC seed, not really a parameter"
+        "--mc_seed0",
+        type=int,
+        default=1,
+        help="Initial MC seed, not really a parameter",
     )
     parser.add_argument("--plot", action="store_true", help="specify for plots")
     parser.add_argument("--save", action="store_true", help="specify for outputfile")
