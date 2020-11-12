@@ -23,8 +23,8 @@ def main():
         r_0,
         t_steps,
         t_total,
-        nseed,
-        seed0,
+        mc_nseed,
+        mc_seed0,
         plot,
         save,
         infected_time_series,
@@ -39,7 +39,7 @@ def main():
     # results per day and seed
     days_gap = 5
     i_day, i_m = (
-        np.zeros([nseed, t_total + days_gap]),
+        np.zeros([mc_nseed, t_total + days_gap]),
         np.zeros(t_total + days_gap),
     )
 
@@ -47,7 +47,7 @@ def main():
     # =========================
     # MC loop
     # =========================
-    for seed in range(seed0, seed0 + nseed):
+    for seed in range(mc_seed0, mc_seed0 + mc_nseed):
         np.random.seed(seed)
 
         # -------------------------
@@ -84,7 +84,7 @@ def main():
 
         mc_step += 1
     # =========================
-    i_m, i_std = utils.mean_alive(i_day, t_total, day_max, nseed, days_gap)
+    i_m, i_std = utils.mean_alive(i_day, t_total, day_max, mc_nseed, days_gap)
 
     utils.cost_func(infected_time_series, i_m, i_std)
 
@@ -154,7 +154,7 @@ def parsing():
     )
 
     parser.add_argument(
-        "--llavor", type=int, default=1, help="Llavor from the automatic configuration"
+        "--seed", type=int, default=1, help="Seed for the automatic configuration"
     )
     parser.add_argument(
         "--data", type=str, default="../data/italy_i.csv", help="File with time series"
@@ -167,13 +167,16 @@ def parsing():
     )
 
     parser.add_argument(
-        "--nseed",
+        "--mc_nseed",
         type=int,
         default=int(5),
-        help="number of realizations, not really a parameter",
+        help="Number of MC realizations, not really a parameter",
     )
     parser.add_argument(
-        "--seed0", type=int, default=1, help="initial seed, not really a parameter"
+        "--mc_seed0",
+        type=int,
+        default=1,
+        help="Initial MC seed, not really a parameter",
     )
     parser.add_argument("--plot", action="store_true", help="specify for plots")
     parser.add_argument("--save", action="store_true", help="specify for outputfile")
@@ -197,8 +200,8 @@ def parameters_init(args):
     r_0 = args.r_0
     t_steps = int(1e6)  # max simulation steps
     t_total = (args.day_max - args.day_min) * 2  # max simulated days
-    nseed = args.nseed  # MC realizations
-    seed0 = args.seed0
+    mc_nseed = args.mc_nseed  # MC realizations
+    mc_seed0 = args.mc_seed0
     plot = args.plot
     save = args.save
     infected_time_series = genfromtxt(args.data, delimiter=",")[
@@ -218,8 +221,8 @@ def parameters_init(args):
         r_0,
         t_steps,
         t_total,
-        nseed,
-        seed0,
+        mc_nseed,
+        mc_seed0,
         plot,
         save,
         infected_time_series,
