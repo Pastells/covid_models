@@ -10,7 +10,7 @@ r[t] = r[t-1] + delta1 *e[t-1] + delta2 * i[t-1]
 """
 
 import numpy as np
-import matplotlib.pyplot as plt
+import utils
 
 
 def main():
@@ -41,10 +41,9 @@ def main():
     days_gap = 5
     # s_day, s_m, s_95 = np.zeros([nseed, t_total+days_gap]), np.zeros(t_total+days_gap), np.zeros([t_total+days_gap, 2])
     # e_day, e_m, e_95 = np.zeros([nseed, t_total+days_gap]), np.zeros(t_total+days_gap), np.zeros([t_total+days_gap, 2])
-    i_day, i_m, i_95 = (
+    i_day, i_m = (
         np.zeros([nseed, t_total + days_gap]),
         np.zeros(t_total + days_gap),
-        np.zeros([t_total + days_gap, 2]),
     )
     # r_day, r_m, r_95 = np.zeros([nseed, t_total+days_gap]), np.zeros(t_total+days_gap), np.zeros([t_total+days_gap, 2])
 
@@ -78,7 +77,7 @@ def main():
 
         # Time loop
         while i[t, :-1].sum() > 0 and day < t_total - 1:
-            day, day_max = day_data(mc_step, t, time, day, day_max, i, i_day)
+            day, day_max = utils.day_data_k(mc_step, t, time, day, day_max, i, i_day)
             t, time = gillespie(
                 t_total,
                 t,
@@ -100,6 +99,7 @@ def main():
                 break
 
         # -------------------------
+        day, day_max = utils.day_data_k(mc_step, t, time, day, day_max, i, i_day, True)
         # final value for the rest of time,  otherwise it contributes with a zero when averaged
         # s_day[mc_step, day:] = s_day[mc_step, day-1]
         # e_day[mc_step, day:] = e_day[mc_step, day-1]
@@ -118,26 +118,18 @@ def main():
         mc_step += 1
     # =========================
 
-    i_m, i_std = mean_alive(i_day, t_total, day_max, nseed, days_gap)
+    i_m, i_std = utils.mean_alive(i_day, t_total, day_max, nseed, days_gap)
 
-    cost_func(infected_time_series, i_m, i_std)
+    utils.cost_func(infected_time_series, i_m, i_std)
 
     if save:
-        import time
-
-        filename = "results/seir_erlang" + time.strftime("%d%m_%H%M%S") + ".dat"
-        with open(filename, "w") as out_file:
-            out_file.write(f"#{args}\n")
-            for day in range(day_max):
-                out_file.write(f"{i_m[day]},  {i_std[day]}\n")
+        utils.saving(args, i_m, i_std, day_max)
 
     if plot:
-        plotting(infected_time_series, i_day, day_max, i_95, i_m, i_std)
+        utils.plotting(infected_time_series, i_day, day_max, i_m, i_std)
 
 
 # -------------------------
-
-
 def parsing():
     """
     input parameters
@@ -157,7 +149,7 @@ def parsing():
         "--e_0", type=int, default=0, help="initial number of latent individuals"
     )
     parser.add_argument(
-        "--i_0", type=int, default=10, help="initial number of infected individuals"
+        "--i_0", type=int, default=20, help="initial number of infected individuals"
     )
     parser.add_argument(
         "--r_0", type=int, default=0, help="initial number of inmune individuals"
@@ -171,7 +163,7 @@ def parsing():
     parser.add_argument(
         "--delta2",
         type=float,
-        default=1,
+        default=0.2,
         help="ratio of recovery from infected fase (i->r)",
     )
     parser.add_argument(
@@ -184,7 +176,7 @@ def parsing():
         "--beta1", type=float, default=0, help="ratio of infection due to latent"
     )
     parser.add_argument(
-        "--beta2", type=float, default=1.5, help="ratio of infection due to infected"
+        "--beta2", type=float, default=0.5, help="ratio of infection due to infected"
     )
     parser.add_argument(
         "--k_inf",
@@ -229,8 +221,6 @@ def parsing():
 
 # -------------------------
 # Parameters
-
-
 def parameters_init(args):
     """
     Initial parameters from argparse
@@ -246,7 +236,7 @@ def parameters_init(args):
     seed0 = args.seed0
     plot = args.plot
     save = args.save
-    infected_time_series = genfromtxt(args.data, delimiter=", ")[
+    infected_time_series = genfromtxt(args.data, delimiter=",")[
         args.day_min : args.day_max
     ]
     # print(infected_time_series)
@@ -280,57 +270,6 @@ def parameters_init(args):
         epsilon,
         delta2,
     )
-
-
-# -------------------------
-
-
-def beta_func(beta, t):
-    """
-    returns beta as a function of time
-    """
-    # t_conf = 20 # day of confinement
-    # alpha = 0.5
-    # delta_t = 5
-    # if t<t_conf:
-    return beta
-    # else:
-    # return beta*alpha + beta*(1-alpha)*np.exp(-(t-t_conf)/delta_t)
-
-
-def time_dist(lambd):
-    """
-    Time intervals of a Poisson process follow an exponential distribution
-    """
-    return -np.log(1 - np.random.random()) / lambd
-
-
-# -------------------------
-
-
-def day_data(mc_step, t, time, day, day_max, i, i_day, last_event=False):
-    """
-    Write number of infected per day instead of event
-    Also tracks day_max
-    """
-    if time // day == 1:
-        days_jumped = int(time - day)
-        # s_day[mc_step, day:day+days_jumped+1]=s[t:-1].sum()
-        # r_day[mc_step, day:day+days_jumped+1]=r[t]
-        i_day[mc_step, day : day + days_jumped + 1] = i[t, :-1].sum()
-        day += days_jumped
-        day += 1
-        day_max = max(day_max, day)
-        return day, day_max
-    if last_event:
-        i_day[mc_step, day] = i[t, :-1].sum()
-        day += 1
-        day_max = max(day_max, day)
-        return day, day_max
-    return day, day_max
-
-
-# -------------------------
 
 
 def gillespie(
@@ -373,7 +312,7 @@ def gillespie(
     prob_infect = (beta1 * etot + beta2 * itot) * s[t, :-1] / lambda_sum
 
     t += 1
-    time += time_dist(lambda_sum)
+    time += utils.time_dist(lambda_sum)
     if time > t_total:
         return t, True  # rare,  but sometimes long times may appear
     # T[t] = time
@@ -468,126 +407,6 @@ def gillespie_step(
 
 
 # -------------------------
-
-
-def mean_alive(i_day, t_total, day_max, nseed, days_gap):
-    """
-    Given that we already have a pandemic to study,
-    we average only the alive realizations after an
-    (arbitrary) time equal to half the time of the longest
-    realization
-    The running variance is computed according to:
-        https://www.johndcook.com/blog/standard_deviation/
-    """
-    check_realization_alive = day_max // 2
-
-    for i in range(nseed):
-        if i_day[i, check_realization_alive] != 0:
-            x_var = i_day[i]
-            alive_realizations = 1
-            s_var = np.zeros(t_total + days_gap)
-            i_m = x_var
-            break
-
-    for j in range(i + 1, nseed):
-        if i_day[j, check_realization_alive] != 0:
-            alive_realizations += 1
-            x_var = i_day[j]
-            i_m_1 = i_m
-            i_m = i_m_1 + (x_var - i_m_1) / alive_realizations
-            s_var = s_var + (x_var - i_m_1) * (x_var - i_m)
-
-    i_std = np.sqrt(s_var / (alive_realizations - 1))
-
-    if nseed - alive_realizations > nseed * 0.1:
-        print("The initial number of infected may be too low")
-        print(
-            f"Alive realizations after {check_realization_alive} days = {alive_realizations}, \
-              out of {nseed}"
-        )
-    return i_m, i_std
-
-
-# -------------------------
-
-
-def plotting(infected_time_series, i_day, day_max, i_95, i_m, i_std):
-    """
-    If --plot is added makes some plots
-    """
-    # spacing = 100
-    # plt.plot(T[:t:spacing], s[:t:spacing, :-1].sum(1), label='s', c='r')
-    # plt.plot(T[:t:spacing], e[:t:spacing, :-1, 0].sum(1), label='e_rec', c='g')
-    # plt.plot(T[:t:spacing], e[:t:spacing, :-1, 1].sum(1), label='e_inf', c='b')
-    # plt.plot(T[:t:spacing], i[:t:spacing, :-1].sum(1), label='i', c='c')
-    # plt.plot(T[:t:spacing], r[:t:spacing], label='r', c='m')
-    # plt.legend()
-    # plt.show()
-
-    # s_m = s_day.mean(0)
-    # e_m = e_day.mean(0)
-    # i_m = i_day.mean(0)
-    # r_m = r_day.mean(0)
-    # s_std = s_day.std(0)
-    # e_std = e_day.std(0)
-    # i_std = i_day.std(0)
-    # r_std = r_day.std(0)
-
-    # plt.errorbar(np.arange(day_max), s_m[:day_max], yerr=s_std[:day_max])
-    # plt.errorbar(np.arange(day_max), e_m[:day_max], yerr=e_std[:day_max])
-    # plt.errorbar(np.arange(day_max), i_m[:day_max], yerr=i_std[:day_max], marker='o', ls='', label='i mean')
-    # plt.errorbar(np.arange(day_max), r_m[:day_max], yerr=r_std[:day_max])
-
-    plt.errorbar(
-        np.arange(day_max),
-        i_m[:day_max],
-        yerr=i_std[:day_max],
-        marker="o",
-        ls="",
-        label="i mean",
-    )
-    plt.show()
-
-    # i_m = np.median(i_day, 0)
-
-    # alpha = 0.70
-    # p_l = ((1.0-alpha)/2.0) * 100
-    # p_u = (alpha+((1.0-alpha)/2.0)) * 100
-    # i_95[:, 0] = np.percentile(i_day,  p_l, 0)
-    # i_95[:, 1] = np.percentile(i_day,  p_u, 0)
-
-    # plt.plot(i_m, 'o', c='orange', label='i median')
-    # plt.plot(i_95[:, 0], c='orange')
-    # plt.plot(i_95[:, 1], c='orange')
-
-    plt.errorbar(
-        np.arange(day_max),
-        i_m[:day_max],
-        yerr=i_std[:day_max],
-        marker="o",
-        ls="",
-        label="i mean",
-    )
-    plt.plot(infected_time_series, "o", label="data")
-    plt.legend()
-    plt.show()
-
-
-# ~~~~~~~~~~~~~~~~~~~
-# Output
-# ~~~~~~~~~~~~~~~~~~~
-def cost_func(infected_time_series, i_m, i_std):
-    """
-    compute cost function with a weighted mean squared error
-    """
-    cost = 0
-    for i in range(len(infected_time_series)):
-        cost += (i_m[i] - infected_time_series[i]) ** 2 / (1 + i_std[i])
-    cost = np.sqrt(cost)
-    print(f"GGA SUCCESS {cost}")
-
-
-# ~~~~~~~~~~~~~~~~~~~
 
 
 if __name__ == "__main__":
