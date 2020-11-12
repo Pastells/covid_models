@@ -215,7 +215,7 @@ def parsing():
     parser.add_argument("--save", action="store_true", help="specify for outputfile")
 
     args = parser.parse_args()
-    print(args)
+    # print(args)
     return args
 
 
@@ -411,13 +411,14 @@ def gillespie_step(
 
 if __name__ == "__main__":
     import traceback
+    import sys
 
     try:
         main()
     # handle error when running with --help
     except SystemExit as error:
-        print(f"GGA CRASHED {1e20}")
-        print(repr(error))
+        sys.stdout.write(f"GGA CRASHED {1e20}\n")
+        sys.stdout.write(f"{repr(error)}\n")
     except:
-        print(f"GGA CRASHED {1e20}")
+        sys.stdout.write(f"GGA CRASHED {1e20}\n")
         traceback.print.exc()
