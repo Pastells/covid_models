@@ -81,10 +81,6 @@ def main():
 
         # -------------------------
         day, day_max = utils.day_data_k(mc_step, t, time, day, day_max, i, i_day, True)
-        # final value for the rest of time, otherwise it contributes with a zero when averaged
-        # s_day[mc_step,day:] = s_day[mc_step,day-1]
-        i_day[mc_step, day:] = i_day[mc_step, day - 1]
-        # r_day[mc_step,day:] = r_day[mc_step,day-1]
 
         # plot all trajectories
         # if plot:
@@ -285,8 +281,8 @@ def gillespie(t, time, s, i, r, beta, delta, k_rec, k_inf):
 def gillespie_step(t, s, i, r, prob_heal, prob_infect, k_rec, k_inf):
     """
     Perform an event of the algorithm, either infect or recover a single individual
-    s and i have one extra dimension to temporally store the infected and recovered after k stages,
-    due to the Erlang distribution
+    s and i have one extra dimension to temporally store the infected and recovered
+    after k stages, due to the Erlang distribution
     """
     random = np.random.random()
     prob_heal_tot = prob_heal.sum()

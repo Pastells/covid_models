@@ -258,8 +258,8 @@ def gillespie(t, time, s, i, r, beta, delta, k_rec, k_inf):
 def gillespie_step(t, s, i, r, prob_heal, prob_infect, k_rec, k_inf):
     """
     Perform an event of the algorithm, either infect or recover a single individual
-    s and i have one extra dimension to temporally store the infected and recovered after k stages,
-    due to the Erlang distribution
+    s and i have one extra dimension to temporally store the infected and recovered
+    after k stages, due to the Erlang distribution
     """
     random = np.random.random()
     prob_heal_tot = prob_heal.sum()

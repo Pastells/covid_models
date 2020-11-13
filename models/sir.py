@@ -33,7 +33,7 @@ def main():
     ) = parameters_init(args)
 
     # results per day and seed
-    days_gap = 5
+    days_gap = 10
     i_day, i_m = (
         np.zeros([mc_nseed, t_total + days_gap]),
         np.zeros(t_total + days_gap),
@@ -64,11 +64,6 @@ def main():
             t, time = gillespie(t, time, s, i, r, beta, delta)
         # -------------------------
         day, day_max = utils.day_data(mc_step, t, time, day, day_max, i, i_day, True)
-
-        # final value for the rest of time, otherwise it contributes with a zero when averaged
-        # s_day[mc_step,day:] = s_day[mc_step,day-1]
-        i_day[mc_step, day:] = i_day[mc_step, day - 1]
-        # r_day[mc_step, day:] = r_day[mc_step, day - 1]
 
         mc_step += 1
     # =========================
@@ -167,7 +162,7 @@ def parameters_init(args):
     i_0 = args.i_0
     r_0 = args.r_0
     t_steps = int(1e7)  # max simulation steps
-    t_total = 100  # max simulated days
+    t_total = args.day_max - args.day_min  # max simulated days
     mc_nseed = args.mc_nseed  # MC realizations
     mc_seed0 = args.mc_seed0
     plot = args.plot

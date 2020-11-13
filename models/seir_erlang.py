@@ -38,7 +38,7 @@ def main():
     ) = parameters_init(args)
 
     # results per day and seed
-    days_gap = 5
+    days_gap = 10
     # s_day, s_m, s_95 = np.zeros([mc_nseed, t_total+days_gap]), np.zeros(t_total+days_gap), np.zeros([t_total+days_gap, 2])
     # e_day, e_m, e_95 = np.zeros([mc_nseed, t_total+days_gap]), np.zeros(t_total+days_gap), np.zeros([t_total+days_gap, 2])
     i_day, i_m = (
@@ -100,11 +100,6 @@ def main():
 
         # -------------------------
         day, day_max = utils.day_data_k(mc_step, t, time, day, day_max, i, i_day, True)
-        # final value for the rest of time,  otherwise it contributes with a zero when averaged
-        # s_day[mc_step, day:] = s_day[mc_step, day-1]
-        # e_day[mc_step, day:] = e_day[mc_step, day-1]
-        i_day[mc_step, day:] = i_day[mc_step, day - 1]
-        # r_day[mc_step, day:] = r_day[mc_step, day-1]
 
         """
         if plot:
@@ -241,7 +236,7 @@ def parameters_init(args):
     i_0 = args.i_0
     r_0 = args.r_0
     t_steps = int(1e7)  # max simulation steps
-    t_total = (args.day_max - args.day_min) * 2  # max simulated days
+    t_total = args.day_max - args.day_min  # max simulated days
     mc_nseed = args.mc_nseed  # MC realizations
     mc_seed0 = args.mc_seed0
     plot = args.plot
@@ -351,9 +346,9 @@ def gillespie_step(
     t, s, e, i, r, prob_heal1, prob_heal2, prob_latent, prob_infect, k_rec, k_lat, k_inf
 ):
     """
-    Perform an event of the algorithm,  either infect or recover a single individual
-    s and i have one extra dimension to temporally store the infected and recovered after k stages,
-    due to the Erlang distribution
+    Perform an event of the algorithm, either infect or recover a single individual
+    s and i have one extra dimension to temporally store the infected and recovered
+    after k stages, due to the Erlang distribution
     """
     random = np.random.random()
     prob_heal1_tot = prob_heal1.sum()
