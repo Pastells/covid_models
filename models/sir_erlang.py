@@ -9,8 +9,6 @@ i[t] = i[t-1] + beta*i[t-1]*s[t-1] - delta * i[t-1]
 r[t] = r[t-1] + delta * i[t-1]
 """
 
-import numpy as np
-import utils
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%
 # %%%%%%%%%%%%%%%%%%%%%%%%%
@@ -109,9 +107,7 @@ def main():
 
 
 def parsing():
-    """
-    input parameters
-    """
+    """input parameters"""
     import argparse
 
     parser = argparse.ArgumentParser(
@@ -192,9 +188,7 @@ def parsing():
 
 
 def parameters_init(args):
-    """
-    Initial parameters from argparse
-    """
+    """Initial parameters from argparse"""
     from numpy import genfromtxt
 
     i_0 = args.i_0
@@ -295,15 +289,12 @@ def gillespie_step(t, s, i, r, prob_heal, prob_infect, k_rec, k_inf):
 
 
 if __name__ == "__main__":
-    import traceback
+    import numpy as np
+    import utils
     import sys
 
     try:
         main()
-    # handle error when running with --help
-    except SystemExit as error:
+    except Exception as ex:
         sys.stdout.write(f"GGA CRASHED {1e20}\n")
-        sys.stdout.write(f"{repr(error)}\n")
-    except:
-        sys.stdout.write(f"GGA CRASHED {1e20}\n")
-        traceback.print.exc()
+        sys.stdout.write(f"{repr(ex)}\n")

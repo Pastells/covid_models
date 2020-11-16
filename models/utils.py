@@ -9,9 +9,7 @@ import matplotlib.pyplot as plt
 
 
 def beta_func(beta, t):
-    """
-    returns beta as a function of time
-    """
+    """ returns beta as a function of time"""
     # t_conf = 20 # day of confinement
     # alpha = 0.5
     # delta_t = 5
@@ -25,9 +23,7 @@ def beta_func(beta, t):
 
 
 def time_dist(lambd):
-    """
-    Time intervals of a Poisson process follow an exponential distribution
-    """
+    """ Time intervals of a Poisson process follow an exponential distribution"""
     return -np.log(1 - np.random.random()) / lambd
 
 
@@ -76,9 +72,7 @@ def mean_alive(i_day, t_total, day_max, nseed):
 
 
 def plotting(infected_time_series, i_day, day_max, i_m, i_std):
-    """
-    If --plot is added makes some plots
-    """
+    """ If --plot is added makes some plots"""
 
     # s_m = s_day.mean(0)
     # i_m = i_day.mean(0)
@@ -124,9 +118,7 @@ def plotting(infected_time_series, i_day, day_max, i_m, i_std):
 
 
 def saving(args, i_m, i_std, day_max, program_name):
-    """
-    If --save is added creates an output file wicreates an output file with date and time
-    """
+    """ If --save is added creates an output file wicreates an output file with date and time"""
     import time
 
     filename = f"results/{program_name}" + time.strftime("%d%m_%H%M%S") + ".dat"
@@ -140,9 +132,7 @@ def saving(args, i_m, i_std, day_max, program_name):
 # Output
 # ~~~~~~~~~~~~~~~~~~~
 def cost_func(infected_time_series, i_m, i_std):
-    """
-    compute cost function with a weighted mean squared error
-    """
+    """ compute cost function with a weighted mean squared error"""
     import sys
 
     pad = len(infected_time_series) - len(i_m)
