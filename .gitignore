@@ -1,6 +1,7 @@
 other/
 network/
 models/*.dat
+models/*.sh
 models/old/
 models/results/*
 !models/results/.gitkeep

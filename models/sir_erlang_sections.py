@@ -93,7 +93,7 @@ def main():
     utils.cost_func(infected_time_series, i_m, i_std)
 
     if save:
-        utils.saving(args, i_m, i_std, day_max)
+        utils.saving(args, i_m, i_std, day_max, "sir_erlang_sections")
 
     if plot:
         utils.plotting(infected_time_series, i_day, day_max, i_m, i_std)

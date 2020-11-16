@@ -123,13 +123,13 @@ def plotting(infected_time_series, i_day, day_max, i_m, i_std):
     plt.show()
 
 
-def saving(args, i_m, i_std, day_max):
+def saving(args, i_m, i_std, day_max, program_name):
     """
     If --save is added creates an output file wicreates an output file with date and time
     """
     import time
 
-    filename = "results/sir" + time.strftime("%d%m_%H%M%S") + ".dat"
+    filename = f"results/{program_name}" + time.strftime("%d%m_%H%M%S") + ".dat"
     with open(filename, "w") as out_file:
         out_file.write(f"#{args}\n")
         for day in range(day_max):
