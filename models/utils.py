@@ -34,7 +34,7 @@ def time_dist(lambd):
 # -------------------------
 
 
-def mean_alive(i_day, t_total, day_max, nseed, days_gap):
+def mean_alive(i_day, t_total, day_max, nseed):
     """
     Given that we already have a pandemic to study,
     we average only the alive realizations after an
@@ -49,7 +49,7 @@ def mean_alive(i_day, t_total, day_max, nseed, days_gap):
         if i_day[i, check_realization_alive] != 0:
             x_var = i_day[i]
             alive_realizations = 1
-            s_var = np.zeros(t_total + days_gap)
+            s_var = np.zeros(t_total)
             i_m = x_var
             break
 
@@ -145,6 +145,12 @@ def cost_func(infected_time_series, i_m, i_std):
     """
     import sys
 
+    pad = len(infected_time_series) - len(i_m)
+
+    if pad > 0:
+        i_m = np.pad(i_m, (0, pad), "constant")
+        i_std = np.pad(i_std, (0, pad), "constant")
+
     cost = 0
     for i, _ in enumerate(infected_time_series):
         cost += (i_m[i] - infected_time_series[i]) ** 2 / (1 + i_std[i])
@@ -159,22 +165,24 @@ Functions with two versions
 """
 
 
-def day_data(mc_step, t, time, day, day_max, i, i_day, last_event=False):
+def day_data(mc_step, t, time, t_total, day, day_max, i, i_day, last_event=False):
     """
     Write number of infected per day instead of event
     Also tracks day_max
     """
     if last_event:
         # final value for rest of time, otherwise contributes with zero when averaged
-        i_day[mc_step, day:] = i[t]
-        day += 1
+        days_jumped = int(time - day)
+        max_days = min(day + days_jumped + 1, t_total)
+        i_day[mc_step, day:max_days] = i[t]
+        day = max_days
         day_max = max(day_max, day)
         return day, day_max
     if time // day == 1:
         days_jumped = int(time - day)
-        i_day[mc_step, day : day + days_jumped + 1] = i[t]
-        day += days_jumped
-        day += 1
+        max_days = min(day + days_jumped + 1, t_total)
+        i_day[mc_step, day:max_days] = i[t]
+        day = max_days
         day_max = max(day_max, day)
         return day, day_max
     return day, day_max
@@ -183,23 +191,25 @@ def day_data(mc_step, t, time, day, day_max, i, i_day, last_event=False):
 # -------------------------
 
 
-def day_data_k(mc_step, t, time, day, day_max, i, i_day, last_event=False):
+def day_data_k(mc_step, t, time, t_total, day, day_max, i, i_day, last_event=False):
     """
     Write number of infected per day instead of event
     Also tracks day_max
     """
     if last_event:
-        i_day[mc_step, day:] = i[t, :-1].sum()
-        day += 1
+        days_jumped = int(time - day)
+        max_days = min(day + days_jumped + 1, t_total)
+        i_day[mc_step, day:max_days] = i[t, :-1].sum()
+        day = max_days
         day_max = max(day_max, day)
         return day, day_max
     if time // day == 1:
         days_jumped = int(time - day)
+        max_days = min(day + days_jumped + 1, t_total)
+        i_day[mc_step, day:max_days] = i[t, :-1].sum()
         # s_day[mc_step,day:day+days_jumped+1]=s[t:-1].sum()
         # r_day[mc_step,day:day+days_jumped+1]=r[t]
-        i_day[mc_step, day : day + days_jumped + 1] = i[t, :-1].sum()
-        day += days_jumped
-        day += 1
+        day = max_days
         day_max = max(day_max, day)
         return day, day_max
     return day, day_max

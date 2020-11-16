@@ -31,13 +31,10 @@ def main():
     ) = parameters_init(args)
 
     # results per day and seed
-    days_gap = 10
-    # s_day,s_m,s_95 = np.zeros([mc_nseed,t_total+days_gap]),np.zeros(t_total+days_gap),np.zeros([t_total+days_gap,2])
     i_day, i_m = (
-        np.zeros([mc_nseed, t_total + days_gap]),
-        np.zeros(t_total + days_gap),
+        np.zeros([mc_nseed, t_total]),
+        np.zeros(t_total),
     )
-    # r_day,r_m,r_95 = np.zeros([mc_nseed,t_total+days_gap]),np.zeros(t_total+days_gap),np.zeros([t_total+days_gap,2])
 
     mc_step, day_max = 0, 0
     # =========================
@@ -68,7 +65,7 @@ def main():
             # Time loop
             while i[t, :-1].sum() > 0 and day < section_day:
                 day, day_max = utils.day_data_k(
-                    mc_step, t, time, day, day_max, i, i_day
+                    mc_step, t, time, t_total, day, day_max, i, i_day
                 )
                 t, time = gillespie(t, time, s, i, r, beta, delta, k_rec, k_inf)
 
@@ -80,7 +77,9 @@ def main():
                 s[t, :-1] = (n - i[t:-1].sum() - r[t]) / k_inf
 
         # -------------------------
-        day, day_max = utils.day_data_k(mc_step, t, time, day, day_max, i, i_day, True)
+        day, day_max = utils.day_data_k(
+            mc_step, t, time, day, t_total, day_max, i, i_day, True
+        )
 
         # plot all trajectories
         # if plot:
@@ -89,7 +88,7 @@ def main():
         mc_step += 1
     # =========================
 
-    i_m, i_std = utils.mean_alive(i_day, t_total, day_max, mc_nseed, days_gap)
+    i_m, i_std = utils.mean_alive(i_day, t_total, day_max, mc_nseed)
 
     utils.cost_func(infected_time_series, i_m, i_std)
 

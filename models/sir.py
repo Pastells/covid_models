@@ -33,10 +33,9 @@ def main():
     ) = parameters_init(args)
 
     # results per day and seed
-    days_gap = 10
     i_day, i_m = (
-        np.zeros([mc_nseed, t_total + days_gap]),
-        np.zeros(t_total + days_gap),
+        np.zeros([mc_nseed, t_total]),
+        np.zeros(t_total),
     )
 
     mc_step, day_max = 0, 0
@@ -60,15 +59,19 @@ def main():
 
         # Time loop
         while i[t] > 0.1 and day < t_total - 1:
-            day, day_max = utils.day_data(mc_step, t, time, day, day_max, i, i_day)
+            day, day_max = utils.day_data(
+                mc_step, t, time, t_total, day, day_max, i, i_day
+            )
             t, time = gillespie(t, time, s, i, r, beta, delta)
         # -------------------------
-        day, day_max = utils.day_data(mc_step, t, time, day, day_max, i, i_day, True)
+        day, day_max = utils.day_data(
+            mc_step, t, time, t_total, day, day_max, i, i_day, True
+        )
 
         mc_step += 1
     # =========================
 
-    i_m, i_std = utils.mean_alive(i_day, t_total, day_max, mc_nseed, days_gap)
+    i_m, i_std = utils.mean_alive(i_day, t_total, day_max, mc_nseed)
 
     utils.cost_func(infected_time_series, i_m, i_std)
 
