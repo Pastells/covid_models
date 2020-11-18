@@ -99,14 +99,15 @@ def parsing():
     """input parameters"""
     import argparse
 
-    parser = argparse.ArgumentParser(
-        description="Stochastic mean-fiel SEIR model using the Gillespie algorithm"
+    parser = utils.ArgumentParser(
+        description="stochastic mean-fiel SEIR model using the Gillespie algorithm",
+        formatter_class=argparse.MetavarTypeHelpFormatter,
     )
     parser.add_argument(
         "--n",
         type=int,
         default=int(1e4),
-        help="Fixed number of (effecitve) people [1000,1000000]",
+        help="parameter: fixed number of (effecitve) people [1000,1000000]",
     )
     parser.add_argument(
         "--e_0", type=int, default=0, help="initial number of latent individuals [1,n]"
@@ -124,54 +125,57 @@ def parsing():
         "--delta1",
         type=float,
         default=0,
-        help="ratio of recovery from latent fase (e->r) [1e-2,1]",
+        help="parameter: ratio of recovery from latent fase (e->r) [1e-2,1]",
     )
     parser.add_argument(
         "--delta2",
         type=float,
         default=0.2,
-        help="ratio of recovery from infected fase (i->r) [1e-2,1]",
+        help="parameter: ratio of recovery from infected fase (i->r) [1e-2,1]",
     )
     parser.add_argument(
         "--beta1",
         type=float,
         default=0,
-        help="ratio of infection due to latent [1e-2,1]",
+        help="parameter: ratio of infection due to latent [1e-2,1]",
     )
     parser.add_argument(
         "--beta2",
         type=float,
         default=0.5,
-        help="ratio of infection due to infected [1e-2,1]",
+        help="parameter: ratio of infection due to infected [1e-2,1]",
     )
     parser.add_argument(
-        "--epsilon", type=float, default=1, help="ratio of latency (e->i) [1e-2,1]"
+        "--epsilon",
+        type=float,
+        default=1,
+        help="parameter: ratio of latency (e->i) [1e-2,1]",
     )
 
     parser.add_argument(
-        "--seed", type=int, default=1, help="Seed for the automatic configuration"
+        "--seed", type=int, default=1, help="seed for the automatic configuration"
     )
     parser.add_argument(
-        "--data", type=str, default="../data/italy_i.csv", help="File with time series"
+        "--data", type=str, default="../data/italy_i.csv", help="file with time series"
     )
     parser.add_argument(
-        "--day_min", type=int, default=33, help="First day to consider on data series"
+        "--day_min", type=int, default=33, help="first day to consider on data series"
     )
     parser.add_argument(
-        "--day_max", type=int, default=58, help="Last day to consider on data series"
+        "--day_max", type=int, default=58, help="last day to consider on data series"
     )
 
     parser.add_argument(
         "--mc_nseed",
         type=int,
         default=int(5),
-        help="Number of MC realizations, not really a parameter",
+        help="number of mc realizations",
     )
     parser.add_argument(
         "--mc_seed0",
         type=int,
         default=1,
-        help="Initial MC seed, not really a parameter",
+        help="initial mc seed",
     )
     parser.add_argument("--plot", action="store_true", help="specify for plots")
     parser.add_argument("--save", action="store_true", help="specify for outputfile")

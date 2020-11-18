@@ -88,16 +88,17 @@ def parsing():
     """input parameters"""
     import argparse
 
-    parser = argparse.ArgumentParser(
+    parser = utils.ArgumentParser(
         description="stochastic mean-fiel sir model using the Gillespie algorithm",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        # formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        formatter_class=argparse.MetavarTypeHelpFormatter,
     )
 
     parser.add_argument(
         "--n",
         type=int,
         default=int(1e4),
-        help="Fixed number of (effecitve) people [1000,1000000]",
+        help="parameter: fixed number of (effecitve) people [1000,1000000]",
     )
     parser.add_argument(
         "--i_0",
@@ -109,36 +110,36 @@ def parsing():
         "--r_0", type=int, default=0, help="initial number of inmune individuals [0,n]"
     )
     parser.add_argument(
-        "--delta", type=float, default=0.2, help="ratio of recovery [1e-2,1]"
+        "--delta", type=float, default=0.2, help="parameter: ratio of recovery [1e-2,1]"
     )
     parser.add_argument(
-        "--beta", type=float, default=0.5, help="ratio of infection [1e-2,1]"
+        "--beta", type=float, default=0.5, help="parameter: ratio of infection [1e-2,1]"
     )
 
     parser.add_argument(
-        "--seed", type=int, default=1, help="Seed for the automatic configuration"
+        "--seed", type=int, default=1, help="seed for the automatic configuration"
     )
     parser.add_argument(
-        "--data", type=str, default="../data/italy_i.csv", help="File with time series"
+        "--data", type=str, default="../data/italy_i.csv", help="file with time series"
     )
     parser.add_argument(
-        "--day_min", type=int, default=33, help="First day to consider on data series"
+        "--day_min", type=int, default=33, help="first day to consider on data series"
     )
     parser.add_argument(
-        "--day_max", type=int, default=58, help="Last day to consider on data series"
+        "--day_max", type=int, default=58, help="last day to consider on data series"
     )
 
     parser.add_argument(
         "--mc_nseed",
         type=int,
         default=int(1e3),
-        help="Number of MC realizations, not really a parameter",
+        help="number of mc realizations",
     )
     parser.add_argument(
         "--mc_seed0",
         type=int,
         default=1,
-        help="Initial MC seed, not really a parameter",
+        help="initial mc seed",
     )
     parser.add_argument("--plot", action="store_true", help="specify for plots")
     parser.add_argument("--save", action="store_true", help="specify for outputfile")

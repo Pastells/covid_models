@@ -2,6 +2,7 @@
 Common functions for all models
 """
 
+import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -171,8 +172,11 @@ def plotting(infected_time_series, I_day, day_max, I_m, I_std):
     plt.show()
 
 
+# -------------------------
+
+
 def saving(args, I_m, I_std, day_max, program_name):
-    """ If --save is added creates an output file wicreates an output file with date and time"""
+    """ If --save is added creates an output file with date and time"""
     import time
 
     filename = f"results/{program_name}" + time.strftime("%d%m_%H%M%S") + ".dat"
@@ -200,3 +204,14 @@ def cost_func(infected_time_series, I_m, I_std):
         cost += (I_m[u] - infected_time_series[u]) ** 2 / (1 + I_std[u])
     cost = np.sqrt(cost)
     sys.stdout.write(f"GGA SUCCESS {cost}\n")
+
+
+class ArgumentParser(argparse.ArgumentParser):
+    def add_argument(self, *args, help=None, default=None, **kwargs):
+        if help is not None:
+            kwargs["help"] = help
+        if default is not None and args[0] != "-h":
+            kwargs["default"] = default
+            if help is not None:
+                kwargs["help"] += f" [{default}]"
+        super().add_argument(*args, **kwargs)
