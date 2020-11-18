@@ -1,12 +1,29 @@
 #!/bin/bash
-sed -i "s/S/s/g" $1
-sed -i "s/E/e/g" $1
-sed -i "s/I/i/g" $1
-sed -i "s/R/r/g" $1
-sed -i "s/s0/s_0/g" $1
-sed -i "s/e0/e_0/g" $1
-sed -i "s/i0/i_0/g" $1
-sed -i "s/r0/r_0/g" $1
-sed -i "s/T_steps/t_steps/g" $1
-sed -i "s/N/n/g" $1
+sed -i "s/ s / S /g" $1
+sed -i "s/ s,/ S,/g" $1
+sed -i "s/ s_/ S_/g" $1
+sed -i "s/ s0/ S0/g" $1
+sed -i "s/ s\[/ S\[/g" $1
+
+sed -i "s/ e / E /g" $1
+sed -i "s/ e,/ E,/g" $1
+sed -i "s/ e_/ E_/g" $1
+sed -i "s/ e0/ E0/g" $1
+sed -i "s/ e\[/ E\[/g" $1
+
+sed -i "s/ i / I /g" $1
+sed -i "s/ i,/ I,/g" $1
+sed -i "s/ i_/ I_/g" $1
+sed -i "s/(i_/(I_/g" $1
+sed -i "s/ i0/ I0/g" $1
+sed -i "s/ i\[/ I\[/g" $1
+
+sed -i "s/ r / R /g" $1
+sed -i "s/ r,/ R,/g" $1
+sed -i "s/ r_/ R_/g" $1
+sed -i "s/ r0/ R0/g" $1
+sed -i "s/ r\[/ R\[/g" $1
+
+sed -i "s/ N,/ n,/g" $1
+sed -i "s/ N / n /g" $1
 

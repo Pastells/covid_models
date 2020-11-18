@@ -30,7 +30,50 @@ def time_dist(lambd):
 # -------------------------
 
 
-def mean_alive(i_day, t_total, day_max, nseed):
+def day_data(time, t_total, day, day_max, I, I_day, last_event=False):
+    """
+    Write number of infected per day instead of event
+    Also tracks day_max
+
+    I :  is the the number of infected for the last event, i.e. I[t]
+    I_day : is the number of infected when time is a day multiple for the current seed,
+            i.e. I_day[mc_seed]
+
+    :Returns:
+
+    day : adds one, or one + days_jumped if an event was slow
+    day_max : updates if day is bigger than the resulting from previous seeds
+
+    :Modifies:
+
+    I_day : adds the infected number for day (before updating), if several days have
+            elapsed they all get the same value as the previous
+
+    """
+    if last_event:
+        # final value for rest of time, otherwise contributes with zero when averaged
+        _days_jumped = int(time - day)
+        max_days = min(day + _days_jumped + 1, t_total)
+        I_day[day : max_days - 1] = I_day[day - 1]
+        I_day[max_days - 1] = I
+        day = max_days
+        day_max = max(day_max, day)
+        return day, day_max
+    if time // day == 1:
+        _days_jumped = int(time - day)
+        max_days = min(day + _days_jumped + 1, t_total)
+        I_day[day : max_days - 1] = I_day[day - 1]
+        I_day[max_days - 1] = I
+        day = max_days
+        day_max = max(day_max, day)
+        return day, day_max
+    return day, day_max
+
+
+# -------------------------
+
+
+def mean_alive(I_day, t_total, day_max, nseed):
     """
     Given that we already have a pandemic to study,
     we average only the alive realizations after an
@@ -38,26 +81,37 @@ def mean_alive(i_day, t_total, day_max, nseed):
     realization
     The running variance is computed according to:
         https://www.johndcook.com/blog/standard_deviation/
+
+    :Returns:
+
+    I_m :mean
+    I_std : standard deviation
+
+    :Modifies:
+
+    I_day : adds the infected number for day (before updating), if several days have
+            elapsed they all get the same value as the previous
     """
     check_realization_alive = day_max // 2
 
-    for i in range(nseed):
-        if i_day[i, check_realization_alive] != 0:
-            x_var = i_day[i]
+    # first seed alive
+    for u in range(nseed):
+        if I_day[u, check_realization_alive] != 0:
+            _x_var = I_day[u]
             alive_realizations = 1
-            s_var = np.zeros(t_total)
-            i_m = x_var
+            _s_var = np.zeros(t_total)
+            I_m = _x_var
             break
 
-    for j in range(i + 1, nseed):
-        if i_day[j, check_realization_alive] != 0:
+    for j in range(u + 1, nseed):
+        if I_day[j, check_realization_alive] != 0:
             alive_realizations += 1
-            x_var = i_day[j]
-            i_m_1 = i_m
-            i_m = i_m_1 + (x_var - i_m_1) / alive_realizations
-            s_var = s_var + (x_var - i_m_1) * (x_var - i_m)
+            _x_var = I_day[j]
+            _I_m_1 = I_m
+            I_m = _I_m_1 + (_x_var - _I_m_1) / alive_realizations
+            _s_var = _s_var + (_x_var - _I_m_1) * (_x_var - I_m)
 
-    i_std = np.sqrt(s_var / (alive_realizations - 1))
+    I_std = np.sqrt(_s_var / (alive_realizations - 1))
 
     if nseed - alive_realizations > nseed * 0.1:
         print("The initial number of infected may be too low")
@@ -65,40 +119,40 @@ def mean_alive(i_day, t_total, day_max, nseed):
             f"Alive realizations after {check_realization_alive} days = {alive_realizations},\
               out of {nseed}"
         )
-    return i_m, i_std
+    return I_m, I_std
 
 
 # -------------------------
 
 
-def plotting(infected_time_series, i_day, day_max, i_m, i_std):
+def plotting(infected_time_series, I_day, day_max, I_m, I_std):
     """ If --plot is added makes some plots"""
 
-    # s_m = s_day.mean(0)
-    # i_m = i_day.mean(0)
-    # i_std = i_day.std(0)
-    # r_m = r_day.mean(0)
-    # s_std = s_day.std(0)
-    # r_std = r_day.std(0)
+    # S_m = S_day.mean(0)
+    # I_m = I_day.mean(0)
+    # I_std = I_day.std(0)
+    # R_m = R_day.mean(0)
+    # S_std = S_day.std(0)
+    # R_std = R_day.std(0)
     # print(r_m[day_max],"recovered individuals")
 
     plt.errorbar(
         np.arange(day_max),
-        i_m[:day_max],
-        yerr=i_std[:day_max],
+        I_m[:day_max],
+        yerr=I_std[:day_max],
         marker="o",
         ls="",
         label="i mean",
     )
     plt.show()
 
-    # i_m = np.median(i_day,0)
+    # I_m = np.median(i_day,0)
 
     # alpha = 0.70
     # p_l = ((1.0-alpha)/2.0) * 100
     # p_u = (alpha+((1.0-alpha)/2.0)) * 100
-    # i_95[:,0] = np.percentile(i_day, p_l,0)
-    # i_95[:,1] = np.percentile(i_day, p_u,0)
+    # I_95[:,0] = np.percentile(i_day, p_l,0)
+    # I_95[:,1] = np.percentile(i_day, p_u,0)
 
     # plt.plot(i_m,'o',c='orange',label='i median')
     # plt.plot(i_95[:,0],c='orange')
@@ -106,8 +160,8 @@ def plotting(infected_time_series, i_day, day_max, i_m, i_std):
 
     plt.errorbar(
         np.arange(day_max),
-        i_m[:day_max],
-        yerr=i_std[:day_max],
+        I_m[:day_max],
+        yerr=I_std[:day_max],
         marker="o",
         ls="",
         label="i mean",
@@ -117,7 +171,7 @@ def plotting(infected_time_series, i_day, day_max, i_m, i_std):
     plt.show()
 
 
-def saving(args, i_m, i_std, day_max, program_name):
+def saving(args, I_m, I_std, day_max, program_name):
     """ If --save is added creates an output file wicreates an output file with date and time"""
     import time
 
@@ -125,81 +179,24 @@ def saving(args, i_m, i_std, day_max, program_name):
     with open(filename, "w") as out_file:
         out_file.write(f"#{args}\n")
         for day in range(day_max):
-            out_file.write(f"{i_m[day]}, {i_std[day]}\n")
+            out_file.write(f"{I_m[day]}, {I_std[day]}\n")
 
 
 # ~~~~~~~~~~~~~~~~~~~
 # Output
 # ~~~~~~~~~~~~~~~~~~~
-def cost_func(infected_time_series, i_m, i_std):
+def cost_func(infected_time_series, I_m, I_std):
     """ compute cost function with a weighted mean squared error"""
     import sys
 
-    pad = len(infected_time_series) - len(i_m)
+    pad = len(infected_time_series) - len(I_m)
 
     if pad > 0:
-        i_m = np.pad(i_m, (0, pad), "constant")
-        i_std = np.pad(i_std, (0, pad), "constant")
+        I_m = np.pad(I_m, (0, pad), "constant")
+        I_std = np.pad(I_std, (0, pad), "constant")
 
     cost = 0
-    for i, _ in enumerate(infected_time_series):
-        cost += (i_m[i] - infected_time_series[i]) ** 2 / (1 + i_std[i])
+    for u, _ in enumerate(infected_time_series):
+        cost += (I_m[u] - infected_time_series[u]) ** 2 / (1 + I_std[u])
     cost = np.sqrt(cost)
     sys.stdout.write(f"GGA SUCCESS {cost}\n")
-
-
-# -------------------------
-
-"""
-Functions with two versions
-"""
-
-
-def day_data(mc_step, t, time, t_total, day, day_max, i, i_day, last_event=False):
-    """
-    Write number of infected per day instead of event
-    Also tracks day_max
-    """
-    if last_event:
-        # final value for rest of time, otherwise contributes with zero when averaged
-        days_jumped = int(time - day)
-        max_days = min(day + days_jumped + 1, t_total)
-        i_day[mc_step, day:max_days] = i[t]
-        day = max_days
-        day_max = max(day_max, day)
-        return day, day_max
-    if time // day == 1:
-        days_jumped = int(time - day)
-        max_days = min(day + days_jumped + 1, t_total)
-        i_day[mc_step, day:max_days] = i[t]
-        day = max_days
-        day_max = max(day_max, day)
-        return day, day_max
-    return day, day_max
-
-
-# -------------------------
-
-
-def day_data_k(mc_step, t, time, t_total, day, day_max, i, i_day, last_event=False):
-    """
-    Write number of infected per day instead of event
-    Also tracks day_max
-    """
-    if last_event:
-        days_jumped = int(time - day)
-        max_days = min(day + days_jumped + 1, t_total)
-        i_day[mc_step, day:max_days] = i[t, :-1].sum()
-        day = max_days
-        day_max = max(day_max, day)
-        return day, day_max
-    if time // day == 1:
-        days_jumped = int(time - day)
-        max_days = min(day + days_jumped + 1, t_total)
-        i_day[mc_step, day:max_days] = i[t, :-1].sum()
-        # s_day[mc_step,day:day+days_jumped+1]=s[t:-1].sum()
-        # r_day[mc_step,day:day+days_jumped+1]=r[t]
-        day = max_days
-        day_max = max(day_max, day)
-        return day, day_max
-    return day, day_max

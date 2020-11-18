@@ -3,19 +3,19 @@ Stochastic mean-field SEIR model using the Gillespie algorithm
 Pol Pastells,  october 2020
 
 equations of the deterministic system
-s[t] = s[t-1] - beta1*e[t-1]*s[t-1] - beta2*i[t-1]*s[t-1]
-e[t] = e[t-1] + beta1*e[t-1]*s[t-1] + beta2*i[t-1]*s[t-1] - (epsilon+delta1)*e[t-1]
-i[t] = i[t-1] + epsilon*e[t-1] - delta2 * i[t-1]
-r[t] = r[t-1] + delta1 *e[t-1] + delta2 * i[t-1]
+s[t] = S[t-1] - beta1*e[t-1]*s[t-1] - beta2*i[t-1]*s[t-1]
+e[t] = E[t-1] + beta1*e[t-1]*s[t-1] + beta2*i[t-1]*s[t-1] - (epsilon+delta1)*e[t-1]
+i[t] = I[t-1] + epsilon*e[t-1] - delta2 * I[t-1]
+r[t] = R[t-1] + delta1 *e[t-1] + delta2 * I[t-1]
 """
 
 
 def main():
     args = parsing()
     (
-        e_0,
-        i_0,
-        r_0,
+        E_0,
+        I_0,
+        R_0,
         t_steps,
         t_total,
         mc_nseed,
@@ -35,13 +35,13 @@ def main():
     ) = parameters_init(args)
 
     # results per day and seed
-    # s_day, s_m, s_95 = np.zeros([mc_nseed, t_total]), np.zeros(t_total), np.zeros([t_total, 2])
-    # e_day, e_m, e_95 = np.zeros([mc_nseed, t_total]), np.zeros(t_total), np.zeros([t_total, 2])
-    i_day, i_m = (
+    # S_day, S_m, S_95 = np.zeros([mc_nseed, t_total]), np.zeros(t_total), np.zeros([t_total, 2])
+    # E_day, E_m, E_95 = np.zeros([mc_nseed, t_total]), np.zeros(t_total), np.zeros([t_total, 2])
+    I_day, I_m = (
         np.zeros([mc_nseed, t_total]),
         np.zeros(t_total),
     )
-    # r_day, r_m, r_95 = np.zeros([mc_nseed, t_total]), np.zeros(t_total), np.zeros([t_total, 2])
+    # R_day, R_m, R_95 = np.zeros([mc_nseed, t_total]), np.zeros(t_total), np.zeros([t_total, 2])
 
     mc_step, day_max = 0, 0
     # =========================
@@ -52,38 +52,38 @@ def main():
 
         # -------------------------
         # initialization
-        s, e, i, r = (
+        S, E, I, R = (
             np.zeros([t_steps, k_inf + 1]),
             np.zeros([t_steps, k_lat + 1, 2]),
             np.zeros([t_steps, k_rec + 1]),
             np.zeros(t_steps),
         )
-        s[0, :-1] = (n - i_0 - r_0) / k_inf
-        s[0, -1], e[0, :-1] = e_0 / k_lat, e_0 / k_lat
-        e[0, -1], i[0, :-1] = i_0 / k_rec, i_0 / k_rec
-        i[0, -1], r[0] = r_0, r_0
+        S[0, :-1] = (n - I_0 - R_0) / k_inf
+        S[0, -1], E[0, :-1] = E_0 / k_lat, E_0 / k_lat
+        E[0, -1], I[0, :-1] = I_0 / k_rec, I_0 / k_rec
+        I[0, -1], R[0] = R_0, R_0
 
-        # s_day[mc_step, 0]=s[0]
-        # e_day[mc_step, 0]=e_0
-        i_day[mc_step, 0] = i_0
-        # r_day[mc_step, 0]=r_0
+        # S_day[mc_step, 0]=s[0]
+        # E_day[mc_step, 0]=e_0
+        I_day[mc_step, 0] = I_0
+        # R_day[mc_step, 0]=r_0
         # T = np.zeros(t_steps)
         # T[0]=0
         t, time, day = 0, 0, 1
 
         # Time loop
-        while i[t, :-1].sum() > 0 and day < t_total - 1:
-            day, day_max = utils.day_data_k(
-                mc_step, t, time, t_total, day, day_max, i, i_day
+        while I[t, :-1].sum() > 0 and day < t_total - 1:
+            day, day_max = utils.day_data(
+                time, t_total, day, day_max, I[t, :-1].sum(), I_day[mc_step]
             )
             t, time = gillespie(
                 t_total,
                 t,
                 time,
-                s,
-                e,
-                i,
-                r,
+                S,
+                E,
+                I,
+                R,
                 beta1,
                 beta2,
                 delta1,
@@ -97,31 +97,31 @@ def main():
                 break
 
         # -------------------------
-        day, day_max = utils.day_data_k(
-            mc_step, t, time, day, t_total, day_max, i, i_day, True
+        day, day_max = utils.day_data(
+            time, day, t_total, day_max, I[t, :-1].sum(), I_day[mc_step], True
         )
 
         """
         if plot:
-            plt.plot(T[:t], s[:t, :-1].sum(1), c='r')
-            plt.plot(T[:t], e[:t, :-1, 0].sum(1), c='g')
-            plt.plot(T[:t], e[:t, :-1, 1].sum(1), c='b')
-            plt.plot(T[:t], i[:t, :-1].sum(1), c='c')
-            plt.plot(T[:t], r[:t], c='m')
+            plt.plot(T[:t], S[:t, :-1].sum(1), c='r')
+            plt.plot(T[:t], E[:t, :-1, 0].sum(1), c='g')
+            plt.plot(T[:t], E[:t, :-1, 1].sum(1), c='b')
+            plt.plot(T[:t], I[:t, :-1].sum(1), c='c')
+            plt.plot(T[:t], R[:t], c='m')
         """
 
         mc_step += 1
     # =========================
 
-    i_m, i_std = utils.mean_alive(i_day, t_total, day_max, mc_nseed)
+    I_m, I_std = utils.mean_alive(I_day, t_total, day_max, mc_nseed)
 
-    utils.cost_func(infected_time_series, i_m, i_std)
+    utils.cost_func(infected_time_series, I_m, I_std)
 
     if save:
-        utils.saving(args, i_m, i_std, day_max, "seir_erlang")
+        utils.saving(args, I_m, I_std, day_max, "seir_erlang")
 
     if plot:
-        utils.plotting(infected_time_series, i_day, day_max, i_m, i_std)
+        utils.plotting(infected_time_series, I_day, day_max, I_m, I_std)
 
 
 # -------------------------
@@ -228,9 +228,9 @@ def parameters_init(args):
     """Initial parameters from argparse"""
     from numpy import genfromtxt
 
-    e_0 = args.e_0
-    i_0 = args.i_0
-    r_0 = args.r_0
+    E_0 = args.e_0
+    I_0 = args.i_0
+    R_0 = args.r_0
     t_steps = int(1e7)  # max simulation steps
     t_total = args.day_max - args.day_min  # max simulated days
     mc_nseed = args.mc_nseed  # MC realizations
@@ -251,9 +251,9 @@ def parameters_init(args):
     epsilon = args.epsilon * k_lat
     delta2 = args.delta2 * k_rec
     return (
-        e_0,
-        i_0,
-        r_0,
+        E_0,
+        I_0,
+        R_0,
         t_steps,
         t_total,
         mc_nseed,
@@ -277,10 +277,10 @@ def gillespie(
     t_total,
     t,
     time,
-    s,
-    e,
-    i,
-    r,
+    S,
+    E,
+    I,
+    R,
     beta1,
     beta2,
     delta1,
@@ -294,11 +294,11 @@ def gillespie(
     Time elapsed for the next event
     Calls gillespie_step
     """
-    stot = s[t, :-1].sum()
-    itot = i[t, :-1].sum()
-    etot_rec = e[t, :-1, 0].sum()
-    etot_inf = e[t, :-1, 1].sum()
-    etot = etot_inf + etot_rec - e[t, 0, 0]
+    stot = S[t, :-1].sum()
+    itot = I[t, :-1].sum()
+    etot_rec = E[t, :-1, 0].sum()
+    etot_inf = E[t, :-1, 1].sum()
+    etot = etot_inf + etot_rec - E[t, 0, 0]
 
     lambda_sum = (
         epsilon * etot_inf
@@ -307,10 +307,10 @@ def gillespie(
         + (beta1 * etot + beta2 * itot) * stot
     )
 
-    prob_heal1 = delta1 * e[t, :-1, 0] / lambda_sum
-    prob_heal2 = delta2 * i[t, :-1] / lambda_sum
-    prob_latent = epsilon * e[t, :-1, 1] / lambda_sum
-    prob_infect = (beta1 * etot + beta2 * itot) * s[t, :-1] / lambda_sum
+    prob_heal1 = delta1 * E[t, :-1, 0] / lambda_sum
+    prob_heal2 = delta2 * I[t, :-1] / lambda_sum
+    prob_latent = epsilon * E[t, :-1, 1] / lambda_sum
+    prob_infect = (beta1 * etot + beta2 * itot) * S[t, :-1] / lambda_sum
 
     t += 1
     time += utils.time_dist(lambda_sum)
@@ -320,10 +320,10 @@ def gillespie(
 
     gillespie_step(
         t,
-        s,
-        e,
-        i,
-        r,
+        S,
+        E,
+        I,
+        R,
         prob_heal1,
         prob_heal2,
         prob_latent,
@@ -339,11 +339,11 @@ def gillespie(
 
 
 def gillespie_step(
-    t, s, e, i, r, prob_heal1, prob_heal2, prob_latent, prob_infect, k_rec, k_lat, k_inf
+    t, S, E, I, R, prob_heal1, prob_heal2, prob_latent, prob_infect, k_rec, k_lat, k_inf
 ):
     """
     Perform an event of the algorithm, either infect or recover a single individual
-    s and i have one extra dimension to temporally store the infected and recovered
+    S and I have one extra dimension to temporally store the infected and recovered
     after k stages, due to the Erlang distribution
     """
     random = np.random.random()
@@ -355,13 +355,13 @@ def gillespie_step(
     if random < prob_heal1_tot:
         for k in range(k_lat):
             if random < prob_heal1[: k + 1].sum():
-                s[t, :-1] = s[t - 1, :-1]
-                i[t, :-1] = i[t - 1, :-1]
-                e[t, k, 0] = -1
-                e[t, k + 1, 0] = 1
-                r[t] = r[t - 1] + e[t, k_lat, 0]
-                e[t, 0, 1] = e[t, 0, 0]
-                e[t] += e[t - 1]
+                S[t, :-1] = S[t - 1, :-1]
+                I[t, :-1] = I[t - 1, :-1]
+                E[t, k, 0] = -1
+                E[t, k + 1, 0] = 1
+                R[t] = R[t - 1] + E[t, k_lat, 0]
+                E[t, 0, 1] = E[t, 0, 0]
+                E[t] += E[t - 1]
                 break
 
     # i(k)-> i(k+1)/r
@@ -369,12 +369,12 @@ def gillespie_step(
         random -= prob_heal1_tot
         for k in range(k_rec):
             if random < prob_heal2[: k + 1].sum():
-                s[t, :-1] = s[t - 1, :-1]
-                e[t, :-1] = e[t - 1, :-1]
-                i[t, k] = -1
-                i[t, k + 1] = 1
-                r[t] = r[t - 1] + i[t, k_rec]
-                i[t] += i[t - 1]
+                S[t, :-1] = S[t - 1, :-1]
+                E[t, :-1] = E[t - 1, :-1]
+                I[t, k] = -1
+                I[t, k + 1] = 1
+                R[t] = R[t - 1] + I[t, k_rec]
+                I[t] += I[t - 1]
                 break
 
     # e(k)-> e(k+1)/i(0)
@@ -382,14 +382,14 @@ def gillespie_step(
         random -= prob_heal1_tot + prob_heal2_tot
         for k in range(k_lat):
             if random < prob_latent[: k + 1].sum():
-                s[t, :-1] = s[t - 1, :-1]
-                i[t, :-1] = i[t - 1, :-1]
-                r[t] = r[t - 1]
-                e[t, k, 1] = -1
-                e[t, k + 1, 1] = 1
-                i[t, 0] += e[t, k_lat, 1]
-                e[t, 0, 0] = e[t, 0, 1]
-                e[t] += e[t - 1]
+                S[t, :-1] = S[t - 1, :-1]
+                I[t, :-1] = I[t - 1, :-1]
+                R[t] = R[t - 1]
+                E[t, k, 1] = -1
+                E[t, k + 1, 1] = 1
+                I[t, 0] += E[t, k_lat, 1]
+                E[t, 0, 0] = E[t, 0, 1]
+                E[t] += E[t - 1]
                 break
 
     # s(k)-> s(k+1)/e(0)
@@ -397,13 +397,13 @@ def gillespie_step(
         random -= prob_heal1_tot + prob_heal2_tot + prob_latent_tot
         for k in range(k_inf):
             if random < prob_infect[: k + 1].sum():
-                e[t, :-1] = e[t - 1, :-1]
-                i[t, :-1] = i[t - 1, :-1]
-                r[t] = r[t - 1]
-                s[t, k] = -1
-                s[t, k + 1] = 1
-                e[t, 0] += s[t, k_inf]
-                s[t] += s[t - 1]
+                E[t, :-1] = E[t - 1, :-1]
+                I[t, :-1] = I[t - 1, :-1]
+                R[t] = R[t - 1]
+                S[t, k] = -1
+                S[t, k + 1] = 1
+                E[t, 0] += S[t, k_inf]
+                S[t] += S[t - 1]
                 break
 
 
@@ -414,9 +414,11 @@ if __name__ == "__main__":
     import numpy as np
     import utils
     import sys
+    import traceback
 
     try:
         main()
     except Exception as ex:
         sys.stdout.write(f"GGA CRASHED {1e20}\n")
         sys.stdout.write(f"{repr(ex)}\n")
+        traceback.print_exc(ex)

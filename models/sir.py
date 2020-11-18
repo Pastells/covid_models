@@ -3,9 +3,9 @@ Stochastic mean-field sir model using the Gillespie algorithm
 Pol Pastells, october 2020
 
 equations of the deterministic system
-s[t] = s[t-1] - beta*i[t-1]*s[t-1]
-i[t] = i[t-1] + beta*i[t-1]*s[t-1] - delta * i[t-1]
-r[t] = r[t-1] + delta * i[t-1]
+s[t] = S[t-1] - beta*i[t-1]*s[t-1]
+i[t] = I[t-1] + beta*i[t-1]*s[t-1] - delta * I[t-1]
+r[t] = R[t-1] + delta * I[t-1]
 """
 
 
@@ -16,8 +16,8 @@ r[t] = r[t-1] + delta * i[t-1]
 def main():
     args = parsing()
     (
-        i_0,
-        r_0,
+        I_0,
+        R_0,
         t_steps,
         t_total,
         mc_nseed,
@@ -31,7 +31,7 @@ def main():
     ) = parameters_init(args)
 
     # results per day and seed
-    i_day, i_m = (
+    I_day, I_m = (
         np.zeros([mc_nseed, t_total]),
         np.zeros(t_total),
     )
@@ -45,39 +45,39 @@ def main():
 
         # -------------------------
         # initialization
-        s, i, r = np.zeros(t_steps), np.zeros(t_steps), np.zeros(t_steps)
-        i[0] = i_0
-        r[0] = r_0
-        s[0] = n - i_0 - r_0
-        i_day[mc_step, 0] = i_0
+        S, I, R = np.zeros(t_steps), np.zeros(t_steps), np.zeros(t_steps)
+        I[0] = I_0
+        R[0] = R_0
+        S[0] = n - I_0 - R_0
+        I_day[mc_step, 0] = I_0
         # T = np.zeros(t_steps)
         # T[0]=0
-        # s_day[mc_step,0]=s[0]
+        # S_day[mc_step,0]=s[0]
         t, time, day = 0, 0, 1
 
         # Time loop
-        while i[t] > 0.1 and day < t_total - 1:
+        while I[t] > 0.1 and day < t_total - 1:
             day, day_max = utils.day_data(
-                mc_step, t, time, t_total, day, day_max, i, i_day
+                time, t_total, day, day_max, I[t], I_day[mc_step]
             )
-            t, time = gillespie(t, time, s, i, r, beta, delta)
+            t, time = gillespie(t, time, S, I, R, beta, delta)
         # -------------------------
         day, day_max = utils.day_data(
-            mc_step, t, time, t_total, day, day_max, i, i_day, True
+            time, t_total, day, day_max, I[t], I_day[mc_step], True
         )
 
         mc_step += 1
     # =========================
 
-    i_m, i_std = utils.mean_alive(i_day, t_total, day_max, mc_nseed)
+    I_m, I_std = utils.mean_alive(I_day, t_total, day_max, mc_nseed)
 
-    utils.cost_func(infected_time_series, i_m, i_std)
+    utils.cost_func(infected_time_series, I_m, I_std)
 
     if save:
-        utils.saving(args, i_m, i_std, day_max, "sir")
+        utils.saving(args, I_m, I_std, day_max, "sir")
 
     if plot:
-        utils.plotting(infected_time_series, i_day, day_max, i_m, i_std)
+        utils.plotting(infected_time_series, I_day, day_max, I_m, I_std)
 
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%
@@ -156,8 +156,8 @@ def parameters_init(args):
     """initial parameters from argparse"""
     from numpy import genfromtxt
 
-    i_0 = args.i_0
-    r_0 = args.r_0
+    I_0 = args.i_0
+    R_0 = args.r_0
     t_steps = int(1e7)  # max simulation steps
     t_total = args.day_max - args.day_min  # max simulated days
     mc_nseed = args.mc_nseed  # MC realizations
@@ -172,8 +172,8 @@ def parameters_init(args):
     beta = args.beta / n
     delta = args.delta
     return (
-        i_0,
-        r_0,
+        I_0,
+        R_0,
         t_steps,
         t_total,
         mc_nseed,
@@ -190,27 +190,27 @@ def parameters_init(args):
 # -------------------------
 
 
-def gillespie(t, time, s, i, r, beta, delta):
+def gillespie(t, time, S, I, R, beta, delta):
     """
     Time elapsed for the next event
     Calls gillespie_step
     """
 
-    lambda_sum = (delta + utils.beta_func(beta, t) * s[t]) * i[t]
-    prob_heal = delta * i[t] / lambda_sum
+    lambda_sum = (delta + utils.beta_func(beta, t) * S[t]) * I[t]
+    prob_heal = delta * I[t] / lambda_sum
 
     t += 1
     time += utils.time_dist(lambda_sum)
     # T[t] = time
 
-    gillespie_step(t, s, i, r, prob_heal)
+    gillespie_step(t, S, I, R, prob_heal)
     return t, time
 
 
 # -------------------------
 
 
-def gillespie_step(t, s, i, r, prob_heal):
+def gillespie_step(t, S, I, R, prob_heal):
     """
     Perform an event of the algorithm, either infect or recover a single individual
     """
@@ -218,14 +218,14 @@ def gillespie_step(t, s, i, r, prob_heal):
 
     if random < prob_heal:
         # heal
-        s[t] = s[t - 1]
-        i[t] = i[t - 1] - 1
-        r[t] = r[t - 1] + 1
+        S[t] = S[t - 1]
+        I[t] = I[t - 1] - 1
+        R[t] = R[t - 1] + 1
     else:
         # infect
-        s[t] = s[t - 1] - 1
-        i[t] = i[t - 1] + 1
-        r[t] = r[t - 1]
+        S[t] = S[t - 1] - 1
+        I[t] = I[t - 1] + 1
+        R[t] = R[t - 1]
 
 
 # ~~~~~~~~~~~~~~~~~~~
@@ -235,9 +235,11 @@ if __name__ == "__main__":
     import numpy as np
     import utils
     import sys
+    import traceback
 
     try:
         main()
     except Exception as ex:
         sys.stdout.write(f"GGA CRASHED {1e20}\n")
         sys.stdout.write(f"{repr(ex)}\n")
+        traceback.print_exc(ex)
