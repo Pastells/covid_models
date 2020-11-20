@@ -285,48 +285,16 @@ class myQueue(object):
 # -------------------------
 
 
-def _get_rate_functions_(
-    G, beta, delta, transmission_weight=None, recovery_weight=None
-):
-    r"""
-    Arguments :
-        G : networkx Graph
-            the graph disease spreads on
+def Markovian_times(node, sus_neighbors, beta, delta):
+    """Cycle through, find infection times and check it it is less than recovery time"""
 
-        beta : number
-            disease parameter giving edge transmission rate (subject to edge scaling)
+    duration = random.expovariate(delta)
 
-        delta : number (default None)
-            disease parameter giving typical recovery rate,
-
-        transmission_weight : string (default None)
-            The attribute name under which transmission rates are saved.
-            `G.adj[u][v][transmission_weight]` scales up or down the recovery rate.
-            (note this is G.edge[u][v][..] in networkx 1.x and
-            G.edges[u,v][..] in networkx 2.x.
-            The backwards compatible version is G.adj[u][v]
-            https://networkx.github.io/documentation/stable/release/migration_guide_from_1.x_to_2.0.html)
-
-        recovery_weight : string       (default None)
-            a label for a weight given to the nodes to scale their
-            recovery rates
-                `delta_i = G.node[i][recovery_weight]*delta`
-    Returns :
-        : trans_rate_fxn, rec_rate_fxn
-            Two functions such that
-            - `trans_rate_fxn(u,v)` is the transmission rate from u to v and
-            - `rec_rate_fxn(u)` is the recovery rate of u."""
-    if transmission_weight is None:
-        trans_rate_fxn = lambda x, y: beta
-    else:
-        try:
-            trans_rate_fxn = lambda x, y: beta * G.adj[x][y][transmission_weight]
-        except AttributeError:  # apparently you have networkx v1.x not v2.x
-            trans_rate_fxn = lambda x, y: beta * G.edge[x][y][transmission_weight]
-
-    if recovery_weight is None:
-        rec_rate_fxn = lambda x: delta
-    else:
-        rec_rate_fxn = lambda x: delta * G.nodes[x][recovery_weight]
-
-    return trans_rate_fxn, rec_rate_fxn
+    trans_prob = 1 - np.exp(-beta * duration)
+    number_to_infect = np.random.binomial(len(sus_neighbors), trans_prob)
+    # print(len(suscep_neighbors),number_to_infect,trans_prob, beta, duration)
+    transmission_recipients = random.sample(sus_neighbors, number_to_infect)
+    trans_delay = {}
+    for v in transmission_recipients:
+        trans_delay[v] = _truncated_exponential_(beta, duration)
+    return trans_delay, duration

@@ -1,19 +1,20 @@
 """
-Stochastic mean-field sir model using the Gillespie algorithm
-Pol Pastells, october 2020
+Stochastic sir model with a social network using the event-driven algorithm
+Pol Pastells, november 2020
 
 equations of the deterministic system
 s[t] = S[t-1] - beta*i[t-1]*s[t-1]
 i[t] = I[t-1] + beta*i[t-1]*s[t-1] - delta * I[t-1]
 r[t] = R[t-1] + delta * I[t-1]
+
+to do:
+    - add network parameters in parser
+    - seed for network generation
 """
 
 
-# %%%%%%%%%%%%%%%%%%%%%%%%%
-# %%%%%%%%%%%%%%%%%%%%%%%%%
-
-
 def main():
+    k = 5
     args = parsing()
     (
         I_0,
@@ -44,28 +45,15 @@ def main():
         random.seed(seed)
         np.random.seed(seed)
 
-        # -------------------------
-        # initialization
-        S, I, R = np.zeros(t_steps), np.zeros(t_steps), np.zeros(t_steps)
-        I[0] = I_0
-        R[0] = R_0
-        S[0] = n - I_0 - R_0
-        I_day[mc_step, 0] = I_0
-        # T = np.zeros(t_steps)
-        # T[0]=0
-        # S_day[mc_step,0]=s[0]
-        t, time, day = 0, 0, 1
+        G = nx.erdos_renyi_graph(n, k / n)
+        t, S, I, R = fast_sir.fast_SIR(G, beta, delta, I_0, R_0)
 
-        # Time loop
-        while I[t] > 0.1 and day < t_total - 1:
+        I_day[mc_step, 0] = I_0
+        day = 1
+        for t, time in enumerate(t):
             day, day_max = utils.day_data(
                 time, t_total, day, day_max, I[t], I_day[mc_step]
             )
-            t, time = gillespie(t, time, S, I, R, beta, delta)
-        # -------------------------
-        day, day_max = utils.day_data(
-            time, t_total, day, day_max, I[t], I_day[mc_step], True
-        )
 
         mc_step += 1
     # =========================
@@ -171,7 +159,7 @@ def parameters_init(args):
     ]
     # print(infected_time_series)
     n = args.n
-    beta = args.beta / n
+    beta = args.beta
     delta = args.delta
     return (
         I_0,
@@ -191,49 +179,9 @@ def parameters_init(args):
 
 # -------------------------
 
-
-def gillespie(t, time, S, I, R, beta, delta):
-    """
-    Time elapsed for the next event
-    Calls gillespie_step
-    """
-
-    lambda_sum = (delta + utils.beta_func(beta, t) * S[t]) * I[t]
-    prob_heal = delta * I[t] / lambda_sum
-
-    t += 1
-    time += utils.time_dist(lambda_sum)
-    # T[t] = time
-
-    gillespie_step(t, S, I, R, prob_heal)
-    return t, time
-
-
-# -------------------------
-
-
-def gillespie_step(t, S, I, R, prob_heal):
-    """
-    Perform an event of the algorithm, either infect or recover a single individual
-    """
-    random = np.random.random()
-
-    if random < prob_heal:
-        # heal
-        S[t] = S[t - 1]
-        I[t] = I[t - 1] - 1
-        R[t] = R[t - 1] + 1
-    else:
-        # infect
-        S[t] = S[t - 1] - 1
-        I[t] = I[t - 1] + 1
-        R[t] = R[t - 1]
-
-
-# ~~~~~~~~~~~~~~~~~~~
-
-
 if __name__ == "__main__":
+    import networkx as nx
+    import fast_sir
     import random
     import numpy as np
     import utils

@@ -74,7 +74,9 @@ def _process_trans_SIR_(
 
         suscep_neighbors = [v for v in G.neighbors(target) if status[v] == "S"]
 
-        trans_delay, rec_delay = Markovian_times(target, suscep_neighbors, beta, delta)
+        trans_delay, rec_delay = utils.Markovian_times(
+            target, suscep_neighbors, beta, delta
+        )
 
         rec_time[target] = time + rec_delay
         if rec_time[target] <= Q.tmax:
@@ -113,6 +115,9 @@ def _process_trans_SIR_(
                 pred_inf_time[v] = inf_time
 
 
+# -------------------------
+
+
 def _process_rec_SIR_(time, node, times, S, I, R, status):
     r"""From figure A.3 of Kiss, Miller, & Simon.  Please cite the
     book if using this algorithm.
@@ -148,27 +153,15 @@ def _process_rec_SIR_(time, node, times, S, I, R, status):
     status[node] = "R"
 
 
-def Markovian_times(node, sus_neighbors, beta, delta):
-    """Cycle through, find infection times and check it it is less than recovery time"""
-
-    duration = random.expovariate(delta)
-
-    trans_prob = 1 - np.exp(-beta * duration)
-    number_to_infect = np.random.binomial(len(sus_neighbors), trans_prob)
-    # print(len(suscep_neighbors),number_to_infect,trans_prob, beta, duration)
-    transmission_recipients = random.sample(sus_neighbors, number_to_infect)
-    trans_delay = {}
-    for v in transmission_recipients:
-        trans_delay[v] = utils._truncated_exponential_(beta, duration)
-    return trans_delay, duration
+# -------------------------
 
 
 def fast_SIR(
     G,
     beta,
     delta,
-    initial_infecteds=None,
-    initial_recovereds=None,
+    I_0=None,
+    R_0=0,
     tmin=0,
     tmax=float("Inf"),
 ):
@@ -187,23 +180,11 @@ def fast_SIR(
     **delta** number
         recovery rate per node
 
-    **initial_infecteds** node or iterable of nodes
-        if a single node, then this node is initially infected
+    **I_0** number
+        initially infected nodes
 
-        if an iterable, then whole set is initially infected
-
-        if None, then choose randomly based on rho.
-
-        If rho is also None, a random single node is chosen.
-
-        If both initial_infecteds and rho are assigned, then there
-        is an error.
-
-    **initial_recovereds** iterable of nodes (default None)
-        this whole collection is made recovered.
-        Currently there is no test for consistency with initial_infecteds.
-        Understood that everyone who isn't infected or recovered initially
-        is initially susceptible.
+    **R_0** number
+        initially recovered nodes
 
     **tmin** number (default 0)
         starting time
@@ -212,6 +193,7 @@ def fast_SIR(
         maximum time after which simulation will stop.
         the default of running to infinity is okay for SIR,
         but not for SIS.
+
 
     :Returns:
 
@@ -222,30 +204,42 @@ def fast_SIR(
     # initial setup.
     status = defaultdict(lambda: "S")  # node status defaults to 'S'
     rec_time = defaultdict(lambda: tmin - 1)  # node recovery time defaults to -1
-    if initial_recovereds is not None:
-        for node in initial_recovereds:
+
+    # simply remove initially recovered nodes
+    if R_0 != 0:
+        R_0 = random.sample(G.nodes(), R_0)
+        G.remove_nodes_from(R_0)
+
+    """
+    if R_0 is not None:
+        for node in R_0:
             status[node] = "R"
             rec_time[node] = (
                 tmin - 1
             )  # default value ensures that the recovered nodes appear with a time
+    """
     pred_inf_time = defaultdict(lambda: float("Inf"))
     # infection time defaults to \infty  --- this could be set to tmax,
     # probably with a slight improvement to performance.
 
     Q = utils.myQueue(tmax)
 
-    if initial_infecteds is None:  # create initial infecteds list if not given
+    """
+    if I_0 is None:  # create initial infecteds list if not given
         initial_number = 1
-        initial_infecteds = random.sample(G.nodes(), initial_number)
-    elif G.has_node(initial_infecteds):
-        initial_infecteds = [initial_infecteds]
+        I_0 = random.sample(G.nodes(), initial_number)
+    elif G.has_node(I_0):
+        I_0 = [I_0]
     # else it is assumed to be a list of nodes.
+    """
+
+    I_0 = random.sample(G.nodes(), I_0)
 
     times, S, I, R = ([tmin], [G.order()], [0], [0])
     # usefull for full_data case
     transmissions = []
 
-    for u in initial_infecteds:
+    for u in I_0:
         pred_inf_time[u] = tmin
         Q.add(
             tmin,
@@ -279,9 +273,9 @@ def fast_SIR(
     # time 0.
     # So each initial infection added an entry at time 0 to lists.
     # We'd like to get rid these excess events.
-    times = times[len(initial_infecteds) :]
-    S = S[len(initial_infecteds) :]
-    I = I[len(initial_infecteds) :]
-    R = R[len(initial_infecteds) :]
+    times = times[len(I_0) :]
+    S = S[len(I_0) :]
+    I = I[len(I_0) :]
+    R = R[len(I_0) :]
 
     return np.array(times), np.array(S), np.array(I), np.array(R)

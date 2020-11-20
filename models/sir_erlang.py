@@ -44,6 +44,7 @@ def main():
     # MC loop
     # =========================
     for seed in range(mc_seed0, mc_seed0 + mc_nseed):
+        random.seed(seed)
         np.random.seed(seed)
 
         # -------------------------
@@ -292,6 +293,7 @@ def gillespie_step(t, S, I, R, prob_heal, prob_infect, k_rec, k_inf):
 
 
 if __name__ == "__main__":
+    import random
     import numpy as np
     import utils
     import sys
