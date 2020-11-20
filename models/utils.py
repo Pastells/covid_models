@@ -3,6 +3,8 @@ Common functions for all models
 """
 
 import argparse
+import random
+import heapq
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -25,7 +27,18 @@ def beta_func(beta, t):
 
 def time_dist(lambd):
     """ Time intervals of a Poisson process follow an exponential distribution"""
-    return -np.log(1 - np.random.random()) / lambd
+    return random.expovariate(lambd)
+
+
+# -------------------------
+
+
+def _truncated_exponential_(lambd, T):
+    """returns a number between 0 and T from an
+    exponential distribution conditional on the outcome being between 0 and T"""
+    t = random.expovariate(lambd)
+    L = int(t / T)
+    return t - L * T
 
 
 # -------------------------
@@ -206,6 +219,9 @@ def cost_func(infected_time_series, I_m, I_std):
     sys.stdout.write(f"GGA SUCCESS {cost}\n")
 
 
+# -------------------------
+
+
 class ArgumentParser(argparse.ArgumentParser):
     def add_argument(self, *args, help=None, default=None, **kwargs):
         if help is not None:
@@ -215,3 +231,102 @@ class ArgumentParser(argparse.ArgumentParser):
             if help is not None:
                 kwargs["help"] += f" [{default}]"
         super().add_argument(*args, **kwargs)
+
+
+# -------------------------------------
+# Used in models with a social network:
+# -------------------------------------
+
+
+class myQueue(object):
+    r"""
+    This class is used to store and act on a priority queue of events for
+    event-driven simulations.  It is based on heapq.
+
+    Each queue is given a tmax (default is infinity) so that any event at later
+    time is ignored.
+
+    This is a priority queue of 4-tuples of the form
+        ``(t, counter, function, function_arguments)``
+
+    The ``counter`` is present just to break ties, which generally only occur when
+    multiple events are put in place for the initial condition, but could also
+    occur in cases where events tend to happen at discrete times.
+
+    note that the function is understood to have its first argument be t, and
+    the tuple ``function_arguments`` does not include this first t.
+
+    So function is called as
+        ``function(t, *function_arguments)``
+    """
+
+    def __init__(self, tmax=float("Inf")):
+        self._Q_ = []
+        self.tmax = tmax
+        self.counter = 0  # tie-breaker for putting things in priority queue
+
+    def add(self, time, function, args=()):
+        r"""time is the time of the event.  args are the arguments of the
+        function not including the first argument which must be time"""
+        if time < self.tmax:
+            heapq.heappush(self._Q_, (time, self.counter, function, args))
+            self.counter += 1
+
+    def pop_and_run(self):
+        r"""Pops the next event off the queue and performs the function"""
+        t, counter, function, args = heapq.heappop(self._Q_)
+        function(t, *args)
+
+    def __len__(self):
+        r"""this will allow us to use commands like ``while Q:`` """
+        return len(self._Q_)
+
+
+# -------------------------
+
+
+def _get_rate_functions_(
+    G, beta, delta, transmission_weight=None, recovery_weight=None
+):
+    r"""
+    Arguments :
+        G : networkx Graph
+            the graph disease spreads on
+
+        beta : number
+            disease parameter giving edge transmission rate (subject to edge scaling)
+
+        delta : number (default None)
+            disease parameter giving typical recovery rate,
+
+        transmission_weight : string (default None)
+            The attribute name under which transmission rates are saved.
+            `G.adj[u][v][transmission_weight]` scales up or down the recovery rate.
+            (note this is G.edge[u][v][..] in networkx 1.x and
+            G.edges[u,v][..] in networkx 2.x.
+            The backwards compatible version is G.adj[u][v]
+            https://networkx.github.io/documentation/stable/release/migration_guide_from_1.x_to_2.0.html)
+
+        recovery_weight : string       (default None)
+            a label for a weight given to the nodes to scale their
+            recovery rates
+                `delta_i = G.node[i][recovery_weight]*delta`
+    Returns :
+        : trans_rate_fxn, rec_rate_fxn
+            Two functions such that
+            - `trans_rate_fxn(u,v)` is the transmission rate from u to v and
+            - `rec_rate_fxn(u)` is the recovery rate of u."""
+    if transmission_weight is None:
+        trans_rate_fxn = lambda x, y: beta
+    else:
+        try:
+            trans_rate_fxn = lambda x, y: beta * G.adj[x][y][transmission_weight]
+        except AttributeError:  # apparently you have networkx v1.x not v2.x
+            trans_rate_fxn = lambda x, y: beta * G.edge[x][y][transmission_weight]
+
+    if recovery_weight is None:
+        rec_rate_fxn = lambda x: delta
+    else:
+        rec_rate_fxn = lambda x: delta * G.nodes[x][recovery_weight]
+
+    return trans_rate_fxn, rec_rate_fxn
