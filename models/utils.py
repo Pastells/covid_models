@@ -5,6 +5,7 @@ Common functions for all models
 import argparse
 import random
 import heapq
+import networkx as nx
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -63,7 +64,6 @@ def day_data(time, t_total, day, day_max, I, I_day, last_event=False):
     I_day : adds the infected number for day (before updating), if several days have
             elapsed they all get the same value as the previous
 
-    """
     if last_event:
         # final value for rest of time, otherwise contributes with zero when averaged
         _days_jumped = int(time - day)
@@ -73,6 +73,7 @@ def day_data(time, t_total, day, day_max, I, I_day, last_event=False):
         day = max_days
         day_max = max(day_max, day)
         return day, day_max
+    """
     if time // day == 1:
         _days_jumped = int(time - day)
         max_days = min(day + _days_jumped + 1, t_total)
@@ -188,15 +189,18 @@ def plotting(infected_time_series, I_day, day_max, I_m, I_std):
 # -------------------------
 
 
-def saving(args, I_m, I_std, day_max, program_name):
+def saving(args, I_m, I_std, day_max, program_name, custom_name=None):
     """ If --save is added creates an output file with date and time"""
     import time
 
-    filename = f"results/{program_name}" + time.strftime("%d%m_%H%M%S") + ".dat"
+    if custom_name is None:
+        filename = f"results/{program_name}_" + time.strftime("%d%m_%H%M%S") + ".dat"
+    else:
+        filename = f"results/{program_name}_" + custom_name + ".dat"
     with open(filename, "w") as out_file:
         out_file.write(f"#{args}\n")
         for day in range(day_max):
-            out_file.write(f"{I_m[day]}, {I_std[day]}\n")
+            out_file.write(f"{day} {I_m[day]} {I_std[day]}\n")
 
 
 # ~~~~~~~~~~~~~~~~~~~
@@ -236,6 +240,20 @@ class ArgumentParser(argparse.ArgumentParser):
 # -------------------------------------
 # Used in models with a social network:
 # -------------------------------------
+
+
+def choose_network(n, network_type, network_param):
+    """ select network type to create a graph using networkx"""
+    if network_type == "er":
+        G = nx.erdos_renyi_graph(n, network_param / n)
+    elif network_type == "ba":
+        G = nx.barabasi_albert_graph(n, network_param)
+    else:
+        raise ValueError("Network type not avaliable")
+    return G
+
+
+# -------------------------
 
 
 class myQueue(object):
@@ -285,10 +303,17 @@ class myQueue(object):
 # -------------------------
 
 
-def Markovian_times(node, sus_neighbors, beta, delta):
+def Markovian_times(node, sus_neighbors, beta, delta, epsilon=None):
     """Cycle through, find infection times and check it it is less than recovery time"""
 
     duration = random.expovariate(delta)
+
+    if epsilon is not None:
+        duration2 = random.expovariate(epsilon)
+        if duration < duration2:
+            pass
+        else:
+            duration = duration2
 
     trans_prob = 1 - np.exp(-beta * duration)
     number_to_infect = np.random.binomial(len(sus_neighbors), trans_prob)
@@ -297,4 +322,11 @@ def Markovian_times(node, sus_neighbors, beta, delta):
     trans_delay = {}
     for v in transmission_recipients:
         trans_delay[v] = _truncated_exponential_(beta, duration)
-    return trans_delay, duration
+
+    if epsilon is not None:
+        if duration < duration2:
+            return (trans_delay, duration, "recover")
+        else:
+            return (trans_delay, duration, "infect")
+    else:
+        return trans_delay, duration

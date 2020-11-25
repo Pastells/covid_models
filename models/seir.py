@@ -1,5 +1,5 @@
 """
-Stochastic mean-fiel SEIR model using the Gillespie algorithm
+Stochastic mean-field SEIR model using the Gillespie algorithm
 Pol Pastells, october 2020
 
 equations of the deterministic system
@@ -29,8 +29,8 @@ def main():
         beta1,
         beta2,
         delta1,
-        epsilon,
         delta2,
+        epsilon,
     ) = parameters_init(args)
 
     # results per day and seed
@@ -67,7 +67,7 @@ def main():
         # -------------------------
         # Time loop
         # -------------------------
-        while I[t] > 0.1 and day < t_total - 1:
+        while I[t] > 0.1 and day < t_total:
             day, day_max = utils.day_data(
                 time, t_total, day, day_max, I[t], I_day[mc_step]
             )
@@ -76,9 +76,6 @@ def main():
             )
 
         # -------------------------
-        day, day_max = utils.day_data(
-            time, t_total, day, day_max, I[t], I_day[mc_step], True
-        )
 
         mc_step += 1
     # =========================
@@ -101,7 +98,7 @@ def parsing():
     import argparse
 
     parser = utils.ArgumentParser(
-        description="stochastic mean-fiel SEIR model using the Gillespie algorithm",
+        description="stochastic mean-field SEIR model using the Gillespie algorithm",
         formatter_class=argparse.MetavarTypeHelpFormatter,
     )
     parser.add_argument(
@@ -125,7 +122,7 @@ def parsing():
     parser.add_argument(
         "--delta1",
         type=float,
-        default=0,
+        default=0.01,
         help="parameter: ratio of recovery from latent fase (e->r) [1e-2,1]",
     )
     parser.add_argument(
@@ -137,7 +134,7 @@ def parsing():
     parser.add_argument(
         "--beta1",
         type=float,
-        default=0,
+        default=0.01,
         help="parameter: ratio of infection due to latent [1e-2,1]",
     )
     parser.add_argument(
@@ -228,8 +225,8 @@ def parameters_init(args):
         beta1,
         beta2,
         delta1,
-        epsilon,
         delta2,
+        epsilon,
     )
 
 

@@ -4,20 +4,25 @@ import numpy as np
 import utils
 
 
-def _process_trans_SIR_(
+def _process_trans_SEIR_(
     time,
     G,
     target,
     times,
     S,
+    E,
     I,
     R,
     Q,
     status,
     rec_time,
     pred_inf_time,
-    beta,
-    delta,
+    beta1,
+    beta2,
+    delta1,
+    delta2,
+    epsilon,
+    e_or_i,
 ):
     r"""
         From figure A.4 of Kiss, Miller, & Simon.  Please cite the book if
@@ -32,7 +37,7 @@ def _process_trans_SIR_(
             node receiving transmission.
         times : list
             list of times at which events have happened
-        S, I, R : lists
+        S, E, I, R : lists
             lists of numbers of nodes of each status at each time
         Q : myQueue
             the queue of events
@@ -62,26 +67,73 @@ def _process_trans_SIR_(
 
     """
 
-    if status[target] == "S":  # nothing happens if already infected.
-        status[target] = "I"
+    if (e_or_i == "E" and status[target] == "S") or (
+        e_or_i == "I" and status[target] == "E"
+    ):  # nothing happens if already infected.
+
         times.append(time)
-        S.append(S[-1] - 1)  # one less susceptible
-        I.append(I[-1] + 1)  # one more infected
-        R.append(R[-1])  # no change to recovered
+        R.append(R[-1])
 
         suscep_neighbors = [v for v in G.neighbors(target) if status[v] == "S"]
 
-        trans_delay, rec_delay = utils.Markovian_times(
-            target, suscep_neighbors, beta, delta
-        )
+        if e_or_i == "E":
+            status[target] = "E"
+            S.append(S[-1] - 1)
+            E.append(E[-1] + 1)
+            I.append(I[-1])
+            trans_delay, rec_delay, recover_or_infect = utils.Markovian_times(
+                target,
+                suscep_neighbors,
+                beta1,
+                delta1,
+                epsilon,
+            )
+        else:
+            status[target] = "I"
+            S.append(S[-1])
+            E.append(E[-1] - 1)
+            I.append(I[-1] + 1)
+            trans_delay, rec_delay = utils.Markovian_times(
+                target,
+                suscep_neighbors,
+                beta2,
+                delta2,
+            )
+            recover_or_infect = "recover"
 
         rec_time[target] = time + rec_delay
         if rec_time[target] <= Q.tmax:
-            Q.add(
-                rec_time[target],
-                _process_rec_SIR_,
-                args=(target, times, S, I, R, status),
-            )
+            if recover_or_infect == "recover":
+                Q.add(
+                    rec_time[target],
+                    _process_rec_SEIR_,
+                    args=(target, times, S, E, I, R, status, e_or_i),
+                )
+            else:
+                Q.add(
+                    rec_time[target],
+                    _process_trans_SEIR_,
+                    args=(
+                        G,
+                        target,
+                        times,
+                        S,
+                        E,
+                        I,
+                        R,
+                        Q,
+                        status,
+                        rec_time,
+                        pred_inf_time,
+                        beta1,
+                        beta2,
+                        delta1,
+                        delta2,
+                        epsilon,
+                        "I",
+                    ),
+                )
+
         for v in trans_delay:
             inf_time = time + trans_delay[v]
             if (
@@ -91,20 +143,25 @@ def _process_trans_SIR_(
             ):
                 Q.add(
                     inf_time,
-                    _process_trans_SIR_,
+                    _process_trans_SEIR_,
                     args=(
                         G,
                         v,
                         times,
                         S,
+                        E,
                         I,
                         R,
                         Q,
                         status,
                         rec_time,
                         pred_inf_time,
-                        beta,
-                        delta,
+                        beta1,
+                        beta2,
+                        delta1,
+                        delta2,
+                        epsilon,
+                        "E",
                     ),
                 )
                 pred_inf_time[v] = inf_time
@@ -113,9 +170,8 @@ def _process_trans_SIR_(
 # -------------------------
 
 
-def _process_rec_SIR_(time, node, times, S, I, R, status):
-    r"""From figure A.3 of Kiss, Miller, & Simon.  Please cite the
-    book if using this algorithm.
+def _process_rec_SEIR_(time, node, times, S, E, I, R, status, e_or_i):
+    r"""
 
     :Arguments:
 
@@ -123,7 +179,7 @@ def _process_rec_SIR_(time, node, times, S, I, R, status):
             has details on node and time
         times : list
             list of times at which events have happened
-        S, I, R : lists
+        S, E, I, R : lists
             lists of numbers of nodes of each status at each time
         status : dict
             dictionary giving status of each node
@@ -138,30 +194,82 @@ def _process_rec_SIR_(time, node, times, S, I, R, status):
     status : updates status of newly recovered node
     times : appends time of event
     S : appends new S (same as last)
+    E : appends new E (same as last)
     I : appends new I (decreased by 1)
     R : appends new R (increased by 1)
     """
+
     times.append(time)
-    S.append(S[-1])  # no change to number susceptible
-    I.append(I[-1] - 1)  # one less infected
-    R.append(R[-1] + 1)  # one more recovered
+    S.append(S[-1])
+    R.append(R[-1] + 1)
+
+    if e_or_i == "E":
+        E.append(E[-1] - 1)
+        I.append(I[-1])
+    else:
+        E.append(E[-1])
+        I.append(I[-1] - 1)
+
     status[node] = "R"
 
 
 # -------------------------
 
 
-def fast_SIR(
+def _process_inf_SEIR_(time, node, times, S, E, I, R, status):
+    r"""
+
+    :Arguments:
+
+        event : event
+            has details on node and time
+        times : list
+            list of times at which events have happened
+        S, E, I, R : lists
+            lists of numbers of nodes of each status at each time
+        status : dict
+            dictionary giving status of each node
+
+
+    :Returns:
+
+    Nothing
+
+    MODIFIES
+    ----------
+    status : updates status of newly recovered node
+    times : appends time of event
+    S : appends new S (same as last)
+    E : appends new E (same as last)
+    I : appends new I (decreased by 1)
+    R : appends new R (increased by 1)
+    """
+    times.append(time)
+    S.append(S[-1])
+    E.append(E[-1] - 1)
+    I.append(I[-1] + 1)
+    R.append(R[-1])
+    status[node] = "I"
+
+
+# -------------------------
+
+
+def fast_SEIR(
     G,
-    beta,
-    delta,
+    beta1,
+    beta2,
+    delta1,
+    delta2,
+    epsilon,
+    # E_0=0,
     I_0=None,
     R_0=0,
     tmin=0,
     tmax=float("Inf"),
 ):
     r"""
-    fast SIR simulation for exponentially distributed infection and
+    fast SEIR simulation for exponentially distributed infection and
     recovery times
 
     :Arguments:
@@ -175,6 +283,9 @@ def fast_SIR(
     **delta** number
         recovery rate per node
 
+    **E_0** number
+        initially exposed nodes (NOT IMPLEMENTED)
+
     **I_0** number
         initially infected nodes
 
@@ -186,13 +297,13 @@ def fast_SIR(
 
     **tmax** number  (default Infinity)
         maximum time after which simulation will stop.
-        the default of running to infinity is okay for SIR,
+        the default of running to infinity is okay for SEIR,
         but not for SIS.
 
 
     :Returns:
 
-    **times, S, I, R** numpy arrays
+    **times, S, E, I, R** numpy arrays
 
     """
 
@@ -229,27 +340,34 @@ def fast_SIR(
     """
 
     I_0 = random.sample(G.nodes(), I_0)
+    for node in I_0:
+        status[node] = "E"
 
-    times, S, I, R = ([tmin], [G.order()], [0], [0])
+    times, S, E, I, R = ([tmin], [G.order()], [len(I_0)], [0], [0])
 
     for u in I_0:
         pred_inf_time[u] = tmin
         Q.add(
             tmin,
-            _process_trans_SIR_,
+            _process_trans_SEIR_,
             args=(
                 G,
                 u,
                 times,
                 S,
+                E,
                 I,
                 R,
                 Q,
                 status,
                 rec_time,
                 pred_inf_time,
-                beta,
-                delta,
+                beta1,
+                beta2,
+                delta1,
+                delta2,
+                epsilon,
+                "I",
             ),
         )
 
@@ -262,7 +380,8 @@ def fast_SIR(
     # We'd like to get rid these excess events.
     times = times[len(I_0) :]
     S = S[len(I_0) :]
+    E = E[len(I_0) :]
     I = I[len(I_0) :]
     R = R[len(I_0) :]
 
-    return np.array(times), np.array(S), np.array(I), np.array(R)
+    return np.array(times), np.array(S), np.array(E), np.array(I), np.array(R)

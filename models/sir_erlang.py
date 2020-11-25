@@ -66,7 +66,7 @@ def main():
         t, time, day = 0, 0, 1
 
         # Time loop
-        while I[t, :-1].sum() > 0.1 and day < t_total - 1:
+        while I[t, :-1].sum() > 0.1 and day < t_total:
             # Add individuals periodically
             # if time//add_n==1:
             # add_n += 30
@@ -76,9 +76,6 @@ def main():
             )
             t, time = gillespie(t, time, S, I, R, beta, delta, k_rec, k_inf)
         # -------------------------
-        day, day_max = utils.day_data(
-            time, day, t_total, day_max, I[t, :-1].sum(), I_day[mc_step], True
-        )
 
         # final value for the rest of time, otherwise it contributes with a zero when averaged
         # S_day[mc_step,day:] = S_day[mc_step,day-1]

@@ -30,8 +30,8 @@ def main():
         beta1,
         beta2,
         delta1,
-        epsilon,
         delta2,
+        epsilon,
     ) = parameters_init(args)
 
     # results per day and seed
@@ -73,7 +73,7 @@ def main():
         t, time, day = 0, 0, 1
 
         # Time loop
-        while I[t, :-1].sum() > 0 and day < t_total - 1:
+        while I[t, :-1].sum() > 0 and day < t_total:
             day, day_max = utils.day_data(
                 time, t_total, day, day_max, I[t, :-1].sum(), I_day[mc_step]
             )
@@ -98,9 +98,6 @@ def main():
                 break
 
         # -------------------------
-        day, day_max = utils.day_data(
-            time, day, t_total, day_max, I[t, :-1].sum(), I_day[mc_step], True
-        )
 
         """
         if plot:
@@ -154,7 +151,7 @@ def parsing():
     parser.add_argument(
         "--delta1",
         type=float,
-        default=0,
+        default=0.01,
         help="parameter: ratio of recovery from latent fase (e->r) [1e-2,1]",
     )
     parser.add_argument(
@@ -172,7 +169,7 @@ def parsing():
     parser.add_argument(
         "--beta1",
         type=float,
-        default=0,
+        default=0.01,
         help="parameter: ratio of infection due to latent [1e-2,1]",
     )
     parser.add_argument(
@@ -259,8 +256,8 @@ def parameters_init(args):
     beta1 = args.beta1 / n * k_inf
     beta2 = args.beta2 / n * k_inf
     delta1 = args.delta1 * k_lat
-    epsilon = args.epsilon * k_lat
     delta2 = args.delta2 * k_rec
+    epsilon = args.epsilon * k_lat
     return (
         E_0,
         I_0,
@@ -279,8 +276,8 @@ def parameters_init(args):
         beta1,
         beta2,
         delta1,
-        epsilon,
         delta2,
+        epsilon,
     )
 
 

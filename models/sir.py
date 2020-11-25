@@ -1,5 +1,5 @@
 """
-Stochastic mean-field sir model using the Gillespie algorithm
+Stochastic mean-field SIR model using the Gillespie algorithm
 Pol Pastells, october 2020
 
 equations of the deterministic system
@@ -57,15 +57,12 @@ def main():
         t, time, day = 0, 0, 1
 
         # Time loop
-        while I[t] > 0.1 and day < t_total - 1:
+        while I[t] > 0.1 and day < t_total:
             day, day_max = utils.day_data(
                 time, t_total, day, day_max, I[t], I_day[mc_step]
             )
             t, time = gillespie(t, time, S, I, R, beta, delta)
         # -------------------------
-        day, day_max = utils.day_data(
-            time, t_total, day, day_max, I[t], I_day[mc_step], True
-        )
 
         mc_step += 1
     # =========================
@@ -90,7 +87,7 @@ def parsing():
     import argparse
 
     parser = utils.ArgumentParser(
-        description="stochastic mean-fiel sir model using the Gillespie algorithm",
+        description="stochastic mean-field SIR model using the Gillespie algorithm",
         # formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         formatter_class=argparse.MetavarTypeHelpFormatter,
     )

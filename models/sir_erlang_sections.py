@@ -76,9 +76,6 @@ def main():
                 S[t, :-1] = (n - I[t:-1].sum() - R[t]) / k_inf
 
         # -------------------------
-        day, day_max = utils.day_data(
-            time, day, t_total, day_max, I[t, :-1].sum(), I_day[mc_step], True
-        )
 
         # plot all trajectories
         # if plot:

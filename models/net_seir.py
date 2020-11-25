@@ -1,5 +1,5 @@
 """
-Stochastic SIR model with a social network using the event-driven algorithm
+Stochastic sir model with a social network using the event-driven algorithm
 Pol Pastells, november 2020
 
 equations of the deterministic system
@@ -16,6 +16,7 @@ to do:
 def main():
     args = parsing()
     (
+        E_0,
         I_0,
         R_0,
         t_steps,
@@ -26,8 +27,11 @@ def main():
         save,
         infected_time_series,
         n,
-        beta,
-        delta,
+        beta1,
+        beta2,
+        delta1,
+        delta2,
+        epsilon,
         network_type,
         network_param,
     ) = parameters_init(args)
@@ -47,7 +51,15 @@ def main():
         np.random.seed(seed)
 
         G = utils.choose_network(n, network_type, network_param)
-        t, S, I, R = fast_sir.fast_SIR(G, beta, delta, I_0, R_0)
+        t, S, E, I, R = fast_seir.fast_SEIR(
+            G, beta1, beta2, delta1, delta2, epsilon, I_0, R_0, tmax=t_total - 0.9
+        )
+        import matplotlib.pyplot as plt
+
+        plt.plot(t, S)
+        plt.plot(t, E)
+        plt.plot(t, I)
+        plt.plot(t, R)
 
         I_day[mc_step, 0] = I_0
         day = 1
@@ -55,6 +67,9 @@ def main():
             day, day_max = utils.day_data(
                 time, t_total, day, day_max, I[t], I_day[mc_step]
             )
+        day, day_max = utils.day_data(
+            time, t_total, day, day_max, I[-1], I_day[mc_step], True
+        )
 
         mc_step += 1
     # =========================
@@ -79,7 +94,7 @@ def parsing():
     import argparse
 
     parser = utils.ArgumentParser(
-        description="stochastic SIR model with a social network using the event-driven algorithm",
+        description="stochastic SEIR model using the Gillespie algorithm",
         # formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         formatter_class=argparse.MetavarTypeHelpFormatter,
     )
@@ -106,6 +121,9 @@ def parsing():
     )
 
     parser.add_argument(
+        "--e_0", type=int, default=0, help="initial number of latent individuals [1,n]"
+    )
+    parser.add_argument(
         "--i_0",
         type=int,
         default=20,
@@ -115,10 +133,34 @@ def parsing():
         "--r_0", type=int, default=0, help="initial number of inmune individuals [0,n]"
     )
     parser.add_argument(
-        "--delta", type=float, default=0.2, help="parameter: ratio of recovery [1e-2,1]"
+        "--delta1",
+        type=float,
+        default=0.01,
+        help="parameter: ratio of recovery from latent fase (e->r) [1e-2,1]",
     )
     parser.add_argument(
-        "--beta", type=float, default=0.5, help="parameter: ratio of infection [1e-2,1]"
+        "--delta2",
+        type=float,
+        default=0.2,
+        help="parameter: ratio of recovery from infected fase (i->r) [1e-2,1]",
+    )
+    parser.add_argument(
+        "--beta1",
+        type=float,
+        default=0.01,
+        help="parameter: ratio of infection due to latent [1e-2,1]",
+    )
+    parser.add_argument(
+        "--beta2",
+        type=float,
+        default=0.5,
+        help="parameter: ratio of infection due to infected [1e-2,1]",
+    )
+    parser.add_argument(
+        "--epsilon",
+        type=float,
+        default=1,
+        help="parameter: ratio of latency (e->i) [1e-2,1]",
     )
 
     parser.add_argument(
@@ -164,6 +206,7 @@ def parameters_init(args):
     """initial parameters from argparse"""
     from numpy import genfromtxt
 
+    E_0 = args.e_0
     I_0 = args.i_0
     R_0 = args.r_0
     t_steps = int(1e7)  # max simulation steps
@@ -177,11 +220,16 @@ def parameters_init(args):
     ]
     # print(infected_time_series)
     n = args.n
-    beta = args.beta
-    delta = args.delta
+    beta1 = args.beta1
+    beta2 = args.beta2
+    delta1 = args.delta1
+    delta2 = args.delta2
+    epsilon = args.epsilon
     network_type = args.network_type
     network_param = args.network_param
+
     return (
+        E_0,
         I_0,
         R_0,
         t_steps,
@@ -192,8 +240,11 @@ def parameters_init(args):
         save,
         infected_time_series,
         n,
-        beta,
-        delta,
+        beta1,
+        beta2,
+        delta1,
+        delta2,
+        epsilon,
         network_type,
         network_param,
     )
@@ -201,8 +252,9 @@ def parameters_init(args):
 
 # -------------------------
 
+
 if __name__ == "__main__":
-    import fast_sir
+    import fast_seir
     import random
     import numpy as np
     import utils
