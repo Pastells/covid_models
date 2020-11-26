@@ -12,15 +12,28 @@ import matplotlib.pyplot as plt
 # -------------------------
 
 
-def beta_func(beta, t):
-    """ returns beta as a function of time"""
-    # t_conf = 20 # day of confinement
-    # alpha = 0.5
-    # delta_t = 5
-    # if t<t_conf:
-    return beta
-    # else:
-    # return beta*alpha + beta*(1-alpha)*np.exp(-(t-t_conf)/delta_t)
+def ratios_func(beta, delta, time, beta_old=None, delta_old=None, t_0=0):
+    """returns beta and delta as a function of time:
+    interpolates between the two given values using a tanh"""
+
+    if beta_old is None:
+        return beta, delta
+
+    if time > t_0 + 4:
+        return beta, delta
+
+    weight = 0.5 * (1 + np.tanh((time - t_0) / 0.75))
+    delta = delta_old + (delta - delta_old) * weight
+    beta = beta_old + (beta - beta_old) * weight
+    return beta, delta
+
+
+# -------------------------
+
+
+def monotonically_increasing(array):
+    """ Check if array is monotonically increasing"""
+    return all(x <= y for x, y in zip(array, array[1:]))
 
 
 # -------------------------

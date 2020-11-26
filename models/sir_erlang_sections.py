@@ -10,6 +10,13 @@ i[t] = I[t-1] + beta*i[t-1]*s[t-1] - delta * I[t-1]
 r[t] = R[t-1] + delta * I[t-1]
 """
 
+import random
+import sys
+import traceback
+import numpy as np
+import utils
+import sir_erlang
+
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%
 # %%%%%%%%%%%%%%%%%%%%%%%%%
@@ -39,12 +46,23 @@ def main():
     # MC loop
     # =========================
     for seed in range(mc_seed0, mc_seed0 + mc_nseed):
+        print("seed", seed)
         random.seed(seed)
         np.random.seed(seed)
 
         # initialization
         section = 0
-        n, k_inf, k_rec, beta, delta, section_day = parameters_section(args, section)
+        (
+            n,
+            k_inf,
+            k_rec,
+            beta,
+            delta,
+            section_day,
+            beta_old,
+            delta_old,
+            section_day_old,
+        ) = parameters_section(args, section)
         S, I, R = (
             np.zeros([t_steps, k_inf + 1]),
             np.zeros([t_steps, k_rec + 1]),
@@ -66,13 +84,34 @@ def main():
                 day, day_max = utils.day_data(
                     time, t_total, day, day_max, I[t, :-1].sum(), I_day[mc_step]
                 )
-                t, time = gillespie(t, time, S, I, R, beta, delta, k_rec, k_inf)
+                t, time = gillespie(
+                    t,
+                    time,
+                    section_day_old,
+                    S,
+                    I,
+                    R,
+                    beta,
+                    delta,
+                    beta_old,
+                    delta_old,
+                    k_rec,
+                    k_inf,
+                )
 
             section += 1
             if section < n_sections:
-                n, k_inf, k_rec, beta, delta, section_day = parameters_section(
-                    args, section
-                )
+                (
+                    n,
+                    k_inf,
+                    k_rec,
+                    beta,
+                    delta,
+                    section_day,
+                    beta_old,
+                    delta_old,
+                    section_day_old,
+                ) = parameters_section(args, section, beta, delta, section_day)
                 S[t, :-1] = (n - I[t:-1].sum() - R[t]) / k_inf
 
         # -------------------------
@@ -83,6 +122,8 @@ def main():
         # plt.plot(T[:t],i[:t,:-1].sum(1),c='c')
         mc_step += 1
     # =========================
+
+    print("out")
 
     I_m, I_std = utils.mean_alive(I_day, t_total, day_max, mc_nseed)
 
@@ -117,7 +158,7 @@ def parsing():
         type=int,
         default=[int(1e4)],
         nargs="*",
-        help="fixed number of (effecitve) people [1000,1000000]",
+        help="parameter: fixed number of (effecitve) people, must be monotonically increasing [1000,1000000]",
     )
     parser.add_argument(
         "--i_0",
@@ -133,33 +174,33 @@ def parsing():
         type=float,
         default=[0.2],
         nargs="*",
-        help="mean ratio of recovery [1e-2,1]",
+        help="parameter: mean ratio of recovery [1e-2,1]",
     )
     parser.add_argument(
         "--beta",
         type=float,
         default=[0.5],
         nargs="*",
-        help="ratio of infection [1e-2,1]",
+        help="parameter: ratio of infection [1e-2,1]",
     )
     parser.add_argument(
         "--k_rec",
         type=int,
         default=1,
-        help="k parameter for the recovery time erlang distribution [1,5]",
+        help="parameter: k parameter for the recovery time erlang distribution [1,5]",
     )
     parser.add_argument(
         "--k_inf",
         type=int,
         default=1,
-        help="k parameter for the infection time erlang distribution [1,5]",
+        help="parameter: k parameter for the infection time erlang distribution [1,5]",
     )
     parser.add_argument(
         "--section_days",
         type=int,
         default=[0, 100],
         nargs="*",
-        help="starting day for each section, firts one must be 0,\
+        help="parameter: starting day for each section, firts one must be 0,\
                         and final day for last one",
     )
 
@@ -203,6 +244,9 @@ def parameters_init(args):
     """Initial parameters from argparse"""
     from numpy import genfromtxt
 
+    if not utils.monotonically_increasing(args.n):
+        raise ValueError("n should be monotonically increasing")
+
     I_0 = args.i_0
     R_0 = args.r_0
     t_steps = int(1e7)  # max simulation steps
@@ -230,7 +274,7 @@ def parameters_init(args):
     )
 
 
-def parameters_section(args, section):
+def parameters_section(args, section, beta_old=None, delta_old=None, section_day_old=0):
     """
     Section dependent parameters from argparse
     """
@@ -240,13 +284,25 @@ def parameters_section(args, section):
     beta = args.beta[section] / n * k_inf
     delta = args.delta[section] * k_rec
     section_day = args.section_days[section + 1]
-    return n, k_inf, k_rec, beta, delta, section_day
+    return (
+        n,
+        k_inf,
+        k_rec,
+        beta,
+        delta,
+        section_day,
+        beta_old,
+        delta_old,
+        section_day_old + 1,
+    )
 
 
 # -------------------------
 
 
-def gillespie(t, time, S, I, R, beta, delta, k_rec, k_inf):
+def gillespie(
+    t, time, section_day_old, S, I, R, beta, delta, beta_old, delta_old, k_rec, k_inf
+):
     """
     Time elapsed for the next event
     Calls gillespie_step
@@ -254,64 +310,26 @@ def gillespie(t, time, S, I, R, beta, delta, k_rec, k_inf):
     stot = S[t, :-1].sum()
     itot = I[t, :-1].sum()
 
-    lambda_sum = (delta + utils.beta_func(beta, t) * stot) * itot
-    prob_heal = delta * I[t, :-1] / lambda_sum
-    prob_infect = utils.beta_func(beta, t) * S[t, :-1] * itot / lambda_sum
+    beta_eval, delta_eval = utils.ratios_func(
+        beta, delta, time, beta_old, delta_old, section_day_old
+    )
+
+    lambda_sum = (delta_eval + beta_eval * stot) * itot
+    prob_heal = delta_eval * I[t, :-1] / lambda_sum
+    prob_infect = beta_eval * S[t, :-1] * itot / lambda_sum
 
     t += 1
     time += utils.time_dist(lambda_sum)
     # T[t] = time
 
-    gillespie_step(t, S, I, R, prob_heal, prob_infect, k_rec, k_inf)
+    sir_erlang.gillespie_step(t, S, I, R, prob_heal, prob_infect, k_rec, k_inf)
     return t, time
 
 
 # -------------------------
 
 
-def gillespie_step(t, S, I, R, prob_heal, prob_infect, k_rec, k_inf):
-    """
-    Perform an event of the algorithm, either infect or recover a single individual
-    S and I have one extra dimension to temporally store the infected and recovered
-    after k stages, due to the Erlang distribution
-    """
-    random = np.random.random()
-    prob_heal_tot = prob_heal.sum()
-
-    # i(k)-> i(k+1)/r
-    if random < prob_heal_tot:
-        for k in range(k_rec):
-            if random < prob_heal[: k + 1].sum():
-                S[t, :-1] = S[t - 1, :-1]
-                I[t, k] = -1
-                I[t, k + 1] = 1
-                R[t] = R[t - 1] + I[t, k_rec]
-                I[t] += I[t - 1]
-                break
-
-    # s(k)-> s(k+1)/i(0)
-    else:
-        for k in range(k_inf):
-            if random < (prob_heal_tot + prob_infect[: k + 1].sum()):
-                R[t] = R[t - 1]
-                I[t, :-1] = I[t - 1, :-1]
-                S[t, k] = -1
-                S[t, k + 1] = 1
-                I[t, 0] += S[t, k_inf]
-                S[t] += S[t - 1]
-                break
-
-
-# -------------------------
-
-
 if __name__ == "__main__":
-    import random
-    import numpy as np
-    import utils
-    import sys
-    import traceback
-
     try:
         main()
     except Exception as ex:

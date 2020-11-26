@@ -8,6 +8,11 @@ i[t] = I[t-1] + beta*i[t-1]*s[t-1] - delta * I[t-1]
 r[t] = R[t-1] + delta * I[t-1]
 """
 
+import random
+import sys
+import traceback
+import numpy as np
+import utils
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%
 # %%%%%%%%%%%%%%%%%%%%%%%%%
@@ -195,7 +200,7 @@ def gillespie(t, time, S, I, R, beta, delta):
     Calls gillespie_step
     """
 
-    lambda_sum = (delta + utils.beta_func(beta, t) * S[t]) * I[t]
+    lambda_sum = (delta + beta * S[t]) * I[t]
     prob_heal = delta * I[t] / lambda_sum
 
     t += 1
@@ -231,12 +236,6 @@ def gillespie_step(t, S, I, R, prob_heal):
 
 
 if __name__ == "__main__":
-    import random
-    import numpy as np
-    import utils
-    import sys
-    import traceback
-
     try:
         main()
     except Exception as ex:

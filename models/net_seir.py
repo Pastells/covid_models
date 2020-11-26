@@ -12,6 +12,12 @@ to do:
     - seed for network generation
 """
 
+import random
+import sys
+import traceback
+import numpy as np
+import utils
+
 
 def main():
     args = parsing()
@@ -254,13 +260,6 @@ def parameters_init(args):
 
 
 if __name__ == "__main__":
-    import fast_seir
-    import random
-    import numpy as np
-    import utils
-    import sys
-    import traceback
-
     try:
         main()
     except Exception as ex:

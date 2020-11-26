@@ -9,6 +9,12 @@ i[t] = I[t-1] + epsilon*e[t-1] - delta2 * I[t-1]
 r[t] = R[t-1] + delta1 *e[t-1] + delta2 * I[t-1]
 """
 
+import random
+import sys
+import traceback
+import numpy as np
+import utils
+
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%
 # %%%%%%%%%%%%%%%%%%%%%%%%%
@@ -293,12 +299,6 @@ def gillespie_step(t, S, E, I, R, prob_heal1, prob_heal2, prob_latent):
 
 
 if __name__ == "__main__":
-    import random
-    import numpy as np
-    import utils
-    import sys
-    import traceback
-
     try:
         main()
     except Exception as ex:
