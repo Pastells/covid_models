@@ -12,20 +12,55 @@ import matplotlib.pyplot as plt
 # -------------------------
 
 
-def ratios_func(beta, delta, time, beta_old=None, delta_old=None, t_0=0):
+def ratios_sir(time, ratios, ratios_old=None, t_0=0):
     """returns beta and delta as a function of time:
     interpolates between the two given values using a tanh"""
 
-    if beta_old is None:
-        return beta, delta
+    if ratios_old is None:
+        return ratios["beta"], ratios["delta"]
 
     if time > t_0 + 4:
-        return beta, delta
+        return ratios["beta"], ratios["delta"]
 
     weight = 0.5 * (1 + np.tanh((time - t_0) / 0.75))
-    delta = delta_old + (delta - delta_old) * weight
-    beta = beta_old + (beta - beta_old) * weight
+    delta = ratios_old["delta"] + (ratios["delta"] - ratios_old["delta"]) * weight
+    beta = ratios_old["beta"] + (ratios["beta"] - ratios_old["beta"]) * weight
     return beta, delta
+
+
+# -------------------------
+
+
+def ratios_seir(
+    time,
+    beta1,
+    beta2,
+    delta1,
+    delta2,
+    epsilon,
+    beta1_old=None,
+    beta2_old=None,
+    delta1_old=None,
+    delta2_old=None,
+    epsilon_old=None,
+    t_0=0,
+):
+    """returns beta1/2, delta1/2 and epsilon as a function of time:
+    interpolates between the two given values using a tanh"""
+
+    if beta1_old is None:
+        return beta1, beta2, delta1, delta2, epsilon
+
+    if time > t_0 + 4:
+        return beta1, beta2, delta1, delta2, epsilon
+
+    weight = 0.5 * (1 + np.tanh((time - t_0) / 0.75))
+    delta1 = delta1_old + (delta1 - delta1_old) * weight
+    delta2 = delta2_old + (delta2 - delta2_old) * weight
+    beta1 = beta1_old + (beta1 - beta1_old) * weight
+    beta2 = beta2_old + (beta2 - beta2_old) * weight
+    epsilon = epsilon_old + (epsilon - epsilon_old) * weight
+    return beta1, beta2, delta1, delta2, epsilon
 
 
 # -------------------------

@@ -15,7 +15,7 @@ import sys
 import traceback
 import numpy as np
 import utils
-import sir_erlang
+import seir_erlang
 
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%
@@ -23,6 +23,7 @@ import sir_erlang
 def main():
     args = parsing()
     (
+        E_0,
         I_0,
         R_0,
         n_t_steps,
@@ -46,6 +47,7 @@ def main():
     # MC loop
     # =========================
     for seed in range(mc_seed0, mc_seed0 + mc_nseed):
+        print("seed", seed)
         random.seed(seed)
         np.random.seed(seed)
 
@@ -53,69 +55,114 @@ def main():
         section = 0
         (
             n,
-            ratios,
-            shapes,
+            k_rec,
+            k_lat,
+            k_inf,
+            beta1,
+            beta2,
+            delta1,
+            delta2,
+            epsilon,
             section_day,
-            ratios_old,
+            beta1_old,
+            beta2_old,
+            delta1_old,
+            delta2_old,
+            epsilon_old,
             section_day_old,
         ) = parameters_section(args, section)
 
-        comp = sir_erlang.Compartments(n_t_steps, shapes, args)
-
-        t_step, time, day = 0, 0, 1
+        S, E, I, R = (
+            np.zeros([n_t_steps, k_inf + 1]),
+            np.zeros([n_t_steps, k_lat + 1, 2]),
+            np.zeros([n_t_steps, k_rec + 1]),
+            np.zeros(n_t_steps),
+        )
+        t, time, day = 0, 0, 1
         I_day[mc_step, 0] = I_0
+
+        S[0, :-1] = (n - I_0 - R_0) / k_inf
+        S[0, -1], E[0, :-1] = E_0 / k_lat, E_0 / k_lat
+        E[0, -1], I[0, :-1] = I_0 / k_rec, I_0 / k_rec
+        I[0, -1], R[0] = R_0, R_0
 
         # Sections
         while section < n_sections:
             # Time loop
-            while comp.I[t_step, :-1].sum() > 0 and day < section_day:
+            while I[t, :-1].sum() > 0 and day < section_day:
                 day, day_max = utils.day_data(
-                    time,
-                    t_total,
-                    day,
-                    day_max,
-                    comp.I[t_step, :-1].sum(),
-                    I_day[mc_step],
+                    time, t_total, day, day_max, I[t, :-1].sum(), I_day[mc_step]
                 )
-                t_step, time = gillespie(
-                    t_step,
+                t, time = gillespie(
+                    t_total,
+                    t,
                     time,
-                    section_day_old,
-                    comp,
-                    ratios,
-                    ratios_old,
-                    shapes,
+                    S,
+                    E,
+                    I,
+                    R,
+                    beta1,
+                    beta2,
+                    delta1,
+                    delta2,
+                    epsilon,
+                    beta1_old,
+                    beta2_old,
+                    delta1_old,
+                    delta2_old,
+                    epsilon_old,
+                    k_rec,
+                    k_lat,
+                    k_inf,
                 )
 
             section += 1
             if section < n_sections:
                 (
                     n,
-                    ratios,
-                    shapes,
+                    k_rec,
+                    k_lat,
+                    k_inf,
+                    beta1,
+                    beta2,
+                    delta1,
+                    delta2,
+                    epsilon,
                     section_day,
-                    ratios_old,
+                    beta1_old,
+                    beta2_old,
+                    delta1_old,
+                    delta2_old,
+                    epsilon_old,
                     section_day_old,
-                ) = parameters_section(args, section, ratios_old, section_day)
-                comp.S[t_step, :-1] = (
-                    n - comp.I[t_step:-1].sum() - comp.R[t_step]
-                ) / shapes["k_inf"]
+                ) = parameters_section(
+                    args,
+                    beta1_old,
+                    beta2_old,
+                    delta1_old,
+                    delta2_old,
+                    epsilon_old,
+                    section_day_old,
+                )
+                S[t, :-1] = (n - I[t:-1].sum() - E[t:-1].sum() - R[t]) / k_inf
 
         # -------------------------
 
         # plot all trajectories
         # if plot:
         # plt.plot(I_day[mc_step,:])
-        # plt.plot(T[:t_step],i[:t_step,:-1].sum(1),c='c')
+        # plt.plot(T[:t],i[:t,:-1].sum(1),c='c')
         mc_step += 1
     # =========================
+
+    print("out")
 
     I_m, I_std = utils.mean_alive(I_day, t_total, day_max, mc_nseed)
 
     utils.cost_func(infected_time_series, I_m, I_std)
 
     if save:
-        utils.saving(args, I_m, I_std, day_max, "sir_erlang_sections")
+        utils.saving(args, I_m, I_std, day_max, "seir_erlang_sections")
 
     if plot:
         utils.plotting(infected_time_series, I_day, day_max, I_m, I_std)
@@ -146,13 +193,13 @@ def parsing():
         help="parameter: fixed number of (effecitve) people, must be monotonically increasing [1000,1000000]",
     )
     parser.add_argument(
-        "--I_0",
+        "--i_0",
         type=int,
         default=20,
         help="initial number of infected individuals [1,n]",
     )
     parser.add_argument(
-        "--R_0", type=int, default=0, help="initial number of inmune individuals [0,n]"
+        "--r_0", type=int, default=0, help="initial number of inmune individuals [0,n]"
     )
     parser.add_argument(
         "--delta",
@@ -232,8 +279,9 @@ def parameters_init(args):
     if not utils.monotonically_increasing(args.n):
         raise ValueError("n should be monotonically increasing")
 
-    I_0 = args.I_0
-    R_0 = args.R_0
+    E_0 = args.e_0
+    I_0 = args.i_0
+    R_0 = args.r_0
     n_t_steps = int(1e7)  # max simulation steps
     t_total = args.section_days[-1]  # max simulated days
     mc_nseed = args.mc_nseed  # MC realizations
@@ -246,6 +294,7 @@ def parameters_init(args):
     n_sections = len(args.section_days) - 1
     # print(infected_time_series)
     return (
+        E_0,
         I_0,
         R_0,
         n_t_steps,
@@ -259,20 +308,45 @@ def parameters_init(args):
     )
 
 
-def parameters_section(args, section, ratios_old=None, section_day_old=0):
+def parameters_section(
+    args,
+    section,
+    beta1_old=None,
+    beta2_old=None,
+    delta1_old=None,
+    delta2_old=None,
+    epsilon_old=None,
+    section_day_old=0,
+):
     """
     Section dependent parameters from argparse
     """
     n = args.n[section]
-    shapes = {"k_inf": args.k_inf, "k_rec": args.k_rec}
-    ratios = {"beta": args.beta[section] / n, "delta": args.delta[section]}
+    k_rec = args.k_rec
+    k_lat = args.k_lat
+    k_inf = args.k_inf
+    beta1 = args.beta1 / n * k_inf
+    beta2 = args.beta2 / n * k_inf
+    delta1 = args.delta1 * k_lat
+    delta2 = args.delta2 * k_rec
+    epsilon = args.epsilon * k_lat
     section_day = args.section_days[section + 1]
     return (
         n,
-        ratios,
-        shapes,
+        k_rec,
+        k_lat,
+        k_inf,
+        beta1,
+        beta2,
+        delta1,
+        delta2,
+        epsilon,
         section_day,
-        ratios_old,
+        beta1_old,
+        beta2_old,
+        delta1_old,
+        delta2_old,
+        epsilon_old,
         section_day_old + 1,
     )
 
@@ -280,25 +354,87 @@ def parameters_section(args, section, ratios_old=None, section_day_old=0):
 # -------------------------
 
 
-def gillespie(t_step, time, section_day_old, comp, ratios, ratios_old, shapes):
+def gillespie(
+    t_total,
+    t,
+    time,
+    section_day_old,
+    S,
+    E,
+    I,
+    R,
+    beta1,
+    beta2,
+    delta1,
+    delta2,
+    epsilon,
+    beta1_old,
+    beta2_old,
+    delta1_old,
+    delta2_old,
+    epsilon_old,
+    k_rec,
+    k_lat,
+    k_inf,
+):
     """
     Time elapsed for the next event
     Calls gillespie_step
     """
-    stot = comp.S[t_step, :-1].sum()
-    itot = comp.I[t_step, :-1].sum()
 
-    beta_eval, delta_eval = utils.ratios_sir(time, ratios, ratios_old, section_day_old)
+    stot = S[t, :-1].sum()
+    itot = I[t, :-1].sum()
+    etot_rec = E[t, :-1, 0].sum()
+    etot_inf = E[t, :-1, 1].sum()
+    etot = etot_inf + etot_rec - E[t, 0, 0]
 
-    lambda_sum = (delta_eval + beta_eval * stot) * itot
-    prob_heal = delta_eval * comp.I[t_step, :-1] / lambda_sum
-    prob_infect = beta_eval * comp.S[t_step, :-1] * itot / lambda_sum
+    beta1_eval, beta2_eval, delta1_eval, delta2_eval, epsilon_eval = utils.ratios_seir(
+        time,
+        beta1,
+        beta2,
+        delta1,
+        delta2,
+        epsilon,
+        beta1_old,
+        beta2_old,
+        delta1_old,
+        delta2_old,
+        epsilon_old,
+        section_day_old,
+    )
 
-    t_step += 1
+    lambda_sum = (
+        epsilon_eval * etot_inf
+        + delta1_eval * etot_rec
+        + delta2_eval * itot
+        + (beta1_eval * etot + beta2_eval * itot) * stot
+    )
+
+    prob_heal1 = delta1_eval * E[t, :-1, 0] / lambda_sum
+    prob_heal2 = delta2_eval * I[t, :-1] / lambda_sum
+    prob_latent = epsilon_eval * E[t, :-1, 1] / lambda_sum
+    prob_infect = (beta1_eval * etot + beta2_eval * itot) * S[t, :-1] / lambda_sum
+
+    t += 1
     time += utils.time_dist(lambda_sum)
+    if time > t_total:
+        return t, True  # rare,  but sometimes long times may appear
 
-    sir_erlang.gillespie_step(t_step, comp, prob_heal, prob_infect, shapes)
-    return t_step, time
+    seir_erlang.gillespie_step(
+        t,
+        S,
+        E,
+        I,
+        R,
+        prob_heal1,
+        prob_heal2,
+        prob_latent,
+        prob_infect,
+        k_rec,
+        k_lat,
+        k_inf,
+    )
+    return t, time
 
 
 # -------------------------

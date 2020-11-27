@@ -22,7 +22,7 @@ def main():
         E_0,
         I_0,
         R_0,
-        t_steps,
+        n_t_steps,
         t_total,
         mc_nseed,
         mc_seed0,
@@ -30,9 +30,9 @@ def main():
         save,
         infected_time_series,
         n,
-        k_inf,
         k_rec,
         k_lat,
+        k_inf,
         beta1,
         beta2,
         delta1,
@@ -60,10 +60,10 @@ def main():
         # -------------------------
         # initialization
         S, E, I, R = (
-            np.zeros([t_steps, k_inf + 1]),
-            np.zeros([t_steps, k_lat + 1, 2]),
-            np.zeros([t_steps, k_rec + 1]),
-            np.zeros(t_steps),
+            np.zeros([n_t_steps, k_inf + 1]),
+            np.zeros([n_t_steps, k_lat + 1, 2]),
+            np.zeros([n_t_steps, k_rec + 1]),
+            np.zeros(n_t_steps),
         )
         S[0, :-1] = (n - I_0 - R_0) / k_inf
         S[0, -1], E[0, :-1] = E_0 / k_lat, E_0 / k_lat
@@ -74,7 +74,7 @@ def main():
         # E_day[mc_step, 0]=e_0
         I_day[mc_step, 0] = I_0
         # R_day[mc_step, 0]=r_0
-        # T = np.zeros(t_steps)
+        # T = np.zeros(n_t_steps)
         # T[0]=0
         t, time, day = 0, 0, 1
 
@@ -97,8 +97,8 @@ def main():
                 delta2,
                 epsilon,
                 k_rec,
-                k_inf,
                 k_lat,
+                k_inf,
             )
             if time is True:
                 break
@@ -245,7 +245,7 @@ def parameters_init(args):
     E_0 = args.e_0
     I_0 = args.i_0
     R_0 = args.r_0
-    t_steps = int(1e7)  # max simulation steps
+    n_t_steps = int(1e7)  # max simulation steps
     t_total = args.day_max - args.day_min  # max simulated days
     mc_nseed = args.mc_nseed  # MC realizations
     mc_seed0 = args.mc_seed0
@@ -256,9 +256,9 @@ def parameters_init(args):
     ]
     # print(infected_time_series)
     n = args.n
-    k_inf = args.k_inf
     k_rec = args.k_rec
     k_lat = args.k_lat
+    k_inf = args.k_inf
     beta1 = args.beta1 / n * k_inf
     beta2 = args.beta2 / n * k_inf
     delta1 = args.delta1 * k_lat
@@ -268,7 +268,7 @@ def parameters_init(args):
         E_0,
         I_0,
         R_0,
-        t_steps,
+        n_t_steps,
         t_total,
         mc_nseed,
         mc_seed0,
@@ -276,9 +276,9 @@ def parameters_init(args):
         save,
         infected_time_series,
         n,
-        k_inf,
         k_rec,
         k_lat,
+        k_inf,
         beta1,
         beta2,
         delta1,
@@ -301,13 +301,14 @@ def gillespie(
     delta2,
     epsilon,
     k_rec,
-    k_inf,
     k_lat,
+    k_inf,
 ):
     """
     Time elapsed for the next event
     Calls gillespie_step
     """
+
     stot = S[t, :-1].sum()
     itot = I[t, :-1].sum()
     etot_rec = E[t, :-1, 0].sum()

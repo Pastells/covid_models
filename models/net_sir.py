@@ -24,7 +24,7 @@ def main():
     (
         I_0,
         R_0,
-        t_steps,
+        n_t_steps,
         t_total,
         mc_nseed,
         mc_seed0,
@@ -172,7 +172,7 @@ def parameters_init(args):
 
     I_0 = args.i_0
     R_0 = args.r_0
-    t_steps = int(1e7)  # max simulation steps
+    n_t_steps = int(1e7)  # max simulation steps
     t_total = args.day_max - args.day_min  # max simulated days
     mc_nseed = args.mc_nseed  # MC realizations
     mc_seed0 = args.mc_seed0
@@ -190,7 +190,7 @@ def parameters_init(args):
     return (
         I_0,
         R_0,
-        t_steps,
+        n_t_steps,
         t_total,
         mc_nseed,
         mc_seed0,

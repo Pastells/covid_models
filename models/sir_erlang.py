@@ -25,7 +25,7 @@ def main():
     (
         I_0,
         R_0,
-        t_steps,
+        n_t_steps,
         t_total,
         mc_nseed,
         mc_seed0,
@@ -33,10 +33,8 @@ def main():
         save,
         infected_time_series,
         n,
-        k_inf,
-        k_rec,
-        beta,
-        delta,
+        ratios,
+        shapes,
     ) = parameters_init(args)
 
     # results per day and seed
@@ -55,32 +53,21 @@ def main():
 
         # -------------------------
         # initialization
-        S, I, R = (
-            np.zeros([t_steps, k_inf + 1]),
-            np.zeros([t_steps, k_rec + 1]),
-            np.zeros(t_steps),
-        )
-        S[0, :-1] = (n - I_0 - R_0) / k_inf
-        S[0, -1], I[0, :-1] = I_0 / k_rec, I_0 / k_rec
-        I[0, -1], R[0] = R_0, R_0
+        comp = Compartments(n_t_steps, shapes, args)
 
-        # S_day[mc_step,0]=s[0]
         I_day[mc_step, 0] = I_0
-        # R_day[mc_step,0]=r_0
-        # T = np.zeros(t_steps)
-        # T[0]=0
-        t, time, day = 0, 0, 1
+        t_step, time, day = 0, 0, 1
 
         # Time loop
-        while I[t, :-1].sum() > 0.1 and day < t_total:
+        while comp.I[t_step, :-1].sum() > 0.1 and day < t_total:
             # Add individuals periodically
             # if time//add_n==1:
             # add_n += 30
-            # S[t] += float(n)/2
+            # S[t_step] += float(n)/2
             day, day_max = utils.day_data(
-                time, t_total, day, day_max, I[t, :-1].sum(), I_day[mc_step]
+                time, t_total, day, day_max, comp.I[t_step, :-1].sum(), I_day[mc_step]
             )
-            t, time = gillespie(t, time, S, I, R, beta, delta, k_rec, k_inf)
+            t_step, time = gillespie(t_step, time, comp, ratios, shapes)
         # -------------------------
 
         # final value for the rest of time, otherwise it contributes with a zero when averaged
@@ -91,7 +78,7 @@ def main():
         # plot all trajectories
         # if plot:
         # plt.plot(I_day[mc_step,:])
-        # plt.plot(T[:t],i[:t,:-1].sum(1),c='c')
+        # plt.plot(T[:t_step],i[:t_step,:-1].sum(1),c='c')
         mc_step += 1
     # =========================
 
@@ -127,13 +114,13 @@ def parsing():
         help="parameter: fixed number of (effecitve) people [1000,1000000]",
     )
     parser.add_argument(
-        "--i_0",
+        "--I_0",
         type=int,
         default=20,
         help="initial number of infected individuals [1,n]",
     )
     parser.add_argument(
-        "--r_0", type=int, default=0, help="initial number of inmune individuals [0,n]"
+        "--R_0", type=int, default=0, help="initial number of inmune individuals [0,n]"
     )
     parser.add_argument(
         "--delta",
@@ -198,9 +185,9 @@ def parameters_init(args):
     """Initial parameters from argparse"""
     from numpy import genfromtxt
 
-    I_0 = args.i_0
-    R_0 = args.r_0
-    t_steps = int(1e7)  # max simulation steps
+    I_0 = args.I_0
+    R_0 = args.R_0
+    n_t_steps = int(1e7)  # max simulation steps
     t_total = args.day_max - args.day_min  # max simulated days
     mc_nseed = args.mc_nseed  # MC realizations
     mc_seed0 = args.mc_seed0
@@ -211,14 +198,12 @@ def parameters_init(args):
     ]
     # print(infected_time_series)
     n = args.n
-    k_inf = args.k_inf
-    k_rec = args.k_rec
-    beta = args.beta / n * k_inf
-    delta = args.delta * k_rec
+    shapes = {"k_inf": args.k_inf, "k_rec": args.k_rec}
+    ratios = {"beta": args.beta / n, "delta": args.delta}
     return (
         I_0,
         R_0,
-        t_steps,
+        n_t_steps,
         t_total,
         mc_nseed,
         mc_seed0,
@@ -226,40 +211,79 @@ def parameters_init(args):
         save,
         infected_time_series,
         n,
-        k_inf,
-        k_rec,
-        beta,
-        delta,
+        ratios,
+        shapes,
     )
 
 
 # -------------------------
 
 
-def gillespie(t, time, S, I, R, beta, delta, k_rec, k_inf):
-    """
-    Time elapsed for the next event
-    Calls gillespie_step
-    """
-    stot = S[t, :-1].sum()
-    itot = I[t, :-1].sum()
+class Compartments:
+    """Compartments for SIR model"""
 
-    lambda_sum = (delta + beta * stot) * itot
-    prob_heal = delta * I[t, :-1] / lambda_sum
-    prob_infect = beta * S[t, :-1] * itot / lambda_sum
+    def __init__(self, n_t_steps, shapes, args):
+        """Initialization"""
+        self.S = np.zeros([n_t_steps, shapes["k_inf"] + 1])
+        self.I = np.zeros([n_t_steps, shapes["k_rec"] + 1])
+        self.R = np.zeros(n_t_steps)
 
-    t += 1
-    time += utils.time_dist(lambda_sum)
-    # T[t] = time
+        # Used for both sir_erlang and sir_erlang sections, where args.n is a vector
+        try:
+            self.S[0, :-1] = (args.n - args.I_0 - args.R_0) / shapes["k_inf"]
+        except TypeError:
+            self.S[0, :-1] = (args.n[0] - args.I_0 - args.R_0) / shapes["k_inf"]
 
-    gillespie_step(t, S, I, R, prob_heal, prob_infect, k_rec, k_inf)
-    return t, time
+        self.S[0, -1] = self.I[0, :-1] = args.I_0 / shapes["k_rec"]
+        self.I[0, -1] = self.R[0] = args.R_0
+
+    def infect_adv_s(self, t_step, shapes, k):
+        """Infect or advance in S
+        S(k)-> S(k+1)/I(0)"""
+        self.R[t_step] = self.R[t_step - 1]
+        self.I[t_step, :-1] = self.I[t_step - 1, :-1]
+        self.S[t_step, k] = -1
+        self.S[t_step, k + 1] = 1
+        self.I[t_step, 0] += self.S[t_step, shapes["k_inf"]]
+        self.S[t_step] += self.S[t_step - 1]
+
+    def recover_adv_i(self, t_step, shapes, k):
+        """Recover or advance in I
+        I(k)-> I(k+1)/R"""
+        self.S[t_step, :-1] = self.S[t_step - 1, :-1]
+        self.I[t_step, k] = -1
+        self.I[t_step, k + 1] = 1
+        self.R[t_step] = self.R[t_step - 1] + self.I[t_step, shapes["k_rec"]]
+        self.I[t_step] += self.I[t_step - 1]
 
 
 # -------------------------
 
 
-def gillespie_step(t, S, I, R, prob_heal, prob_infect, k_rec, k_inf):
+def gillespie(t_step, time, comp, ratios, shapes):
+    """
+    Time elapsed for the next event
+    Calls gillespie_step
+    """
+    stot = comp.S[t_step, :-1].sum()
+    itot = comp.I[t_step, :-1].sum()
+
+    lambda_sum = (ratios["delta"] + ratios["beta"] * stot) * itot
+    prob_heal = ratios["delta"] * comp.I[t_step, :-1] / lambda_sum
+    prob_infect = ratios["beta"] * comp.S[t_step, :-1] * itot / lambda_sum
+
+    t_step += 1
+    time += utils.time_dist(lambda_sum)
+    # T[t_step] = time
+
+    gillespie_step(t_step, comp, prob_heal, prob_infect, shapes)
+    return t_step, time
+
+
+# -------------------------
+
+
+def gillespie_step(t_step, comp, prob_heal, prob_infect, shapes):
     """
     Perform an event of the algorithm, either infect or recover a single individual
     S and I have one extra dimension to temporally store the infected and recovered
@@ -268,27 +292,18 @@ def gillespie_step(t, S, I, R, prob_heal, prob_infect, k_rec, k_inf):
     random = np.random.random()
     prob_heal_tot = prob_heal.sum()
 
-    # i(k)-> i(k+1)/r
+    # I(k)-> I(k+1)/R"""
     if random < prob_heal_tot:
-        for k in range(k_rec):
+        for k in range(shapes["k_rec"]):
             if random < prob_heal[: k + 1].sum():
-                S[t, :-1] = S[t - 1, :-1]
-                I[t, k] = -1
-                I[t, k + 1] = 1
-                R[t] = R[t - 1] + I[t, k_rec]
-                I[t] += I[t - 1]
+                comp.recover_adv_i(t_step, shapes, k)
                 break
 
-    # s(k)-> s(k+1)/i(0)
+    # S(k)-> S(k+1)/I(0)
     else:
-        for k in range(k_inf):
+        for k in range(shapes["k_inf"]):
             if random < (prob_heal_tot + prob_infect[: k + 1].sum()):
-                R[t] = R[t - 1]
-                I[t, :-1] = I[t - 1, :-1]
-                S[t, k] = -1
-                S[t, k + 1] = 1
-                I[t, 0] += S[t, k_inf]
-                S[t] += S[t - 1]
+                comp.infect_adv_s(t_step, shapes, k)
                 break
 
 

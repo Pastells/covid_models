@@ -24,7 +24,7 @@ def main():
         E_0,
         I_0,
         R_0,
-        t_steps,
+        n_t_steps,
         t_total,
         mc_nseed,
         mc_seed0,
@@ -32,11 +32,7 @@ def main():
         save,
         infected_time_series,
         n,
-        beta1,
-        beta2,
-        delta1,
-        delta2,
-        epsilon,
+        ratios,
     ) = parameters_init(args)
 
     # results per day and seed
@@ -55,31 +51,22 @@ def main():
 
         # -------------------------
         # initialization
-        S, E, I, R = (
-            np.zeros(t_steps),
-            np.zeros(t_steps),
-            np.zeros(t_steps),
-            np.zeros(t_steps),
-        )
-        # T = np.zeros(t_steps)
+        comp = Compartments(n_t_steps, args)
+
+        # T = np.zeros(n_t_steps)
         # T[0]=0
-        E[0] = E_0
-        I[0] = I_0
-        R[0] = R_0
-        S[0] = n - I_0 - R_0 - E_0
         I_day[mc_step, 0] = I_0
-        t, time, day = 0, 0, 1
+        t_step, time, day = 0, 0, 1
 
         # -------------------------
         # Time loop
         # -------------------------
-        while I[t] > 0.1 and day < t_total:
+        while comp.I[t_step] > 0.1 and day < t_total:
             day, day_max = utils.day_data(
-                time, t_total, day, day_max, I[t], I_day[mc_step]
+                time, t_total, day, day_max, comp.I[t_step], I_day[mc_step]
             )
-            t, time = gillespie(
-                t_total, t, time, S, E, I, R, beta1, beta2, delta1, delta2, epsilon
-            )
+            t_step, time = gillespie(t_total, t_step, time, comp, ratios)
+            # print(t_step, time, day, t_total, n_t_steps)
 
         # -------------------------
 
@@ -114,16 +101,16 @@ def parsing():
         help="parameter: fixed number of (effecitve) people [1000,1000000]",
     )
     parser.add_argument(
-        "--e_0", type=int, default=0, help="initial number of latent individuals [1,n]"
+        "--E_0", type=int, default=0, help="initial number of latent individuals [1,n]"
     )
     parser.add_argument(
-        "--i_0",
+        "--I_0",
         type=int,
         default=20,
         help="initial number of infected individuals [1,n]",
     )
     parser.add_argument(
-        "--r_0", type=int, default=0, help="initial number of inmune individuals [1,n]"
+        "--R_0", type=int, default=0, help="initial number of inmune individuals [1,n]"
     )
     parser.add_argument(
         "--delta1",
@@ -196,10 +183,10 @@ def parameters_init(args):
     """initial parameters from argparse"""
     from numpy import genfromtxt
 
-    E_0 = args.e_0
-    I_0 = args.i_0
-    R_0 = args.r_0
-    t_steps = int(1e7)  # max simulation steps
+    E_0 = args.E_0
+    I_0 = args.I_0
+    R_0 = args.R_0
+    n_t_steps = int(1e7)  # max simulation steps
     t_total = args.day_max - args.day_min  # max simulated days
     mc_nseed = args.mc_nseed  # MC realizations
     mc_seed0 = args.mc_seed0
@@ -210,17 +197,19 @@ def parameters_init(args):
     ]
     # print(infected_time_series)
     n = args.n
-    beta1 = args.beta1 / n
-    beta2 = args.beta2 / n
-    delta1 = args.delta1
-    delta2 = args.delta2
-    epsilon = args.epsilon
+    ratios = {
+        "beta1": args.beta1 / n,
+        "beta2": args.beta2 / n,
+        "delta1": args.delta1,
+        "delta2": args.delta2,
+        "epsilon": args.epsilon,
+    }
 
     return (
         E_0,
         I_0,
         R_0,
-        t_steps,
+        n_t_steps,
         t_total,
         mc_nseed,
         mc_seed0,
@@ -228,71 +217,100 @@ def parameters_init(args):
         save,
         infected_time_series,
         n,
-        beta1,
-        beta2,
-        delta1,
-        delta2,
-        epsilon,
+        ratios,
     )
 
 
 # -------------------------
 
 
-def gillespie(t_total, t, time, S, E, I, R, beta1, beta2, delta1, delta2, epsilon):
+class Compartments:
+    """Compartments for SIR model"""
+
+    def __init__(self, n_t_steps, args):
+        """Initialization"""
+        self.S = np.zeros(n_t_steps)
+        self.E = np.zeros(n_t_steps)
+        self.I = np.zeros(n_t_steps)
+        self.R = np.zeros(n_t_steps)
+        self.E[0] = args.E_0
+        self.I[0] = args.I_0
+        self.R[0] = args.R_0
+        self.S[0] = args.n - args.I_0 - args.R_0 - args.E_0
+
+    def turn_latent(self, t_step):
+        """Infection s->e"""
+        self.S[t_step] = self.S[t_step - 1] - 1
+        self.E[t_step] = self.E[t_step - 1] + 1
+        self.I[t_step] = self.I[t_step - 1]
+        self.R[t_step] = self.R[t_step - 1]
+
+    def turn_infectious(self, t_step):
+        """Turn infectious e->i"""
+        self.S[t_step] = self.S[t_step - 1]
+        self.E[t_step] = self.E[t_step - 1] - 1
+        self.I[t_step] = self.I[t_step - 1] + 1
+        self.R[t_step] = self.R[t_step - 1]
+
+    def recover1(self, t_step):
+        """Recovery e->r"""
+        self.S[t_step] = self.S[t_step - 1]
+        self.E[t_step] = self.E[t_step - 1] - 1
+        self.I[t_step] = self.I[t_step - 1]
+        self.R[t_step] = self.R[t_step - 1] + 1
+
+    def recover2(self, t_step):
+        """Recovery i->r"""
+        self.S[t_step] = self.S[t_step - 1]
+        self.E[t_step] = self.E[t_step - 1]
+        self.I[t_step] = self.I[t_step - 1] - 1
+        self.R[t_step] = self.R[t_step - 1] + 1
+
+
+# -------------------------
+
+
+def gillespie(t_total, t_step, time, comp, ratios):
     """
     Time elapsed for the next event
     Calls gillespie_step
     """
     lambda_sum = (
-        (epsilon + delta1) * E[t] + delta2 * I[t] + (beta1 * E[t] + beta2 * I[t]) * S[t]
+        (ratios["epsilon"] + ratios["delta1"]) * comp.E[t_step]
+        + ratios["delta2"] * comp.I[t_step]
+        + (ratios["beta1"] * comp.E[t_step] + ratios["beta2"] * comp.I[t_step])
+        * comp.S[t_step]
     )
 
-    prob_heal1 = delta1 * E[t] / lambda_sum
-    prob_heal2 = delta2 * I[t] / lambda_sum
-    prob_latent = epsilon * E[t] / lambda_sum
+    prob_heal1 = ratios["delta1"] * comp.E[t_step] / lambda_sum
+    prob_heal2 = ratios["delta2"] * comp.I[t_step] / lambda_sum
+    prob_latent = ratios["epsilon"] * comp.E[t_step] / lambda_sum
 
-    t += 1
+    t_step += 1
     time += utils.time_dist(lambda_sum)
-    # T[t] = time
+    # T[t_step] = time
 
-    gillespie_step(t, S, E, I, R, prob_heal1, prob_heal2, prob_latent)
-    return t, time
+    gillespie_step(t_step, comp, prob_heal1, prob_heal2, prob_latent)
+    return t_step, time
 
 
 # -------------------------
 
 
-def gillespie_step(t, S, E, I, R, prob_heal1, prob_heal2, prob_latent):
+def gillespie_step(t_step, comp, prob_heal1, prob_heal2, prob_latent):
     """
     Perform an event of the algorithm, either infect or recover a single individual
     """
     random = np.random.random()
 
     if random < prob_heal1:
-        # e->r
-        S[t] = S[t - 1]
-        E[t] = E[t - 1] - 1
-        I[t] = I[t - 1]
-        R[t] = R[t - 1] + 1
+        comp.recover1(t_step)
     elif random < (prob_heal1 + prob_heal2):
-        # i->r
-        S[t] = S[t - 1]
-        E[t] = E[t - 1]
-        I[t] = I[t - 1] - 1
-        R[t] = R[t - 1] + 1
+        comp.recover2(t_step)
     elif random < (prob_heal1 + prob_heal2 + prob_latent):
-        # e->i
-        S[t] = S[t - 1]
-        E[t] = E[t - 1] - 1
-        I[t] = I[t - 1] + 1
-        R[t] = R[t - 1]
+        comp.turn_infectious(t_step)
     else:
-        # s->e
-        S[t] = S[t - 1] - 1
-        E[t] = E[t - 1] + 1
-        I[t] = I[t - 1]
-        R[t] = R[t - 1]
+        comp.turn_latent(t_step)
 
 
 # -------------------------
