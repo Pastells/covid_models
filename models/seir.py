@@ -225,7 +225,7 @@ def parameters_init(args):
 
 
 class Compartments:
-    """Compartments for SIR model"""
+    """Compartments for SEIR model"""
 
     def __init__(self, n_t_steps, args):
         """Initialization"""

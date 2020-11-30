@@ -30,24 +30,15 @@ def main():
         save,
         infected_time_series,
         n,
-        k_rec,
-        k_lat,
-        k_inf,
-        beta1,
-        beta2,
-        delta1,
-        delta2,
-        epsilon,
+        ratios,
+        shapes,
     ) = parameters_init(args)
 
     # results per day and seed
-    # S_day, S_m, S_95 = np.zeros([mc_nseed, t_total]), np.zeros(t_total), np.zeros([t_total, 2])
-    # E_day, E_m, E_95 = np.zeros([mc_nseed, t_total]), np.zeros(t_total), np.zeros([t_total, 2])
     I_day, I_m = (
         np.zeros([mc_nseed, t_total]),
         np.zeros(t_total),
     )
-    # R_day, R_m, R_95 = np.zeros([mc_nseed, t_total]), np.zeros(t_total), np.zeros([t_total, 2])
 
     mc_step, day_max = 0, 0
     # =========================
@@ -59,46 +50,25 @@ def main():
 
         # -------------------------
         # initialization
-        S, E, I, R = (
-            np.zeros([n_t_steps, k_inf + 1]),
-            np.zeros([n_t_steps, k_lat + 1, 2]),
-            np.zeros([n_t_steps, k_rec + 1]),
-            np.zeros(n_t_steps),
-        )
-        S[0, :-1] = (n - I_0 - R_0) / k_inf
-        S[0, -1], E[0, :-1] = E_0 / k_lat, E_0 / k_lat
-        E[0, -1], I[0, :-1] = I_0 / k_rec, I_0 / k_rec
-        I[0, -1], R[0] = R_0, R_0
+        comp = Compartments(n_t_steps, shapes, args)
 
-        # S_day[mc_step, 0]=s[0]
-        # E_day[mc_step, 0]=e_0
         I_day[mc_step, 0] = I_0
-        # R_day[mc_step, 0]=r_0
         # T = np.zeros(n_t_steps)
         # T[0]=0
-        t, time, day = 0, 0, 1
+        t_step, time, day = 0, 0, 1
 
         # Time loop
-        while I[t, :-1].sum() > 0 and day < t_total:
+        while comp.I[t_step, :-1].sum() > 0 and day < t_total:
             day, day_max = utils.day_data(
-                time, t_total, day, day_max, I[t, :-1].sum(), I_day[mc_step]
+                time, t_total, day, day_max, comp.I[t_step, :-1].sum(), I_day[mc_step]
             )
-            t, time = gillespie(
+            t_step, time = gillespie(
                 t_total,
-                t,
+                t_step,
                 time,
-                S,
-                E,
-                I,
-                R,
-                beta1,
-                beta2,
-                delta1,
-                delta2,
-                epsilon,
-                k_rec,
-                k_lat,
-                k_inf,
+                comp,
+                ratios,
+                shapes,
             )
             if time is True:
                 break
@@ -107,11 +77,11 @@ def main():
 
         """
         if plot:
-            plt.plot(T[:t], S[:t, :-1].sum(1), c='r')
-            plt.plot(T[:t], E[:t, :-1, 0].sum(1), c='g')
-            plt.plot(T[:t], E[:t, :-1, 1].sum(1), c='b')
-            plt.plot(T[:t], I[:t, :-1].sum(1), c='c')
-            plt.plot(T[:t], R[:t], c='m')
+            plt.plot(T[:t_step], S[:t_step, :-1].sum(1), c='r')
+            plt.plot(T[:t_step], E[:t_step, :-1, 0].sum(1), c='g')
+            plt.plot(T[:t_step], E[:t_step, :-1, 1].sum(1), c='b')
+            plt.plot(T[:t_step], I[:t_step, :-1].sum(1), c='c')
+            plt.plot(T[:t_step], R[:t_step], c='m')
         """
 
         mc_step += 1
@@ -146,13 +116,13 @@ def parsing():
         help="parameter: fixed number of (effecitve) people [1000,1000000]",
     )
     parser.add_argument(
-        "--e_0", type=int, default=0, help="initial number of latent individuals"
+        "--E_0", type=int, default=0, help="initial number of latent individuals"
     )
     parser.add_argument(
-        "--i_0", type=int, default=20, help="initial number of infected individuals"
+        "--I_0", type=int, default=20, help="initial number of infected individuals"
     )
     parser.add_argument(
-        "--r_0", type=int, default=0, help="initial number of inmune individuals"
+        "--R_0", type=int, default=0, help="initial number of inmune individuals"
     )
     parser.add_argument(
         "--delta1",
@@ -242,9 +212,9 @@ def parameters_init(args):
     """Initial parameters from argparse"""
     from numpy import genfromtxt
 
-    E_0 = args.e_0
-    I_0 = args.i_0
-    R_0 = args.r_0
+    E_0 = args.E_0
+    I_0 = args.I_0
+    R_0 = args.R_0
     n_t_steps = int(1e7)  # max simulation steps
     t_total = args.day_max - args.day_min  # max simulated days
     mc_nseed = args.mc_nseed  # MC realizations
@@ -256,14 +226,14 @@ def parameters_init(args):
     ]
     # print(infected_time_series)
     n = args.n
-    k_rec = args.k_rec
-    k_lat = args.k_lat
-    k_inf = args.k_inf
-    beta1 = args.beta1 / n * k_inf
-    beta2 = args.beta2 / n * k_inf
-    delta1 = args.delta1 * k_lat
-    delta2 = args.delta2 * k_rec
-    epsilon = args.epsilon * k_lat
+    shapes = {"k_inf": args.k_inf, "k_rec": args.k_rec, "k_lat": args.k_lat}
+    ratios = {
+        "beta1": args.beta1 / n * args.k_inf,
+        "beta2": args.beta2 / n * args.k_inf,
+        "delta1": args.delta1 * args.k_rec,
+        "delta2": args.delta2 * args.k_rec,
+        "epsilon": args.epsilon * args.k_lat,
+    }
     return (
         E_0,
         I_0,
@@ -276,85 +246,140 @@ def parameters_init(args):
         save,
         infected_time_series,
         n,
-        k_rec,
-        k_lat,
-        k_inf,
-        beta1,
-        beta2,
-        delta1,
-        delta2,
-        epsilon,
+        ratios,
+        shapes,
     )
+
+
+# -------------------------
+
+
+class Compartments:
+    """Compartments for the SEIR Erlang model"""
+
+    def __init__(self, n_t_steps, shapes, args):
+        """Initialization"""
+        self.S = np.zeros([n_t_steps, shapes["k_inf"] + 1])
+        self.E = np.zeros([n_t_steps, shapes["k_lat"] + 1, 2])
+        self.I = np.zeros([n_t_steps, shapes["k_rec"] + 1])
+        self.R = np.zeros(n_t_steps)
+
+        # Used for both seir_erlang and seir_erlang sections, where args.n is a vector
+        try:
+            self.S[0, :-1] = (args.n - args.I_0 - args.R_0) / shapes["k_inf"]
+        except TypeError:
+            self.S[0, :-1] = (args.n[0] - args.I_0 - args.R_0) / shapes["k_inf"]
+
+        self.S[0, -1] = self.E[0, :-1] = args.E_0 / shapes["k_lat"]
+        self.E[0, -1] = self.I[0, :-1] = args.I_0 / shapes["k_rec"]
+        self.I[0, -1] = self.R[0] = args.R_0
+
+    def latent_adv_s(self, t_step, k):
+        """Turn latent or advance in S
+        S(k)-> S(k+1)/E(0)"""
+        self.E[t_step, :-1] = self.E[t_step - 1, :-1]
+        self.I[t_step, :-1] = self.I[t_step - 1, :-1]
+        self.R[t_step] = self.R[t_step - 1]
+        self.S[t_step, k] = -1
+        self.S[t_step, k + 1] = 1
+        self.E[t_step, 0] += self.S[t_step, -1]
+        self.S[t_step] += self.S[t_step - 1]
+
+    def infect_adv_e(self, t_step, k):
+        """Turn infectious or advance in E
+        E(k)-> E(k+1)/I(0)"""
+        self.S[t_step, :-1] = self.S[t_step - 1, :-1]
+        self.I[t_step, :-1] = self.I[t_step - 1, :-1]
+        self.R[t_step] = self.R[t_step - 1]
+        self.E[t_step, k, 1] = -1
+        self.E[t_step, k + 1, 1] = 1
+        self.I[t_step, 0] += self.E[t_step, -1, 1]
+        self.E[t_step, 0, 0] = self.E[t_step, 0, 1]
+        self.E[t_step] += self.E[t_step - 1]
+
+    def recover_adv_e(self, t_step, k):
+        """Recover or advance in E
+        E(k)-> E(k+1)/R"""
+        self.S[t_step, :-1] = self.S[t_step - 1, :-1]
+        self.I[t_step, :-1] = self.I[t_step - 1, :-1]
+        self.E[t_step, k, 0] = -1
+        self.E[t_step, k + 1, 0] = 1
+        self.R[t_step] = self.R[t_step - 1] + self.E[t_step, -1, 0]
+        self.E[t_step, 0, 1] = self.E[t_step, 0, 0]
+        self.E[t_step] += self.E[t_step - 1]
+
+    def recover_adv_i(self, t_step, k):
+        """Recover or advance in I
+        I(k)-> I(k+1)/R"""
+        self.S[t_step, :-1] = self.S[t_step - 1, :-1]
+        self.E[t_step, :-1] = self.E[t_step - 1, :-1]
+        self.I[t_step, k] = -1
+        self.I[t_step, k + 1] = 1
+        self.R[t_step] = self.R[t_step - 1] + self.I[t_step, -1]
+        self.I[t_step] += self.I[t_step - 1]
+
+
+# -------------------------
 
 
 def gillespie(
     t_total,
-    t,
+    t_step,
     time,
-    S,
-    E,
-    I,
-    R,
-    beta1,
-    beta2,
-    delta1,
-    delta2,
-    epsilon,
-    k_rec,
-    k_lat,
-    k_inf,
+    comp,
+    ratios,
+    shapes,
 ):
     """
     Time elapsed for the next event
     Calls gillespie_step
     """
 
-    stot = S[t, :-1].sum()
-    itot = I[t, :-1].sum()
-    etot_rec = E[t, :-1, 0].sum()
-    etot_inf = E[t, :-1, 1].sum()
-    etot = etot_inf + etot_rec - E[t, 0, 0]
+    stot = comp.S[t_step, :-1].sum()
+    itot = comp.I[t_step, :-1].sum()
+    etot_rec = comp.E[t_step, :-1, 0].sum()
+    etot_inf = comp.E[t_step, :-1, 1].sum()
+    etot = etot_inf + etot_rec - comp.E[t_step, 0, 0]
 
     lambda_sum = (
-        epsilon * etot_inf
-        + delta1 * etot_rec
-        + delta2 * itot
-        + (beta1 * etot + beta2 * itot) * stot
+        ratios["epsilon"] * etot_inf
+        + ratios["delta1"] * etot_rec
+        + ratios["delta2"] * itot
+        + (ratios["beta1"] * etot + ratios["beta2"] * itot) * stot
     )
 
-    prob_heal1 = delta1 * E[t, :-1, 0] / lambda_sum
-    prob_heal2 = delta2 * I[t, :-1] / lambda_sum
-    prob_latent = epsilon * E[t, :-1, 1] / lambda_sum
-    prob_infect = (beta1 * etot + beta2 * itot) * S[t, :-1] / lambda_sum
+    prob_heal1 = ratios["delta1"] * comp.E[t_step, :-1, 0] / lambda_sum
+    prob_heal2 = ratios["delta2"] * comp.I[t_step, :-1] / lambda_sum
+    prob_latent = ratios["epsilon"] * comp.E[t_step, :-1, 1] / lambda_sum
+    prob_infect = (
+        (ratios["beta1"] * etot + ratios["beta2"] * itot)
+        * comp.S[t_step, :-1]
+        / lambda_sum
+    )
 
-    t += 1
+    t_step += 1
     time += utils.time_dist(lambda_sum)
     if time > t_total:
-        return t, True  # rare,  but sometimes long times may appear
-    # T[t] = time
+        return t_step, True  # rare,  but sometimes long times may appear
+    # T[t_step] = time
 
     gillespie_step(
-        t,
-        S,
-        E,
-        I,
-        R,
+        t_step,
+        comp,
         prob_heal1,
         prob_heal2,
         prob_latent,
         prob_infect,
-        k_rec,
-        k_lat,
-        k_inf,
+        shapes,
     )
-    return t, time
+    return t_step, time
 
 
 # -------------------------
 
 
 def gillespie_step(
-    t, S, E, I, R, prob_heal1, prob_heal2, prob_latent, prob_infect, k_rec, k_lat, k_inf
+    t_step, comp, prob_heal1, prob_heal2, prob_latent, prob_infect, shapes
 ):
     """
     Perform an event of the algorithm, either infect or recover a single individual
@@ -366,59 +391,35 @@ def gillespie_step(
     prob_heal2_tot = prob_heal2.sum()
     prob_latent_tot = prob_latent.sum()
 
-    # e(k)-> e(k+1)/r
+    # E(k)-> E(k+1)/R
     if random < prob_heal1_tot:
-        for k in range(k_lat):
+        for k in range(shapes["k_lat"]):
             if random < prob_heal1[: k + 1].sum():
-                S[t, :-1] = S[t - 1, :-1]
-                I[t, :-1] = I[t - 1, :-1]
-                E[t, k, 0] = -1
-                E[t, k + 1, 0] = 1
-                R[t] = R[t - 1] + E[t, k_lat, 0]
-                E[t, 0, 1] = E[t, 0, 0]
-                E[t] += E[t - 1]
+                comp.recover_adv_e(t_step, k)
                 break
 
-    # i(k)-> i(k+1)/r
+    # I(k)-> I(k+1)/R
     elif random < (prob_heal1_tot + prob_heal2_tot):
         random -= prob_heal1_tot
-        for k in range(k_rec):
+        for k in range(shapes["k_rec"]):
             if random < prob_heal2[: k + 1].sum():
-                S[t, :-1] = S[t - 1, :-1]
-                E[t, :-1] = E[t - 1, :-1]
-                I[t, k] = -1
-                I[t, k + 1] = 1
-                R[t] = R[t - 1] + I[t, k_rec]
-                I[t] += I[t - 1]
+                comp.recover_adv_i(t_step, k)
                 break
 
-    # e(k)-> e(k+1)/i(0)
+    # E(k)-> E(k+1)/I(0)
     elif random < (prob_heal1_tot + prob_heal2_tot + prob_latent_tot):
         random -= prob_heal1_tot + prob_heal2_tot
-        for k in range(k_lat):
+        for k in range(shapes["k_lat"]):
             if random < prob_latent[: k + 1].sum():
-                S[t, :-1] = S[t - 1, :-1]
-                I[t, :-1] = I[t - 1, :-1]
-                R[t] = R[t - 1]
-                E[t, k, 1] = -1
-                E[t, k + 1, 1] = 1
-                I[t, 0] += E[t, k_lat, 1]
-                E[t, 0, 0] = E[t, 0, 1]
-                E[t] += E[t - 1]
+                comp.infect_adv_e(t_step, k)
                 break
 
-    # s(k)-> s(k+1)/e(0)
+    # S(k)-> S(k+1)/E(0)
     else:
         random -= prob_heal1_tot + prob_heal2_tot + prob_latent_tot
-        for k in range(k_inf):
+        for k in range(shapes["k_inf"]):
             if random < prob_infect[: k + 1].sum():
-                E[t, :-1] = E[t - 1, :-1]
-                I[t, :-1] = I[t - 1, :-1]
-                R[t] = R[t - 1]
-                S[t, k] = -1
-                S[t, k + 1] = 1
-                E[t, 0] += S[t, k_inf]
-                S[t] += S[t - 1]
+                comp.latent_adv_s(t_step, k)
                 break
 
 

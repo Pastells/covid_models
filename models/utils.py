@@ -31,35 +31,37 @@ def ratios_sir(time, ratios, ratios_old=None, t_0=0):
 # -------------------------
 
 
-def ratios_seir(
-    time,
-    beta1,
-    beta2,
-    delta1,
-    delta2,
-    epsilon,
-    beta1_old=None,
-    beta2_old=None,
-    delta1_old=None,
-    delta2_old=None,
-    epsilon_old=None,
-    t_0=0,
-):
+def ratios_seir(time, ratios, ratios_old=None, t_0=0):
     """returns beta1/2, delta1/2 and epsilon as a function of time:
     interpolates between the two given values using a tanh"""
 
-    if beta1_old is None:
-        return beta1, beta2, delta1, delta2, epsilon
+    if ratios_old is None:
+        return (
+            ratios["beta1"],
+            ratios["beta2"],
+            ratios["delta1"],
+            ratios["delta2"],
+            ratios["epsilon"],
+        )
 
+    print(ratios, ratios_old)
     if time > t_0 + 4:
-        return beta1, beta2, delta1, delta2, epsilon
+        return (
+            ratios["beta1"],
+            ratios["beta2"],
+            ratios["delta1"],
+            ratios["delta2"],
+            ratios["epsilon"],
+        )
 
     weight = 0.5 * (1 + np.tanh((time - t_0) / 0.75))
-    delta1 = delta1_old + (delta1 - delta1_old) * weight
-    delta2 = delta2_old + (delta2 - delta2_old) * weight
-    beta1 = beta1_old + (beta1 - beta1_old) * weight
-    beta2 = beta2_old + (beta2 - beta2_old) * weight
-    epsilon = epsilon_old + (epsilon - epsilon_old) * weight
+    delta1 = ratios_old["delta1"] + (ratios["delta1"] - ratios_old["delta1"]) * weight
+    delta2 = ratios_old["delta2"] + (ratios["delta2"] - ratios_old["delta2"]) * weight
+    beta1 = ratios_old["beta1"] + (ratios["beta1"] - ratios_old["beta1"]) * weight
+    beta2 = ratios_old["beta2"] + (ratios["beta2"] - ratios_old["beta2"]) * weight
+    epsilon = (
+        ratios_old["epsilon"] + (ratios["epsilon"] - ratios_old["epsilon"]) * weight
+    )
     return beta1, beta2, delta1, delta2, epsilon
 
 

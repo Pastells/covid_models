@@ -199,7 +199,7 @@ def parameters_init(args):
     # print(infected_time_series)
     n = args.n
     shapes = {"k_inf": args.k_inf, "k_rec": args.k_rec}
-    ratios = {"beta": args.beta / n, "delta": args.delta}
+    ratios = {"beta": args.beta / n * args.k_inf, "delta": args.delta * args.k_rec}
     return (
         I_0,
         R_0,
@@ -220,7 +220,7 @@ def parameters_init(args):
 
 
 class Compartments:
-    """Compartments for SIR model"""
+    """Compartments for the SIR Erlang model"""
 
     def __init__(self, n_t_steps, shapes, args):
         """Initialization"""
@@ -237,23 +237,23 @@ class Compartments:
         self.S[0, -1] = self.I[0, :-1] = args.I_0 / shapes["k_rec"]
         self.I[0, -1] = self.R[0] = args.R_0
 
-    def infect_adv_s(self, t_step, shapes, k):
+    def infect_adv_s(self, t_step, k):
         """Infect or advance in S
         S(k)-> S(k+1)/I(0)"""
         self.R[t_step] = self.R[t_step - 1]
         self.I[t_step, :-1] = self.I[t_step - 1, :-1]
         self.S[t_step, k] = -1
         self.S[t_step, k + 1] = 1
-        self.I[t_step, 0] += self.S[t_step, shapes["k_inf"]]
+        self.I[t_step, 0] += self.S[t_step, -1]
         self.S[t_step] += self.S[t_step - 1]
 
-    def recover_adv_i(self, t_step, shapes, k):
+    def recover_adv_i(self, t_step, k):
         """Recover or advance in I
         I(k)-> I(k+1)/R"""
         self.S[t_step, :-1] = self.S[t_step - 1, :-1]
         self.I[t_step, k] = -1
         self.I[t_step, k + 1] = 1
-        self.R[t_step] = self.R[t_step - 1] + self.I[t_step, shapes["k_rec"]]
+        self.R[t_step] = self.R[t_step - 1] + self.I[t_step, -1]
         self.I[t_step] += self.I[t_step - 1]
 
 
@@ -292,18 +292,18 @@ def gillespie_step(t_step, comp, prob_heal, prob_infect, shapes):
     random = np.random.random()
     prob_heal_tot = prob_heal.sum()
 
-    # I(k)-> I(k+1)/R"""
+    # I(k)-> I(k+1)/R
     if random < prob_heal_tot:
         for k in range(shapes["k_rec"]):
             if random < prob_heal[: k + 1].sum():
-                comp.recover_adv_i(t_step, shapes, k)
+                comp.recover_adv_i(t_step, k)
                 break
 
     # S(k)-> S(k+1)/I(0)
     else:
         for k in range(shapes["k_inf"]):
             if random < (prob_heal_tot + prob_infect[: k + 1].sum()):
-                comp.infect_adv_s(t_step, shapes, k)
+                comp.infect_adv_s(t_step, k)
                 break
 
 
