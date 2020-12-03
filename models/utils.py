@@ -2,6 +2,7 @@
 Common functions for all models
 """
 
+import sys
 import argparse
 import random
 import heapq
@@ -69,7 +70,12 @@ def ratios_seir(time, ratios, ratios_old=None, t_0=0):
 
 
 def monotonically_increasing(array):
-    """ Check if array is monotonically increasing"""
+    """Check if array is monotonically increasing
+    Use:
+    if not utils.monotonically_increasing(args.n):
+        raise ValueError("n should be monotonically increasing")
+    """
+
     return all(x <= y for x, y in zip(array, array[1:]))
 
 
@@ -176,13 +182,19 @@ def mean_alive(I_day, t_total, day_max, nseed):
             I_m = _I_m_1 + (_x_var - _I_m_1) / alive_realizations
             _s_var = _s_var + (_x_var - _I_m_1) * (_x_var - I_m)
 
-    I_std = np.sqrt(_s_var / (alive_realizations - 1))
+    if alive_realizations < 1:
+        raise ValueError("Not enough alive realizations")
+    if alive_realizations == 1:
+        # raise ValueError("Not enough alive realizations")
+        I_std = I_m * 0.0
+    else:
+        I_std = np.sqrt(_s_var / (alive_realizations - 1))
 
     if nseed - alive_realizations > nseed * 0.1:
-        print("The initial number of infected may be too low")
-        print(
+        sys.stderr.write("The initial number of infected may be too low\n")
+        sys.stderr.write(
             f"Alive realizations after {check_realization_alive} days = {alive_realizations},\
-              out of {nseed}"
+              out of {nseed}\n"
         )
     return I_m, I_std
 

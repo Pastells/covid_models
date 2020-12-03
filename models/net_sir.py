@@ -17,6 +17,7 @@ import sys
 import traceback
 import numpy as np
 import utils
+import fast_sir
 
 
 def main():
@@ -24,7 +25,6 @@ def main():
     (
         I_0,
         R_0,
-        n_t_steps,
         t_total,
         mc_nseed,
         mc_seed0,
@@ -32,8 +32,7 @@ def main():
         save,
         infected_time_series,
         n,
-        beta,
-        delta,
+        ratios,
         network_type,
         network_param,
     ) = parameters_init(args)
@@ -53,7 +52,7 @@ def main():
         np.random.seed(seed)
 
         G = utils.choose_network(n, network_type, network_param)
-        t, S, I, R = fast_sir.fast_SIR(G, beta, delta, I_0, R_0)
+        t, S, I, R = fast_sir.fast_SIR(G, ratios, I_0, R_0)
 
         I_day[mc_step, 0] = I_0
         day = 1
@@ -102,7 +101,7 @@ def parsing():
         type=str,
         default="er",
         choices=["er", "ba"],
-        help="parameter: Erdos-Renyi or Barabasi Albert supported right now ['er','ba']",
+        help="parameter: Erdos-Renyi or Barabasi Albert supported right now [er,ba]",
     )
     parser.add_argument(
         "--network_param",
@@ -129,6 +128,12 @@ def parsing():
 
     parser.add_argument(
         "--seed", type=int, default=1, help="seed for the automatic configuration"
+    )
+    parser.add_argument(
+        "--timeout",
+        type=int,
+        default=1200,
+        help="timeout for the automatic configuration",
     )
     parser.add_argument(
         "--data", type=str, default="../data/italy_i.csv", help="file with time series"
@@ -172,7 +177,6 @@ def parameters_init(args):
 
     I_0 = args.i_0
     R_0 = args.r_0
-    n_t_steps = int(1e7)  # max simulation steps
     t_total = args.day_max - args.day_min  # max simulated days
     mc_nseed = args.mc_nseed  # MC realizations
     mc_seed0 = args.mc_seed0
@@ -183,14 +187,12 @@ def parameters_init(args):
     ]
     # print(infected_time_series)
     n = args.n
-    beta = args.beta
-    delta = args.delta
+    ratios = {"beta": args.beta, "delta": args.delta}
     network_type = args.network_type
     network_param = args.network_param
     return (
         I_0,
         R_0,
-        n_t_steps,
         t_total,
         mc_nseed,
         mc_seed0,
@@ -198,8 +200,7 @@ def parameters_init(args):
         save,
         infected_time_series,
         n,
-        beta,
-        delta,
+        ratios,
         network_type,
         network_param,
     )
@@ -211,6 +212,6 @@ if __name__ == "__main__":
     try:
         main()
     except Exception as ex:
-        sys.stdout.write(f"GGA CRASHED {1e20}\n")
         sys.stdout.write(f"{repr(ex)}\n")
         traceback.print_exc(ex)
+        sys.stdout.write(f"GGA CRASHED {1e20}\n")

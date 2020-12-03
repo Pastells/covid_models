@@ -1,5 +1,6 @@
 """
-Stochastic mean-field SEIR model using the Gillespie algorithm
+Stochastic mean-field SEIR model
+using the Gillespie algorithm and Erlang distribution transition times
 Pol Pastells,  october 2020
 
 equations of the deterministic system
@@ -175,6 +176,12 @@ def parsing():
 
     parser.add_argument(
         "--seed", type=int, default=1, help="seed for the automatic configuration"
+    )
+    parser.add_argument(
+        "--timeout",
+        type=int,
+        default=1200,
+        help="timeout for the automatic configuration",
     )
     parser.add_argument(
         "--data", type=str, default="../data/italy_i.csv", help="file with time series"
@@ -430,6 +437,6 @@ if __name__ == "__main__":
     try:
         main()
     except Exception as ex:
-        sys.stdout.write(f"GGA CRASHED {1e20}\n")
         sys.stdout.write(f"{repr(ex)}\n")
         traceback.print_exc(ex)
+        sys.stdout.write(f"GGA CRASHED {1e20}\n")

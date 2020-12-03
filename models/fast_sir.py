@@ -16,8 +16,7 @@ def _process_trans_SIR_(
     status,
     rec_time,
     pred_inf_time,
-    beta,
-    delta,
+    ratios,
 ):
     r"""
         From figure A.4 of Kiss, Miller, & Simon.  Please cite the book if
@@ -42,7 +41,7 @@ def _process_trans_SIR_(
             dictionary giving recovery time of each node
         pred_inf_time : dict
             dictionary giving predicted infeciton time of nodes
-        beta,delta:
+        ratios (beta,delta):
             rates of infection and recovery
 
         :Returns:
@@ -72,7 +71,7 @@ def _process_trans_SIR_(
         suscep_neighbors = [v for v in G.neighbors(target) if status[v] == "S"]
 
         trans_delay, rec_delay = utils.Markovian_times(
-            target, suscep_neighbors, beta, delta
+            target, suscep_neighbors, ratios["beta"], ratios["delta"]
         )
 
         rec_time[target] = time + rec_delay
@@ -103,8 +102,7 @@ def _process_trans_SIR_(
                         status,
                         rec_time,
                         pred_inf_time,
-                        beta,
-                        delta,
+                        ratios,
                     ),
                 )
                 pred_inf_time[v] = inf_time
@@ -153,8 +151,7 @@ def _process_rec_SIR_(time, node, times, S, I, R, status):
 
 def fast_SIR(
     G,
-    beta,
-    delta,
+    ratios,
     I_0=None,
     R_0=0,
     tmin=0,
@@ -169,11 +166,8 @@ def fast_SIR(
     **G** networkx Graph
         The underlying network
 
-    **beta** number
-        transmission rate per edge
-
-    **delta** number
-        recovery rate per node
+    **ratios** (beta,delta):
+            rates of infection and recovery
 
     **I_0** number
         initially infected nodes
@@ -248,8 +242,7 @@ def fast_SIR(
                 status,
                 rec_time,
                 pred_inf_time,
-                beta,
-                delta,
+                ratios,
             ),
         )
 

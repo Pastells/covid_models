@@ -1,7 +1,11 @@
 other/
 network/
+automatic_configurator/
+__pycache__/
 models/*.dat
 models/*.sh
+models/*.desc
+models/*.tar.gz
 models/old/
 models/results/*
 !models/results/.gitkeep

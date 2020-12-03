@@ -1,5 +1,5 @@
 """
-Stochastic mean-field SIR model
+Stochastic mean-field SEIR model
 using the Gillespie algorithm and Erlang distribution transition times
 It allows for different sections with different n, delta and beta
 Pol Pastells, october 2020
@@ -97,9 +97,7 @@ def main():
                     ratios_old,
                     section_day_old,
                 ) = parameters_section(args, section, ratios_old, section_day)
-                comp.S[t_step, :-1] = (
-                    n - comp.I[t_step:-1].sum() - comp.R[t_step]
-                ) / shapes["k_inf"]
+                comp.S[t_step, :-1] += n / shapes["k_inf"]
 
         # -------------------------
 
@@ -143,7 +141,7 @@ def parsing():
         type=int,
         default=[int(1e4)],
         nargs="*",
-        help="parameter: fixed number of (effecitve) people, must be monotonically increasing [1000,1000000]",
+        help="parameter: fixed number of (effecitve) people. Initial, then number of ADDED susceptible [1000,1000000]",
     )
     parser.add_argument(
         "--I_0",
@@ -193,6 +191,12 @@ def parsing():
         "--seed", type=int, default=1, help="seed for the automatic configuration"
     )
     parser.add_argument(
+        "--timeout",
+        type=int,
+        default=1200,
+        help="timeout for the automatic configuration",
+    )
+    parser.add_argument(
         "--data", type=str, default="../data/italy_i.csv", help="file with time series"
     )
     parser.add_argument(
@@ -229,9 +233,6 @@ def parameters_init(args):
     """Initial parameters from argparse"""
     from numpy import genfromtxt
 
-    if not utils.monotonically_increasing(args.n):
-        raise ValueError("n should be monotonically increasing")
-
     I_0 = args.I_0
     R_0 = args.R_0
     n_t_steps = int(1e7)  # max simulation steps
@@ -257,6 +258,9 @@ def parameters_init(args):
         infected_time_series,
         n_sections,
     )
+
+
+# -------------------------
 
 
 def parameters_section(args, section, ratios_old=None, section_day_old=0):
@@ -288,7 +292,8 @@ def gillespie(t_step, time, section_day_old, comp, ratios, ratios_old, shapes):
     stot = comp.S[t_step, :-1].sum()
     itot = comp.I[t_step, :-1].sum()
 
-    beta_eval, delta_eval = utils.ratios_sir(time, ratios, ratios_old, section_day_old)
+    # beta_eval, delta_eval = utils.ratios_sir(time, ratios, ratios_old, section_day_old)
+    beta_eval, delta_eval = ratios["beta"], ratios["delta"]
 
     lambda_sum = (delta_eval + beta_eval * stot) * itot
     prob_heal = delta_eval * comp.I[t_step, :-1] / lambda_sum
@@ -308,6 +313,6 @@ if __name__ == "__main__":
     try:
         main()
     except Exception as ex:
+        sys.stderr.write(f"{repr(ex)}\n")
+        traceback.print_exc()
         sys.stdout.write(f"GGA CRASHED {1e20}\n")
-        sys.stdout.write(f"{repr(ex)}\n")
-        traceback.print_exc(ex)

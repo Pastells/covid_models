@@ -17,11 +17,7 @@ def _process_trans_SEIR_(
     status,
     rec_time,
     pred_inf_time,
-    beta1,
-    beta2,
-    delta1,
-    delta2,
-    epsilon,
+    ratios,
     e_or_i,
 ):
     r"""
@@ -47,8 +43,8 @@ def _process_trans_SEIR_(
             dictionary giving recovery time of each node
         pred_inf_time : dict
             dictionary giving predicted infeciton time of nodes
-        beta,delta:
-            rates of infection and recovery
+        ratios (beta1/2,delta1/2, epsilon):
+            rates of infection, recovery and latency
 
         :Returns:
 
@@ -84,9 +80,9 @@ def _process_trans_SEIR_(
             trans_delay, rec_delay, recover_or_infect = utils.Markovian_times(
                 target,
                 suscep_neighbors,
-                beta1,
-                delta1,
-                epsilon,
+                ratios["beta1"],
+                ratios["delta1"],
+                ratios["epsilon"],
             )
         else:
             status[target] = "I"
@@ -96,8 +92,8 @@ def _process_trans_SEIR_(
             trans_delay, rec_delay = utils.Markovian_times(
                 target,
                 suscep_neighbors,
-                beta2,
-                delta2,
+                ratios["beta2"],
+                ratios["delta2"],
             )
             recover_or_infect = "recover"
 
@@ -125,11 +121,7 @@ def _process_trans_SEIR_(
                         status,
                         rec_time,
                         pred_inf_time,
-                        beta1,
-                        beta2,
-                        delta1,
-                        delta2,
-                        epsilon,
+                        ratios,
                         "I",
                     ),
                 )
@@ -156,11 +148,7 @@ def _process_trans_SEIR_(
                         status,
                         rec_time,
                         pred_inf_time,
-                        beta1,
-                        beta2,
-                        delta1,
-                        delta2,
-                        epsilon,
+                        ratios,
                         "E",
                     ),
                 )
@@ -257,11 +245,7 @@ def _process_inf_SEIR_(time, node, times, S, E, I, R, status):
 
 def fast_SEIR(
     G,
-    beta1,
-    beta2,
-    delta1,
-    delta2,
-    epsilon,
+    ratios,
     # E_0=0,
     I_0=None,
     R_0=0,
@@ -362,11 +346,7 @@ def fast_SEIR(
                 status,
                 rec_time,
                 pred_inf_time,
-                beta1,
-                beta2,
-                delta1,
-                delta2,
-                epsilon,
+                ratios,
                 "I",
             ),
         )
