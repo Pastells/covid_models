@@ -15,7 +15,7 @@ parser.add_argument(
     "--data", type=str, default="../data/italy_i.csv", help="file with time series"
 )
 parser.add_argument(
-    "--beta", type=float, default=0.5, help="parameter: ratio of infection [1e-2,1]"
+    "--beta", type=float, default=0.5, help="parameter: ratio of infection [0.05,1]"
 )
 
 args = parser.parse_args()

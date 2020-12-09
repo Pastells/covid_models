@@ -47,9 +47,9 @@ def main():
     # =========================
     # MC loop
     # =========================
-    for seed in range(mc_seed0, mc_seed0 + mc_nseed):
-        random.seed(seed)
-        np.random.seed(seed)
+    for mc_seed in range(mc_seed0, mc_seed0 + mc_nseed):
+        random.seed(mc_seed)
+        np.random.seed(mc_seed)
 
         # -------------------------
         # initialization
@@ -60,10 +60,6 @@ def main():
 
         # Time loop
         while comp.I[t_step, :-1].sum() > 0.1 and day < t_total:
-            # Add individuals periodically
-            # if time//add_n==1:
-            # add_n += 30
-            # S[t_step] += float(n)/2
             day, day_max = utils.day_data(
                 time, t_total, day, day_max, comp.I[t_step, :-1].sum(), I_day[mc_step]
             )
@@ -86,8 +82,8 @@ def main():
 
     utils.cost_func(infected_time_series, I_m, I_std)
 
-    if save:
-        utils.saving(args, I_m, I_std, day_max, "sir_erlang")
+    if save is not None:
+        utils.saving(args, I_m, I_std, day_max, "net_sir", save)
 
     if plot:
         utils.plotting(infected_time_series, I_day, day_max, I_m, I_std)
@@ -101,82 +97,54 @@ def parsing():
     """input parameters"""
     import argparse
 
-    parser = utils.ArgumentParser(
+    parser = argparse.ArgumentParser(
         description="stochastic mean-field SIR model using the Gillespie algorithm and Erlang \
             distribution transition times.",
         formatter_class=argparse.MetavarTypeHelpFormatter,
     )
 
-    parser.add_argument(
+    parser_init = parser.add_argument_group("initial conditions")
+    parser_params = parser.add_argument_group("parameters")
+
+    parser_init.add_argument(
+        "--I_0", type=int, default=20, help="initial number of infected individuals"
+    )
+    parser_init.add_argument(
+        "--R_0", type=int, default=0, help="initial number of inmune individuals"
+    )
+
+    parser_params.add_argument(
         "--n",
         type=int,
         default=int(1e4),
-        help="parameter: fixed number of (effecitve) people [1000,1000000]",
+        help="fixed number of (effecitve) people [1000,1000000]",
     )
-    parser.add_argument(
-        "--I_0",
-        type=int,
-        default=20,
-        help="initial number of infected individuals [1,n]",
-    )
-    parser.add_argument(
-        "--R_0", type=int, default=0, help="initial number of inmune individuals [0,n]"
-    )
-    parser.add_argument(
+    parser_params.add_argument(
         "--delta",
         type=float,
         default=0.2,
-        help="parameter: mean ratio of recovery [1e-2,1]",
+        help="ratio of recovery from latent fase (e->r) [0.05,1]",
     )
-    parser.add_argument(
-        "--beta", type=float, default=0.5, help="parameter: ratio of infection [1e-2,1]"
-    )
-    parser.add_argument(
+    parser_params.add_argument(
         "--k_rec",
         type=int,
         default=1,
-        help="parameter: k for the recovery time erlang distribution [1,5]",
+        help="k for the recovery time erlang distribution [1,5]",
     )
-    parser.add_argument(
+    parser_params.add_argument(
+        "--beta",
+        type=float,
+        default=0.5,
+        help="ratio of infection due to latent [0.05,1]",
+    )
+    parser_params.add_argument(
         "--k_inf",
         type=int,
         default=1,
-        help="parameter: k for the infection time erlang distribution [1,5]",
+        help="k for the infection time erlang distribution [1,5]",
     )
 
-    parser.add_argument(
-        "--seed", type=int, default=1, help="seed for the automatic configuration"
-    )
-    parser.add_argument(
-        "--timeout",
-        type=int,
-        default=1200,
-        help="timeout for the automatic configuration",
-    )
-    parser.add_argument(
-        "--data", type=str, default="../data/italy_i.csv", help="file with time series"
-    )
-    parser.add_argument(
-        "--day_min", type=int, default=33, help="first day to consider on data series"
-    )
-    parser.add_argument(
-        "--day_max", type=int, default=58, help="last day to consider on data series"
-    )
-
-    parser.add_argument(
-        "--mc_nseed",
-        type=int,
-        default=int(5),
-        help="number of mc realizations, not really a parameter",
-    )
-    parser.add_argument(
-        "--mc_seed0",
-        type=int,
-        default=1,
-        help="initial mc seed, not really a parameter",
-    )
-    parser.add_argument("--plot", action="store_true", help="specify for plots")
-    parser.add_argument("--save", action="store_true", help="specify for outputfile")
+    utils.parser_common(parser)
 
     args = parser.parse_args()
     # print(args)
@@ -193,7 +161,7 @@ def parameters_init(args):
 
     I_0 = args.I_0
     R_0 = args.R_0
-    n_t_steps = int(1e7)  # max simulation steps
+    n_t_steps = args.n_t_steps  # max simulation steps
     t_total = args.day_max - args.day_min  # max simulated days
     mc_nseed = args.mc_nseed  # MC realizations
     mc_seed0 = args.mc_seed0

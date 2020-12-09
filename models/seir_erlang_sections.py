@@ -46,9 +46,9 @@ def main():
     # =========================
     # MC loop
     # =========================
-    for seed in range(mc_seed0, mc_seed0 + mc_nseed):
-        random.seed(seed)
-        np.random.seed(seed)
+    for mc_seed in range(mc_seed0, mc_seed0 + mc_nseed):
+        random.seed(mc_seed)
+        np.random.seed(mc_seed)
 
         # initialization
         section = 0
@@ -59,17 +59,29 @@ def main():
             section_day,
             ratios_old,
             section_day_old,
+            n_ind,
         ) = parameters_section(args, section)
 
         comp = seir_erlang.Compartments(n_t_steps, shapes, args)
 
         t_step, time, day = 0, 0, 1
         I_day[mc_step, 0] = I_0
+        index_n = 1  # just to avoid pylint complaining
 
         # Sections
         while section < n_sections:
             # Time loop
             while comp.I[t_step, :-1].sum() > 0 and day < section_day:
+
+                # add individuals
+                if n_ind is not None:
+                    if time // n_ind[index_n, 1] == 1:
+                        comp.S[t_step] += n_ind[index_n] / shapes["k_inf"]
+                        if index_n < (len(n_ind) - 1):
+                            index_n += 1
+                        else:
+                            n_ind = None
+
                 day, day_max = utils.day_data(
                     time,
                     t_total,
@@ -98,18 +110,10 @@ def main():
                     section_day,
                     ratios_old,
                     section_day_old,
-                ) = parameters_section(
-                    args,
-                    section,
-                    ratios_old,
-                    section_day,
-                )
-                comp.S[t_step, :-1] = (
-                    n
-                    - comp.I[t_step:-1].sum()
-                    - comp.E[t_step:-1].sum()
-                    - comp.R[t_step]
-                ) / shapes["k_inf"]
+                    n_ind,
+                ) = parameters_section(args, section, ratios, section_day, n)
+                comp.S[t_step, :-1] += n_ind[0, 0] / shapes["k_inf"]
+                index_n = 1
 
         # -------------------------
 
@@ -124,8 +128,8 @@ def main():
 
     utils.cost_func(infected_time_series, I_m, I_std)
 
-    if save:
-        utils.saving(args, I_m, I_std, day_max, "seir_erlang_sections")
+    if save is not None:
+        utils.saving(args, I_m, I_std, day_max, "net_sir", save)
 
     if plot:
         utils.plotting(infected_time_series, I_day, day_max, I_m, I_std)
@@ -140,7 +144,7 @@ def parsing():
     """input parameters"""
     import argparse
 
-    parser = utils.ArgumentParser(
+    parser = argparse.ArgumentParser(
         description="Stochastic mean-field SEIR model using the Gillespie algorithm and Erlang \
             distribution transition times. It allows for different sections with different \
             n, delta and beta: same number of arguments must be specified for all three, \
@@ -148,113 +152,89 @@ def parsing():
         formatter_class=argparse.MetavarTypeHelpFormatter,
     )
 
-    parser.add_argument(
+    parser_init = parser.add_argument_group("initial conditions")
+    parser_params = parser.add_argument_group("parameters")
+
+    parser_init.add_argument(
+        "--E_0", type=int, default=0, help="initial number of latent individuals"
+    )
+    parser_init.add_argument(
+        "--I_0", type=int, default=20, help="initial number of infected individuals"
+    )
+    parser_init.add_argument(
+        "--R_0", type=int, default=0, help="initial number of inmune individuals"
+    )
+
+    parser_params.add_argument(
         "--n",
         type=int,
         default=[int(1e4)],
         nargs="*",
-        help="parameter: fixed number of (effecitve) people, must be monotonically increasing [1000,1000000]",
+        help="fixed number of (effecitve) people, must be monotonically increasing [1000,1000000]",
     )
-    parser.add_argument(
-        "--E_0", type=int, default=0, help="initial number of latent individuals"
-    )
-    parser.add_argument(
-        "--I_0", type=int, default=20, help="initial number of infected individuals"
-    )
-    parser.add_argument(
-        "--R_0", type=int, default=0, help="initial number of inmune individuals [0,n]"
-    )
-    parser.add_argument(
+    parser_params.add_argument(
         "--delta1",
         type=float,
-        default=0.01,
-        help="parameter: ratio of recovery from latent fase (e->r) [1e-2,1]",
+        default=[0.01],
+        nargs="*",
+        help="ratio of recovery from latent fase (e->r) [0.05,1]",
     )
-    parser.add_argument(
+    parser_params.add_argument(
         "--delta2",
         type=float,
-        default=0.2,
-        help="parameter: ratio of recovery from infected fase (i->r) [1e-2,1]",
+        default=[0.2],
+        nargs="*",
+        help="ratio of recovery from infected fase (i->r) [0.05,1]",
     )
-    parser.add_argument(
+    parser_params.add_argument(
         "--k_rec",
         type=int,
         default=1,
-        help="parameter: k for the recovery time erlang distribution [1,5]",
+        help="k for the recovery time erlang distribution [1,5]",
     )
-    parser.add_argument(
+    parser_params.add_argument(
         "--beta1",
         type=float,
-        default=0.01,
-        help="parameter: ratio of infection due to latent [1e-2,1]",
+        default=[0.01],
+        nargs="*",
+        help="ratio of infection due to latent [0.05,1]",
     )
-    parser.add_argument(
+    parser_params.add_argument(
         "--beta2",
         type=float,
-        default=0.5,
-        help="parameter: ratio of infection due to infected [1e-2,1]",
+        default=[0.5],
+        nargs="*",
+        help="ratio of infection due to infected [0.05,1]",
     )
-    parser.add_argument(
+    parser_params.add_argument(
         "--k_inf",
         type=int,
         default=1,
-        help="parameter: k for the infection time erlang distribution [1,5]",
+        help="k for the infection time erlang distribution [1,5]",
     )
-    parser.add_argument(
+    parser_params.add_argument(
         "--epsilon",
         type=float,
-        default=1,
-        help="parameter: ratio of latency (e->i) [1e-2,1]",
+        default=[1],
+        nargs="*",
+        help="ratio of latency (e->i) [0.05,1]",
     )
-    parser.add_argument(
+    parser_params.add_argument(
         "--k_lat",
         type=int,
         default=1,
-        help="parameter: k for the latent time erlang distribution [1,5]",
+        help="k for the latent time erlang distribution [1,5]",
     )
-
-    parser.add_argument(
+    parser_params.add_argument(
         "--section_days",
         type=int,
         default=[0, 100],
         nargs="*",
-        help="parameter: starting day for each section, firts one must be 0,\
+        help="starting day for each section, firts one must be 0,\
                         and final day for last one",
     )
 
-    parser.add_argument(
-        "--seed", type=int, default=1, help="seed for the automatic configuration"
-    )
-    parser.add_argument(
-        "--timeout",
-        type=int,
-        default=1200,
-        help="timeout for the automatic configuration",
-    )
-    parser.add_argument(
-        "--data", type=str, default="../data/italy_i.csv", help="file with time series"
-    )
-    parser.add_argument(
-        "--day_min", type=int, default=33, help="first day to consider on data series"
-    )
-    parser.add_argument(
-        "--day_max", type=int, default=58, help="last day to consider on data series"
-    )
-
-    parser.add_argument(
-        "--mc_nseed",
-        type=int,
-        default=int(5),
-        help="number of mc realizations, not really a parameter",
-    )
-    parser.add_argument(
-        "--mc_seed0",
-        type=int,
-        default=1,
-        help="initial mc seed, not really a parameter",
-    )
-    parser.add_argument("--plot", action="store_true", help="specify for plots")
-    parser.add_argument("--save", action="store_true", help="specify for outputfile")
+    utils.parser_common(parser)
     args = parser.parse_args()
     # print(args)
     return args
@@ -268,13 +248,10 @@ def parameters_init(args):
     """Initial parameters from argparse"""
     from numpy import genfromtxt
 
-    if not utils.monotonically_increasing(args.n):
-        raise ValueError("n should be monotonically increasing")
-
     E_0 = args.E_0
     I_0 = args.I_0
     R_0 = args.R_0
-    n_t_steps = int(1e7)  # max simulation steps
+    n_t_steps = args.n_t_steps  # max simulation steps
     t_total = args.section_days[-1]  # max simulated days
     mc_nseed = args.mc_nseed  # MC realizations
     mc_seed0 = args.mc_seed0
@@ -300,33 +277,25 @@ def parameters_init(args):
     )
 
 
-def parameters_section(
-    args,
-    section,
-    ratios_old=None,
-    section_day_old=0,
-):
+def parameters_section(args, section, ratios_old=None, section_day_old=0, n_old=None):
     """
     Section dependent parameters from argparse
     """
-    n = args.n[section]
+    n = sum(args.n[: section + 1])
+    n_ind = utils.n_individuals(n, n_old, section_day_old)
     shapes = {"k_inf": args.k_inf, "k_rec": args.k_rec, "k_lat": args.k_lat}
     ratios = {
-        "beta1": args.beta1 / n * args.k_inf,
-        "beta2": args.beta2 / n * args.k_inf,
-        "delta1": args.delta1 * args.k_rec,
-        "delta2": args.delta2 * args.k_rec,
-        "epsilon": args.epsilon * args.k_lat,
+        "beta1": args.beta1[section] / n * args.k_inf,
+        "beta2": args.beta2[section] / n * args.k_inf,
+        "delta1": args.delta1[section] * args.k_rec,
+        "delta2": args.delta2[section] * args.k_rec,
+        "epsilon": args.epsilon[section] * args.k_lat,
     }
     section_day = args.section_days[section + 1]
-    return (
-        n,
-        ratios,
-        shapes,
-        section_day,
-        ratios_old,
-        section_day_old + 1,
-    )
+
+    # should return section_day_old , given that the input will be section_day.
+    # but I want to add 2 to it for the tanh in ratios_sir/n_individuals
+    return (n, ratios, shapes, section_day, ratios_old, section_day_old + 1, n_ind)
 
 
 # -------------------------

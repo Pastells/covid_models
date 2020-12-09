@@ -48,9 +48,9 @@ def main():
     # =========================
     # MC loop
     # =========================
-    for seed in range(mc_seed0, mc_seed0 + mc_nseed):
-        random.seed(seed)
-        np.random.seed(seed)
+    for mc_seed in range(mc_seed0, mc_seed0 + mc_nseed):
+        random.seed(mc_seed)
+        np.random.seed(mc_seed)
 
         G = utils.choose_network(n, network_type, network_param)
         t, S, E, I, R = fast_seir.fast_SEIR(G, ratios, I_0, R_0, tmax=t_total - 0.9)
@@ -111,7 +111,7 @@ def parsing():
         type=str,
         default="er",
         choices=["er", "ba"],
-        help="parameter: Erdos-Renyi or Barabasi Albert supported right now [er,ba]",
+        help="parameter: Erdos-Renyi or Barabasi Albert supported right now {er,ba}",
     )
     parser.add_argument(
         "--network_param",
@@ -136,31 +136,31 @@ def parsing():
         "--delta1",
         type=float,
         default=0.01,
-        help="parameter: ratio of recovery from latent fase (e->r) [1e-2,1]",
+        help="parameter: ratio of recovery from latent fase (e->r) [0.05,1]",
     )
     parser.add_argument(
         "--delta2",
         type=float,
         default=0.2,
-        help="parameter: ratio of recovery from infected fase (i->r) [1e-2,1]",
+        help="parameter: ratio of recovery from infected fase (i->r) [0.05,1]",
     )
     parser.add_argument(
         "--beta1",
         type=float,
         default=0.01,
-        help="parameter: ratio of infection due to latent [1e-2,1]",
+        help="parameter: ratio of infection due to latent [0.05,1]",
     )
     parser.add_argument(
         "--beta2",
         type=float,
         default=0.5,
-        help="parameter: ratio of infection due to infected [1e-2,1]",
+        help="parameter: ratio of infection due to infected [0.05,1]",
     )
     parser.add_argument(
         "--epsilon",
         type=float,
         default=1,
-        help="parameter: ratio of latency (e->i) [1e-2,1]",
+        help="parameter: ratio of latency (e->i) [0.05,2]",
     )
 
     parser.add_argument(

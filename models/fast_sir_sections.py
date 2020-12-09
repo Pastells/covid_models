@@ -17,6 +17,8 @@ def _process_trans_SIR_(
     rec_time,
     pred_inf_time,
     ratios,
+    ratios_old,
+    section_day_old,
 ):
     r"""
         From figure A.4 of Kiss, Miller, & Simon.  Please cite the book if
@@ -70,8 +72,13 @@ def _process_trans_SIR_(
 
         suscep_neighbors = [v for v in G.neighbors(target) if status[v] == "S"]
 
+        beta_eval, delta_eval = utils.ratios_sir(
+            time, ratios, ratios_old, section_day_old
+        )
+        # print(ratios, ratios_old, beta_eval, delta_eval)
+
         trans_delay, rec_delay = utils.Markovian_times(
-            target, suscep_neighbors, ratios["beta"], ratios["delta"]
+            target, suscep_neighbors, beta_eval, delta_eval
         )
 
         rec_time[target] = time + rec_delay
@@ -103,6 +110,8 @@ def _process_trans_SIR_(
                         rec_time,
                         pred_inf_time,
                         ratios,
+                        ratios_old,
+                        section_day_old,
                     ),
                 )
                 pred_inf_time[v] = inf_time
@@ -152,6 +161,8 @@ def _process_rec_SIR_(time, node, times, S, I, R, status):
 def fast_SIR(
     G,
     ratios,
+    ratios_old,
+    section_day_old,
     I_0=None,
     R_0=0,
     tmin=0,
@@ -243,6 +254,8 @@ def fast_SIR(
                 rec_time,
                 pred_inf_time,
                 ratios,
+                ratios_old,
+                section_day_old,
             ),
         )
 

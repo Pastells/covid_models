@@ -1,5 +1,6 @@
 """
 Stochastic SIR model with a social network using the event-driven algorithm
+It allows for different sections with different n, delta and beta
 Pol Pastells, november 2020
 
 equations of the deterministic system
@@ -17,7 +18,7 @@ import sys
 import traceback
 import numpy as np
 import utils
-import fast_sir
+import fast_sir_sections
 
 
 def main():
@@ -31,7 +32,6 @@ def main():
         plot,
         save,
         infected_time_series,
-        n,  # FIXED N FOR NOW
         network_type,
         network_param,
         n_sections,
@@ -47,13 +47,14 @@ def main():
     # =========================
     # MC loop
     # =========================
-    for seed in range(mc_seed0, mc_seed0 + mc_nseed):
-        random.seed(seed)
-        np.random.seed(seed)
+    for mc_seed in range(mc_seed0, mc_seed0 + mc_nseed):
+        random.seed(mc_seed)
+        np.random.seed(mc_seed)
 
         # initialization
         section = 0
         (
+            n,
             ratios,
             section_day,
             ratios_old,
@@ -62,26 +63,51 @@ def main():
 
         G = utils.choose_network(n, network_type, network_param)
 
+        t_all, S_all, I_all, R_all = (
+            np.array([]),
+            np.array([]),
+            np.array([]),
+            np.array([]),
+        )
+        I_day[mc_step, 0] = I_0
+
         # Sections
         while section < n_sections:
-            t, S, I, R = fast_sir.fast_SIR(G, ratios, I_0, R_0, tmax=section_day)
+            t, S, I, R = fast_sir_sections.fast_SIR(
+                G,
+                ratios,
+                ratios_old,
+                section_day_old,
+                I_0,
+                R_0,
+                tmin=section_day_old - 1,
+                tmax=section_day,
+            )
+            t_all = np.append(t_all, t)
+            S_all = np.append(S_all, S)
+            I_all = np.append(I_all, I)
+            R_all = np.append(R_all, R)
             section += 1
             if section < n_sections:
                 (
                     n,
                     ratios,
-                    shapes,
                     section_day,
                     ratios_old,
                     section_day_old,
-                ) = parameters_section(args, section, ratios_old, section_day)
-                S[-1] = n - I[-1] - R[-1]
+                ) = parameters_section(args, section, ratios, section_day)
+                if section == n_sections - 1:
+                    section_day -= 0.9
+                G = utils.choose_network(n, network_type, network_param)
+                I_0 = I[-1]
+                print(R_0)
+                R_0 += R[-1]
+                print(R_0)
 
-        I_day[mc_step, 0] = I_0
         day = 1
-        for t, time in enumerate(t):
+        for t_step, time in enumerate(t_all):
             day, day_max = utils.day_data(
-                time, t_total, day, day_max, I[t], I_day[mc_step]
+                time, t_total, day, day_max, I_all[t_step], I_day[mc_step]
             )
 
         mc_step += 1
@@ -94,6 +120,12 @@ def main():
     if save is not None:
         utils.saving(args, I_m, I_std, day_max, "net_sir", save)
 
+    import matplotlib.pyplot as plt
+
+    plt.plot(t_all, S_all)
+    plt.plot(t_all, I_all)
+    plt.plot(t_all, R_all)
+    plt.show()
     if plot:
         utils.plotting(infected_time_series, I_day, day_max, I_m, I_std)
 
@@ -151,14 +183,14 @@ def parsing():
         type=float,
         default=[0.2],
         nargs="*",
-        help="parameter: mean ratio of recovery [1e-2,1]",
+        help="parameter: mean ratio of recovery [0.05,1]",
     )
     parser.add_argument(
         "--beta",
         type=float,
         default=[0.5],
         nargs="*",
-        help="parameter: ratio of infection [1e-2,1]",
+        help="parameter: ratio of infection [0.05,1]",
     )
     parser.add_argument(
         "--section_days",
@@ -218,9 +250,6 @@ def parameters_init(args):
     """initial parameters from argparse"""
     from numpy import genfromtxt
 
-    if not utils.monotonically_increasing(args.n):
-        raise ValueError("n should be monotonically increasing")
-
     I_0 = args.I_0
     R_0 = args.R_0
     t_total = args.day_max - args.day_min  # max simulated days
@@ -232,7 +261,6 @@ def parameters_init(args):
         args.day_min : args.day_max
     ]
     # print(infected_time_series)
-    n = args.n[0]
     network_type = args.network_type
     network_param = args.network_param
     n_sections = len(args.section_days) - 1
@@ -245,7 +273,6 @@ def parameters_init(args):
         plot,
         save,
         infected_time_series,
-        n,
         network_type,
         network_param,
         n_sections,
@@ -259,9 +286,11 @@ def parameters_section(args, section, ratios_old=None, section_day_old=0):
     """
     Section dependent parameters from argparse
     """
+    n = sum(args.n[: section + 1])
     ratios = {"beta": args.beta[section], "delta": args.delta[section]}
     section_day = args.section_days[section + 1]
     return (
+        n,
         ratios,
         section_day,
         ratios_old,

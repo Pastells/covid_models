@@ -13,6 +13,28 @@ import matplotlib.pyplot as plt
 # -------------------------
 
 
+def n_individuals(n, n_old, t_0=0, points=16):
+    """returns a vector n_ind with n increment as a function of time:
+    interpolates between the two given values using a tanh"""
+
+    if n_old is None:
+        return None
+
+    def weight(time):
+        return 0.5 * (1 + np.tanh((time - 2) / 0.75))
+
+    n_ind = np.zeros([points + 1, 2])
+    for time in range(points):
+        n_ind[time, 0] = int((n - n_old) * weight(time / 4))
+        n_ind[time, 1] = t_0 + time / 4
+    n_ind[-1, 0] = n - n_old
+    n_ind[-1, 1] = t_0 + 4
+    return n_ind
+
+
+# -------------------------
+
+
 def ratios_sir(time, ratios, ratios_old=None, t_0=0):
     """returns beta and delta as a function of time:
     interpolates between the two given values using a tanh"""
@@ -45,7 +67,6 @@ def ratios_seir(time, ratios, ratios_old=None, t_0=0):
             ratios["epsilon"],
         )
 
-    print(ratios, ratios_old)
     if time > t_0 + 4:
         return (
             ratios["beta1"],
@@ -130,11 +151,13 @@ def day_data(time, t_total, day, day_max, I, I_day, last_event=False):
         day_max = max(day_max, day)
         return day, day_max
     """
-    if time // day == 1:
+    if (time // day == 1) and (day < t_total):
         _days_jumped = int(time - day)
         max_days = min(day + _days_jumped + 1, t_total)
         I_day[day : max_days - 1] = I_day[day - 1]
         I_day[max_days - 1] = I
+        # print(time, day, _days_jumped, max_days, t_total)
+        # print(I_day, I)
         day = max_days
         day_max = max(day_max, day)
         return day, day_max
@@ -289,7 +312,10 @@ def cost_func(infected_time_series, I_m, I_std):
 
 
 class ArgumentParser(argparse.ArgumentParser):
+    """ argparse with defaults in help"""
+
     def add_argument(self, *args, help=None, default=None, **kwargs):
+        """ Adds default at the end of help"""
         if help is not None:
             kwargs["help"] = help
         if default is not None and args[0] != "-h":
@@ -299,17 +325,80 @@ class ArgumentParser(argparse.ArgumentParser):
         super().add_argument(*args, **kwargs)
 
 
+# -------------------------
+
+
+def parser_common(parser):
+    """ create configuration, data and actions groups for the parser"""
+
+    parser_config = parser.add_argument_group("configuration")
+    parser_data = parser.add_argument_group("data")
+    parser_act = parser.add_argument_group("actions")
+
+    parser_config.add_argument(
+        "--seed", type=int, default=1, help="seed for the automatic configuration"
+    )
+    parser_config.add_argument(
+        "--timeout",
+        type=int,
+        default=1200,
+        help="timeout for the automatic configuration",
+    )
+    parser_config.add_argument(
+        "--mc_nseed",
+        type=int,
+        default=int(5),
+        help="number of mc realizations, not really a parameter",
+    )
+    parser_config.add_argument(
+        "--mc_seed0",
+        type=int,
+        default=1,
+        help="initial mc seed, not really a parameter",
+    )
+    parser_config.add_argument(
+        "--n_t_steps",
+        type=int,
+        default=int(1e7),
+        help="maximum number of simulation steps, dimension for the arrays",
+    )
+
+    parser_data.add_argument(
+        "--data",
+        type=str,
+        default="../data/italy_i.csv",
+        help="file with time series",
+    )
+    parser_data.add_argument(
+        "--day_min",
+        type=int,
+        default=33,
+        help="first day to consider on data series",
+    )
+    parser_data.add_argument(
+        "--day_max",
+        type=int,
+        default=58,
+        help="last day to consider on data series",
+    )
+
+    parser_act.add_argument("--plot", action="store_true", help="specify for plots")
+    parser_act.add_argument(
+        "--save", type=str, default=None, help="specify a name for outputfile"
+    )
+
+
 # -------------------------------------
 # Used in models with a social network:
 # -------------------------------------
 
 
-def choose_network(n, network_type, network_param):
+def choose_network(n, network_type, network_param, seed=None):
     """ select network type to create a graph using networkx"""
     if network_type == "er":
-        G = nx.erdos_renyi_graph(n, network_param / n)
+        G = nx.erdos_renyi_graph(n, network_param / n, seed)
     elif network_type == "ba":
-        G = nx.barabasi_albert_graph(n, network_param)
+        G = nx.barabasi_albert_graph(n, network_param, seed)
     else:
         raise ValueError("Network type not avaliable")
     return G

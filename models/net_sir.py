@@ -47,9 +47,9 @@ def main():
     # =========================
     # MC loop
     # =========================
-    for seed in range(mc_seed0, mc_seed0 + mc_nseed):
-        random.seed(seed)
-        np.random.seed(seed)
+    for mc_seed in range(mc_seed0, mc_seed0 + mc_nseed):
+        random.seed(mc_seed)
+        np.random.seed(mc_seed)
 
         G = utils.choose_network(n, network_type, network_param)
         t, S, I, R = fast_sir.fast_SIR(G, ratios, I_0, R_0)
@@ -101,7 +101,7 @@ def parsing():
         type=str,
         default="er",
         choices=["er", "ba"],
-        help="parameter: Erdos-Renyi or Barabasi Albert supported right now [er,ba]",
+        help="parameter: Erdos-Renyi or Barabasi Albert supported right now {er,ba}",
     )
     parser.add_argument(
         "--network_param",
@@ -120,10 +120,10 @@ def parsing():
         "--r_0", type=int, default=0, help="initial number of inmune individuals [0,n]"
     )
     parser.add_argument(
-        "--delta", type=float, default=0.2, help="parameter: ratio of recovery [1e-2,1]"
+        "--delta", type=float, default=0.2, help="parameter: ratio of recovery [0.05,1]"
     )
     parser.add_argument(
-        "--beta", type=float, default=0.5, help="parameter: ratio of infection [1e-2,1]"
+        "--beta", type=float, default=0.5, help="parameter: ratio of infection [0.05,1]"
     )
 
     parser.add_argument(
