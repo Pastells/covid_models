@@ -1,0 +1,35 @@
+%DATA
+./italy_i.csv
+
+%PARAMS
+--n01 integer [10000,1000000]
+--n02 integer [10000,1000000]
+--n03 integer [10000,1000000]
+--beta01 real [0.05,1.0]
+--beta02 real [0.05,1.0]
+--beta03 real [0.05,1.0]
+--delta01 real [0.05,1.0]
+--delta02 real [0.05,1.0]
+--delta03 real [0.05,1.0]
+
+%MODULES
+python/3.6.5
+
+%META
+%%SEED 42
+%%TIMEOUT 1200
+
+%ENVIRONMENT-SETUP
+python3 -m venv ./venv
+./venv/bin/pip install numpy matplotlib networkx
+chmod +x ./wrapper_sections.sh
+
+%EXECUTION
+./wrapper_sections.sh \
+--data ${instance} \
+--seed ${seed} \
+--timeout ${timeout} \
+--mc_nseed 5 \
+--day_max 78 \
+--section_days 0 15 30 45 \
+${@}

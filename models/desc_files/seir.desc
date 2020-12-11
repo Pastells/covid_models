@@ -1,0 +1,31 @@
+%DATA
+./italy_i.csv
+
+%PARAMS
+--n integer [10000,1000000]
+--beta1 real [0.1,1.0]
+--beta2 real [0.1,1.0]
+--delta1 real [0.1,1.0]
+--delta2 real [0.1,1.0]
+--epsilon real [0.1,1.0]
+
+%MODULES
+python/3.6.5
+
+%META
+%%SEED 42
+%%TIMEOUT 1200
+
+%ENVIRONMENT-SETUP
+python3 -m venv ./venv
+./venv/bin/pip install numpy matplotlib networkx
+
+%EXECUTION
+./venv/bin/python -u ./seir.py \
+--data ${instance} \
+--seed ${seed} \
+--timeout ${timeout} \
+--day_max 45 \
+--mc_nseed 5 \
+--I_0 50 \
+${@}

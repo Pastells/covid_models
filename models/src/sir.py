@@ -115,13 +115,13 @@ def parsing():
         "--delta",
         type=float,
         default=0.2,
-        help="ratio of recovery from latent fase (e->r) [0.05,1]",
+        help="ratio of recovery [0.05,1]",
     )
     parser_params.add_argument(
         "--beta",
         type=float,
         default=0.5,
-        help="ratio of infection due to latent [0.05,1]",
+        help="ratio of infection [0.05,1]",
     )
 
     utils.parser_common(parser)

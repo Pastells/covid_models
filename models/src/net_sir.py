@@ -6,10 +6,6 @@ equations of the deterministic system
 s[t] = S[t-1] - beta*i[t-1]*s[t-1]
 i[t] = I[t-1] + beta*i[t-1]*s[t-1] - delta * I[t-1]
 r[t] = R[t-1] + delta * I[t-1]
-
-to do:
-    - add network parameters in parser
-    - seed for network generation
 """
 
 import random
@@ -83,84 +79,51 @@ def parsing():
     """input parameters"""
     import argparse
 
-    parser = utils.ArgumentParser(
+    parser = argparse.ArgumentParser(
         description="stochastic SIR model with a social network using the event-driven algorithm",
         # formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         formatter_class=argparse.MetavarTypeHelpFormatter,
     )
 
-    parser.add_argument(
-        "--n",
-        type=int,
-        default=int(1e4),
-        help="parameter: fixed number of (effecitve) people [1000,1000000]",
+    parser_init = parser.add_argument_group("initial conditions")
+    parser_params = parser.add_argument_group("parameters")
+
+    parser_init.add_argument(
+        "--I_0", type=int, default=20, help="initial number of infected individuals"
+    )
+    parser_init.add_argument(
+        "--R_0", type=int, default=0, help="initial number of inmune individuals"
     )
 
-    parser.add_argument(
+    parser_params.add_argument(
         "--network_type",
         type=str,
         default="er",
         choices=["er", "ba"],
-        help="parameter: Erdos-Renyi or Barabasi Albert supported right now {er,ba}",
+        help="Erdos-Renyi or Barabasi Albert supported right now {er,ba}",
     )
-    parser.add_argument(
+    parser_params.add_argument(
         "--network_param",
         type=int,
         default=5,
-        help="parameter: mean number of edges [1,50]",
+        help="mean number of edges [1,50]",
     )
 
-    parser.add_argument(
-        "--i_0",
+    parser_params.add_argument(
+        "--n",
         type=int,
-        default=20,
-        help="initial number of infected individuals [1,n]",
-    )
-    parser.add_argument(
-        "--r_0", type=int, default=0, help="initial number of inmune individuals [0,n]"
-    )
-    parser.add_argument(
-        "--delta", type=float, default=0.2, help="parameter: ratio of recovery [0.05,1]"
-    )
-    parser.add_argument(
-        "--beta", type=float, default=0.5, help="parameter: ratio of infection [0.05,1]"
+        default=int(1e4),
+        help="fixed number of (effecitve) people [1000,1000000]",
     )
 
-    parser.add_argument(
-        "--seed", type=int, default=1, help="seed for the automatic configuration"
+    parser_params.add_argument(
+        "--delta", type=float, default=0.2, help="ratio of recovery [0.05,1]"
     )
-    parser.add_argument(
-        "--timeout",
-        type=int,
-        default=1200,
-        help="timeout for the automatic configuration",
-    )
-    parser.add_argument(
-        "--data", type=str, default="../data/italy_i.csv", help="file with time series"
-    )
-    parser.add_argument(
-        "--day_min", type=int, default=33, help="first day to consider on data series"
-    )
-    parser.add_argument(
-        "--day_max", type=int, default=58, help="last day to consider on data series"
+    parser_params.add_argument(
+        "--beta", type=float, default=0.5, help="ratio of infection [0.05,1]"
     )
 
-    parser.add_argument(
-        "--mc_nseed",
-        type=int,
-        default=int(1e3),
-        help="number of mc realizations",
-    )
-    parser.add_argument(
-        "--mc_seed0",
-        type=int,
-        default=1,
-        help="initial mc seed",
-    )
-    parser.add_argument("--plot", action="store_true", help="specify for plots")
-    parser.add_argument(
-        "--save", type=str, default=None, help="specify a name for outputfile"
-    )
+    utils.parser_common(parser)
 
     args = parser.parse_args()
     # print(args)
@@ -175,8 +138,8 @@ def parameters_init(args):
     """initial parameters from argparse"""
     from numpy import genfromtxt
 
-    I_0 = args.i_0
-    R_0 = args.r_0
+    I_0 = args.I_0
+    R_0 = args.R_0
     t_total = args.day_max - args.day_min  # max simulated days
     mc_nseed = args.mc_nseed  # MC realizations
     mc_seed0 = args.mc_seed0
@@ -212,6 +175,6 @@ if __name__ == "__main__":
     try:
         main()
     except Exception as ex:
-        sys.stdout.write(f"{repr(ex)}\n")
+        sys.stderr.write(f"{repr(ex)}\n")
         traceback.print_exc(ex)
         sys.stdout.write(f"GGA CRASHED {1e20}\n")

@@ -1,5 +1,5 @@
 """
-Stochastic mean-field SEIR model
+Stochastic mean-field SIR model
 using the Gillespie algorithm and Erlang distribution transition times
 It allows for different sections with different n, delta and beta
 Pol Pastells, october 2020
@@ -15,7 +15,7 @@ import sys
 import traceback
 import numpy as np
 import utils
-import sir_erlang
+import seir_erlang
 
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%
@@ -23,6 +23,7 @@ import sir_erlang
 def main():
     args = parsing()
     (
+        E_0,
         I_0,
         R_0,
         n_t_steps,
@@ -61,7 +62,7 @@ def main():
             n_ind,
         ) = parameters_section(args, section)
 
-        comp = sir_erlang.Compartments(n_t_steps, shapes, args)
+        comp = seir_erlang.Compartments(n_t_steps, shapes, args)
 
         t_step, time, day = 0, 0, 1
         I_day[mc_step, 0] = I_0
@@ -90,6 +91,7 @@ def main():
                     I_day[mc_step],
                 )
                 t_step, time = gillespie(
+                    t_total,
                     t_step,
                     time,
                     section_day_old,
@@ -143,7 +145,7 @@ def parsing():
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="Stochastic mean-field SIR model using the Gillespie algorithm and Erlang \
+        description="Stochastic mean-field SEIR model using the Gillespie algorithm and Erlang \
             distribution transition times. It allows for different sections with different \
             n, delta and beta: same number of arguments must be specified for all three, \
             and one more for section_days.",
@@ -153,6 +155,9 @@ def parsing():
     parser_init = parser.add_argument_group("initial conditions")
     parser_params = parser.add_argument_group("parameters")
 
+    parser_init.add_argument(
+        "--E_0", type=int, default=0, help="initial number of latent individuals"
+    )
     parser_init.add_argument(
         "--I_0", type=int, default=20, help="initial number of infected individuals"
     )
@@ -165,14 +170,21 @@ def parsing():
         type=int,
         default=[int(1e4)],
         nargs="*",
-        help="fixed number of (effecitve) people, must be monotonically increasing [1000,1000000]",
+        help="fixed number of (effecitve) people, initial and increments [1000,1000000]",
     )
     parser_params.add_argument(
-        "--delta",
+        "--delta1",
+        type=float,
+        default=[0.01],
+        nargs="*",
+        help="ratio of recovery from latent fase (e->r) [0.05,1]",
+    )
+    parser_params.add_argument(
+        "--delta2",
         type=float,
         default=[0.2],
         nargs="*",
-        help="ratio of recovery from latent fase (e->r) [0.05,1]",
+        help="ratio of recovery from infected fase (i->r) [0.05,1]",
     )
     parser_params.add_argument(
         "--k_rec",
@@ -181,11 +193,18 @@ def parsing():
         help="k for the recovery time erlang distribution [1,5]",
     )
     parser_params.add_argument(
-        "--beta",
+        "--beta1",
+        type=float,
+        default=[0.01],
+        nargs="*",
+        help="ratio of infection due to latent [0.05,1]",
+    )
+    parser_params.add_argument(
+        "--beta2",
         type=float,
         default=[0.5],
         nargs="*",
-        help="ratio of infection due to latent [0.05,1]",
+        help="ratio of infection due to infected [0.05,1]",
     )
     parser_params.add_argument(
         "--k_inf",
@@ -194,15 +213,29 @@ def parsing():
         help="k for the infection time erlang distribution [1,5]",
     )
     parser_params.add_argument(
+        "--epsilon",
+        type=float,
+        default=[1],
+        nargs="*",
+        help="ratio of latency (e->i) [0.05,1]",
+    )
+    parser_params.add_argument(
+        "--k_lat",
+        type=int,
+        default=1,
+        help="k for the latent time erlang distribution [1,5]",
+    )
+    parser_params.add_argument(
         "--section_days",
         type=int,
         default=[0, 100],
         nargs="*",
-        help="starting day for each section, firts one must be 0,\
+        help="starting day for each section, first one must be 0,\
                         and final day for last one",
     )
 
     utils.parser_common(parser)
+
     args = parser.parse_args()
     # print(args)
     return args
@@ -216,6 +249,7 @@ def parameters_init(args):
     """Initial parameters from argparse"""
     from numpy import genfromtxt
 
+    E_0 = args.E_0
     I_0 = args.I_0
     R_0 = args.R_0
     n_t_steps = args.n_t_steps  # max simulation steps
@@ -230,6 +264,7 @@ def parameters_init(args):
     n_sections = len(args.section_days) - 1
     # print(infected_time_series)
     return (
+        E_0,
         I_0,
         R_0,
         n_t_steps,
@@ -243,17 +278,20 @@ def parameters_init(args):
     )
 
 
-# -------------------------
-
-
 def parameters_section(args, section, ratios_old=None, section_day_old=0, n_old=None):
     """
     Section dependent parameters from argparse
     """
     n = sum(args.n[: section + 1])
     n_ind = utils.n_individuals(n, n_old, section_day_old)
-    shapes = {"k_inf": args.k_inf, "k_rec": args.k_rec}
-    ratios = {"beta": args.beta[section] / n, "delta": args.delta[section]}
+    shapes = {"k_inf": args.k_inf, "k_rec": args.k_rec, "k_lat": args.k_lat}
+    ratios = {
+        "beta1": args.beta1[section] / n * args.k_inf,
+        "beta2": args.beta2[section] / n * args.k_inf,
+        "delta1": args.delta1[section] * args.k_rec,
+        "delta2": args.delta2[section] * args.k_rec,
+        "epsilon": args.epsilon[section] * args.k_lat,
+    }
     section_day = args.section_days[section + 1]
 
     # should return section_day_old , given that the input will be section_day.
@@ -264,24 +302,62 @@ def parameters_section(args, section, ratios_old=None, section_day_old=0, n_old=
 # -------------------------
 
 
-def gillespie(t_step, time, section_day_old, comp, ratios, ratios_old, shapes):
+def gillespie(
+    t_total,
+    t_step,
+    time,
+    section_day_old,
+    comp,
+    ratios,
+    ratios_old,
+    shapes,
+):
     """
     Time elapsed for the next event
     Calls gillespie_step
     """
+
     stot = comp.S[t_step, :-1].sum()
     itot = comp.I[t_step, :-1].sum()
+    etot_rec = comp.E[t_step, :-1, 0].sum()
+    etot_inf = comp.E[t_step, :-1, 1].sum()
+    etot = etot_inf + etot_rec - comp.E[t_step, 0, 0]
 
-    beta_eval, delta_eval = utils.ratios_sir(time, ratios, ratios_old, section_day_old)
+    beta1_eval, beta2_eval, delta1_eval, delta2_eval, epsilon_eval = utils.ratios_seir(
+        time,
+        ratios,
+        ratios_old,
+        section_day_old,
+    )
 
-    lambda_sum = (delta_eval + beta_eval * stot) * itot
-    prob_heal = delta_eval * comp.I[t_step, :-1] / lambda_sum
-    prob_infect = beta_eval * comp.S[t_step, :-1] * itot / lambda_sum
+    lambda_sum = (
+        epsilon_eval * etot_inf
+        + delta1_eval * etot_rec
+        + delta2_eval * itot
+        + (beta1_eval * etot + beta2_eval * itot) * stot
+    )
+
+    prob_heal1 = delta1_eval * comp.E[t_step, :-1, 0] / lambda_sum
+    prob_heal2 = delta2_eval * comp.I[t_step, :-1] / lambda_sum
+    prob_latent = epsilon_eval * comp.E[t_step, :-1, 1] / lambda_sum
+    prob_infect = (
+        (beta1_eval * etot + beta2_eval * itot) * comp.S[t_step, :-1] / lambda_sum
+    )
 
     t_step += 1
     time += utils.time_dist(lambda_sum)
+    if time > t_total:
+        return t_step, True  # rare,  but sometimes long times may appear
 
-    sir_erlang.gillespie_step(t_step, comp, prob_heal, prob_infect, shapes)
+    seir_erlang.gillespie_step(
+        t_step,
+        comp,
+        prob_heal1,
+        prob_heal2,
+        prob_latent,
+        prob_infect,
+        shapes,
+    )
     return t_step, time
 
 
@@ -292,6 +368,6 @@ if __name__ == "__main__":
     try:
         main()
     except Exception as ex:
-        sys.stderr.write(f"{repr(ex)}\n")
-        traceback.print_exc()
+        sys.stdout.write(f"{repr(ex)}\n")
+        traceback.print_exc(ex)
         sys.stdout.write(f"GGA CRASHED {1e20}\n")

@@ -18,6 +18,8 @@ def _process_trans_SEIR_(
     rec_time,
     pred_inf_time,
     ratios,
+    ratios_old,
+    section_day_old,
     e_or_i,
 ):
     r"""
@@ -72,6 +74,19 @@ def _process_trans_SEIR_(
 
         suscep_neighbors = [v for v in G.neighbors(target) if status[v] == "S"]
 
+        (
+            beta1_eval,
+            beta2_eval,
+            delta1_eval,
+            delta2_eval,
+            epsilon_eval,
+        ) = utils.ratios_seir(
+            time,
+            ratios,
+            ratios_old,
+            section_day_old,
+        )
+
         if e_or_i == "E":
             status[target] = "E"
             S.append(S[-1] - 1)
@@ -80,9 +95,9 @@ def _process_trans_SEIR_(
             trans_delay, rec_delay, recover_or_infect = utils.Markovian_times(
                 target,
                 suscep_neighbors,
-                ratios["beta1"],
-                ratios["delta1"],
-                ratios["epsilon"],
+                beta1_eval,
+                delta1_eval,
+                epsilon_eval,
             )
         else:
             status[target] = "I"
@@ -92,8 +107,8 @@ def _process_trans_SEIR_(
             trans_delay, rec_delay = utils.Markovian_times(
                 target,
                 suscep_neighbors,
-                ratios["beta2"],
-                ratios["delta2"],
+                beta2_eval,
+                delta2_eval,
             )
             recover_or_infect = "recover"
 
@@ -122,6 +137,8 @@ def _process_trans_SEIR_(
                         rec_time,
                         pred_inf_time,
                         ratios,
+                        ratios_old,
+                        section_day_old,
                         "I",
                     ),
                 )
@@ -149,6 +166,8 @@ def _process_trans_SEIR_(
                         rec_time,
                         pred_inf_time,
                         ratios,
+                        ratios_old,
+                        section_day_old,
                         "E",
                     ),
                 )
@@ -246,8 +265,10 @@ def _process_inf_SEIR_(time, node, times, S, E, I, R, status):
 def fast_SEIR(
     G,
     ratios,
-    # E_0=0,
-    I_0=None,
+    ratios_old,
+    section_day_old,
+    E_0=0,
+    I_0=0,
     R_0=0,
     tmin=0,
     tmax=float("Inf"),
@@ -297,8 +318,8 @@ def fast_SEIR(
 
     # simply remove initially recovered nodes
     if R_0 != 0:
-        R_0 = random.sample(G.nodes(), R_0)
-        G.remove_nodes_from(R_0)
+        R_0_nodes = random.sample(G.nodes(), R_0)
+        G.remove_nodes_from(R_0_nodes)
 
     """
     if R_0 is not None:
@@ -323,13 +344,19 @@ def fast_SEIR(
     # else it is assumed to be a list of nodes.
     """
 
-    I_0 = random.sample(G.nodes(), I_0)
-    for node in I_0:
-        status[node] = "E"
+    # Just one sample, so there's no possible overlap
+    I_0 = random.sample(G.nodes(), I_0 + E_0)
 
-    times, S, E, I, R = ([tmin], [G.order()], [len(I_0)], [0], [0])
+    times, S, E, I, R = (
+        [tmin],
+        [G.order() - len(I_0[E_0:])],
+        [len(I_0[E_0:])],
+        [0],
+        [0],
+    )
 
-    for u in I_0:
+    for u in I_0[:E_0]:
+        status[u] = "S"
         pred_inf_time[u] = tmin
         Q.add(
             tmin,
@@ -347,6 +374,32 @@ def fast_SEIR(
                 rec_time,
                 pred_inf_time,
                 ratios,
+                ratios_old,
+                section_day_old,
+                "E",
+            ),
+        )
+    for u in I_0[E_0:]:
+        status[u] = "E"
+        pred_inf_time[u] = tmin
+        Q.add(
+            tmin,
+            _process_trans_SEIR_,
+            args=(
+                G,
+                u,
+                times,
+                S,
+                E,
+                I,
+                R,
+                Q,
+                status,
+                rec_time,
+                pred_inf_time,
+                ratios,
+                ratios_old,
+                section_day_old,
                 "I",
             ),
         )
@@ -364,4 +417,4 @@ def fast_SEIR(
     I = I[len(I_0) :]
     R = R[len(I_0) :]
 
-    return np.array(times), np.array(S), np.array(E), np.array(I), np.array(R)
+    return np.array(times), np.array(S), np.array(E), np.array(I), np.array(R) + R_0

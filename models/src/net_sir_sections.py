@@ -7,10 +7,6 @@ equations of the deterministic system
 s[t] = S[t-1] - beta*i[t-1]*s[t-1]
 i[t] = I[t-1] + beta*i[t-1]*s[t-1] - delta * I[t-1]
 r[t] = R[t-1] + delta * I[t-1]
-
-to do:
-    - add network parameters in parser
-    - seed for network generation
 """
 
 import random
@@ -100,9 +96,8 @@ def main():
                     section_day -= 0.9
                 G = utils.choose_network(n, network_type, network_param)
                 I_0 = I[-1]
-                print(R_0)
-                R_0 += R[-1]
-                print(R_0)
+                # R will have jumps, given that the n
+                R_0 = R[-1]
 
         day = 1
         for t_step, time in enumerate(t_all):
@@ -122,9 +117,12 @@ def main():
 
     import matplotlib.pyplot as plt
 
-    plt.plot(t_all, S_all)
-    plt.plot(t_all, I_all)
-    plt.plot(t_all, R_all)
+    sum_all = S_all + I_all + R_all
+    plt.plot(t_all, S_all, label="S")
+    plt.plot(t_all, I_all, label="I")
+    plt.plot(t_all, R_all, label="R")
+    plt.plot(t_all, sum_all, label="total")
+    plt.legend()
     plt.show()
     if plot:
         utils.plotting(infected_time_series, I_day, day_max, I_m, I_std)
@@ -138,7 +136,7 @@ def parsing():
     """input parameters"""
     import argparse
 
-    parser = utils.ArgumentParser(
+    parser = argparse.ArgumentParser(
         description="Stochastic SIR model with a social network using the event-driven algorithm \
             It allows for different sections with different n, delta and beta: \
             same number of arguments must be specified for all three, \
@@ -147,95 +145,61 @@ def parsing():
         formatter_class=argparse.MetavarTypeHelpFormatter,
     )
 
-    parser.add_argument(
-        "--n",
-        type=int,
-        default=[int(1e4)],
-        nargs="*",
-        help="parameter: fixed number of (effecitve) people [1000,1000000]",
+    parser_init = parser.add_argument_group("initial conditions")
+    parser_params = parser.add_argument_group("parameters")
+
+    parser_init.add_argument(
+        "--I_0", type=int, default=20, help="initial number of infected individuals"
+    )
+    parser_init.add_argument(
+        "--R_0", type=int, default=0, help="initial number of inmune individuals"
     )
 
-    parser.add_argument(
+    parser_params.add_argument(
         "--network_type",
         type=str,
         default="er",
         choices=["er", "ba"],
-        help="parameter: Erdos-Renyi or Barabasi Albert supported right now [er,ba]",
+        help="Erdos-Renyi or Barabasi Albert supported right now {er,ba}",
     )
-    parser.add_argument(
+    parser_params.add_argument(
         "--network_param",
         type=int,
         default=5,
-        help="parameter: mean number of edges [1,50]",
+        help="mean number of edges [1,50]",
     )
 
-    parser.add_argument(
-        "--I_0",
+    parser_params.add_argument(
+        "--n",
         type=int,
-        default=20,
-        help="initial number of infected individuals [1,n]",
+        default=[int(1e4)],
+        nargs="*",
+        help="fixed number of (effecitve) people, initial and increments [1000,1000000]",
     )
-    parser.add_argument(
-        "--R_0", type=int, default=0, help="initial number of inmune individuals [0,n]"
-    )
-    parser.add_argument(
+    parser_params.add_argument(
         "--delta",
         type=float,
         default=[0.2],
         nargs="*",
-        help="parameter: mean ratio of recovery [0.05,1]",
+        help="mean ratio of recovery [0.05,1]",
     )
-    parser.add_argument(
+    parser_params.add_argument(
         "--beta",
         type=float,
         default=[0.5],
         nargs="*",
-        help="parameter: ratio of infection [0.05,1]",
+        help="ratio of infection [0.05,1]",
     )
-    parser.add_argument(
+    parser_params.add_argument(
         "--section_days",
         type=int,
         default=[0, 100],
         nargs="*",
-        help="parameter: starting day for each section, firts one must be 0,\
+        help="starting day for each section, first one must be 0,\
                         and final day for last one",
     )
 
-    parser.add_argument(
-        "--seed", type=int, default=1, help="seed for the automatic configuration"
-    )
-    parser.add_argument(
-        "--timeout",
-        type=int,
-        default=1200,
-        help="timeout for the automatic configuration",
-    )
-    parser.add_argument(
-        "--data", type=str, default="../data/italy_i.csv", help="file with time series"
-    )
-    parser.add_argument(
-        "--day_min", type=int, default=33, help="first day to consider on data series"
-    )
-    parser.add_argument(
-        "--day_max", type=int, default=58, help="last day to consider on data series"
-    )
-
-    parser.add_argument(
-        "--mc_nseed",
-        type=int,
-        default=int(1e3),
-        help="number of mc realizations",
-    )
-    parser.add_argument(
-        "--mc_seed0",
-        type=int,
-        default=1,
-        help="initial mc seed",
-    )
-    parser.add_argument("--plot", action="store_true", help="specify for plots")
-    parser.add_argument(
-        "--save", type=str, default=None, help="specify a name for outputfile"
-    )
+    utils.parser_common(parser)
 
     args = parser.parse_args()
     # print(args)
@@ -304,6 +268,6 @@ if __name__ == "__main__":
     try:
         main()
     except Exception as ex:
-        sys.stdout.write(f"{repr(ex)}\n")
+        sys.stderr.write(f"{repr(ex)}\n")
         traceback.print_exc(ex)
         sys.stdout.write(f"GGA CRASHED {1e20}\n")

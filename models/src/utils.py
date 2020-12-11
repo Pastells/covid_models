@@ -3,7 +3,6 @@ Common functions for all models
 """
 
 import sys
-import argparse
 import random
 import heapq
 import networkx as nx
@@ -13,7 +12,7 @@ import matplotlib.pyplot as plt
 # -------------------------
 
 
-def n_individuals(n, n_old, t_0=0, points=16):
+def n_individuals(n, n_old, t_0=0, transition_days=4, points_per_day=4):
     """returns a vector n_ind with n increment as a function of time:
     interpolates between the two given values using a tanh"""
 
@@ -21,8 +20,11 @@ def n_individuals(n, n_old, t_0=0, points=16):
         return None
 
     def weight(time):
-        return 0.5 * (1 + np.tanh((time - 2) / 0.75))
+        return 0.5 * (
+            1 + np.tanh((time - transition_days / 2) * 5.33 / transition_days)
+        )
 
+    points = points_per_day * transition_days
     n_ind = np.zeros([points + 1, 2])
     for time in range(points):
         n_ind[time, 0] = int((n - n_old) * weight(time / 4))
@@ -35,17 +37,17 @@ def n_individuals(n, n_old, t_0=0, points=16):
 # -------------------------
 
 
-def ratios_sir(time, ratios, ratios_old=None, t_0=0):
+def ratios_sir(time, ratios, ratios_old=None, t_0=0, transition_days=4):
     """returns beta and delta as a function of time:
     interpolates between the two given values using a tanh"""
 
     if ratios_old is None:
         return ratios["beta"], ratios["delta"]
 
-    if time > t_0 + 4:
+    if time > t_0 + transition_days:
         return ratios["beta"], ratios["delta"]
 
-    weight = 0.5 * (1 + np.tanh((time - t_0) / 0.75))
+    weight = 0.5 * (1 + np.tanh((time - transition_days / 2) * 5.33 / transition_days))
     delta = ratios_old["delta"] + (ratios["delta"] - ratios_old["delta"]) * weight
     beta = ratios_old["beta"] + (ratios["beta"] - ratios_old["beta"]) * weight
     return beta, delta
@@ -54,7 +56,7 @@ def ratios_sir(time, ratios, ratios_old=None, t_0=0):
 # -------------------------
 
 
-def ratios_seir(time, ratios, ratios_old=None, t_0=0):
+def ratios_seir(time, ratios, ratios_old=None, t_0=0, transition_days=4):
     """returns beta1/2, delta1/2 and epsilon as a function of time:
     interpolates between the two given values using a tanh"""
 
@@ -76,7 +78,7 @@ def ratios_seir(time, ratios, ratios_old=None, t_0=0):
             ratios["epsilon"],
         )
 
-    weight = 0.5 * (1 + np.tanh((time - t_0) / 0.75))
+    weight = 0.5 * (1 + np.tanh((time - transition_days / 2) * 5.33 / transition_days))
     delta1 = ratios_old["delta1"] + (ratios["delta1"] - ratios_old["delta1"]) * weight
     delta2 = ratios_old["delta2"] + (ratios["delta2"] - ratios_old["delta2"]) * weight
     beta1 = ratios_old["beta1"] + (ratios["beta1"] - ratios_old["beta1"]) * weight
@@ -311,23 +313,6 @@ def cost_func(infected_time_series, I_m, I_std):
 # -------------------------
 
 
-class ArgumentParser(argparse.ArgumentParser):
-    """ argparse with defaults in help"""
-
-    def add_argument(self, *args, help=None, default=None, **kwargs):
-        """ Adds default at the end of help"""
-        if help is not None:
-            kwargs["help"] = help
-        if default is not None and args[0] != "-h":
-            kwargs["default"] = default
-            if help is not None:
-                kwargs["help"] += f" [{default}]"
-        super().add_argument(*args, **kwargs)
-
-
-# -------------------------
-
-
 def parser_common(parser):
     """ create configuration, data and actions groups for the parser"""
 
@@ -366,7 +351,7 @@ def parser_common(parser):
     parser_data.add_argument(
         "--data",
         type=str,
-        default="../data/italy_i.csv",
+        default="../../data/italy_i.csv",
         help="file with time series",
     )
     parser_data.add_argument(
