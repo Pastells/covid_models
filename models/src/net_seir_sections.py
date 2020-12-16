@@ -14,6 +14,8 @@ import sys
 import traceback
 import numpy as np
 import utils
+import utils_net
+import plots
 import fast_seir_sections
 
 
@@ -29,7 +31,7 @@ def main():
         plot,
         save,
         infected_time_series,
-        network_type,
+        network,
         network_param,
         n_sections,
     ) = parameters_init(args)
@@ -58,7 +60,7 @@ def main():
             section_day_old,
         ) = parameters_section(args, section)
 
-        G = utils.choose_network(n, network_type, network_param)
+        G = utils_net.choose_network(n, network, network_param)
 
         t_all, S_all, E_all, I_all, R_all = (
             np.array([]),
@@ -98,7 +100,7 @@ def main():
                 ) = parameters_section(args, section, ratios, section_day)
                 if section == n_sections - 1:
                     section_day -= 0.9
-                G = utils.choose_network(n, network_type, network_param)
+                G = utils.choose_network(n, network, network_param)
                 E_0 = E[-1]
                 I_0 = I[-1]
                 # R will have jumps, given that the n
@@ -134,7 +136,7 @@ def main():
     plt.legend()
     plt.show()
     if plot:
-        utils.plotting(infected_time_series, I_day, day_max, I_m, I_std)
+        plots.plotting(infected_time_series, I_day, day_max, I_m, I_std)
 
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%
@@ -165,11 +167,11 @@ def parsing():
     )
 
     parser_params.add_argument(
-        "--network_type",
+        "--network",
         type=str,
         default="er",
         choices=["er", "ba"],
-        help="Erdos-Renyi or Barabasi Albert supported right now {er,ba}",
+        help="Erdos-Renyi or Barabasi Albert {er,ba}",
     )
     parser_params.add_argument(
         "--network_param",
@@ -256,7 +258,7 @@ def parameters_init(args):
         args.day_min : args.day_max
     ]
     # print(infected_time_series)
-    network_type = args.network_type
+    network = args.network
     network_param = args.network_param
     n_sections = len(args.section_days) - 1
 
@@ -270,7 +272,7 @@ def parameters_init(args):
         plot,
         save,
         infected_time_series,
-        network_type,
+        network,
         network_param,
         n_sections,
     )

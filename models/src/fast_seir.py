@@ -1,7 +1,7 @@
 import random
 from collections import defaultdict
 import numpy as np
-import utils
+import utils_net
 
 
 def _process_trans_SEIR_(
@@ -77,7 +77,7 @@ def _process_trans_SEIR_(
             S.append(S[-1] - 1)
             E.append(E[-1] + 1)
             I.append(I[-1])
-            trans_delay, rec_delay, recover_or_infect = utils.Markovian_times(
+            trans_delay, rec_delay, recover_or_infect = utils_net.Markovian_times(
                 target,
                 suscep_neighbors,
                 ratios["beta1"],
@@ -89,7 +89,7 @@ def _process_trans_SEIR_(
             S.append(S[-1])
             E.append(E[-1] - 1)
             I.append(I[-1] + 1)
-            trans_delay, rec_delay = utils.Markovian_times(
+            trans_delay, rec_delay = utils_net.Markovian_times(
                 target,
                 suscep_neighbors,
                 ratios["beta2"],
@@ -312,7 +312,7 @@ def fast_SEIR(
     # infection time defaults to \infty  --- this could be set to tmax,
     # probably with a slight improvement to performance.
 
-    Q = utils.myQueue(tmax)
+    Q = utils_net.myQueue(tmax)
 
     """
     if I_0 is None:  # create initial infecteds list if not given

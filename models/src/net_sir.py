@@ -13,6 +13,8 @@ import sys
 import traceback
 import numpy as np
 import utils
+import utils_net
+import plots
 import fast_sir
 
 
@@ -29,7 +31,7 @@ def main():
         infected_time_series,
         n,
         ratios,
-        network_type,
+        network,
         network_param,
     ) = parameters_init(args)
 
@@ -47,7 +49,7 @@ def main():
         random.seed(mc_seed)
         np.random.seed(mc_seed)
 
-        G = utils.choose_network(n, network_type, network_param)
+        G = utils_net.choose_network(n, network, network_param)
         t, S, I, R = fast_sir.fast_SIR(G, ratios, I_0, R_0)
 
         I_day[mc_step, 0] = I_0
@@ -68,7 +70,7 @@ def main():
         utils.saving(args, I_m, I_std, day_max, "net_sir", save)
 
     if plot:
-        utils.plotting(infected_time_series, I_day, day_max, I_m, I_std)
+        plots.plotting(infected_time_series, I_day, day_max, I_m, I_std)
 
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%
@@ -96,11 +98,11 @@ def parsing():
     )
 
     parser_params.add_argument(
-        "--network_type",
+        "--network",
         type=str,
         default="er",
         choices=["er", "ba"],
-        help="Erdos-Renyi or Barabasi Albert supported right now {er,ba}",
+        help="Erdos-Renyi or Barabasi Albert {er,ba}",
     )
     parser_params.add_argument(
         "--network_param",
@@ -151,7 +153,7 @@ def parameters_init(args):
     # print(infected_time_series)
     n = args.n
     ratios = {"beta": args.beta, "delta": args.delta}
-    network_type = args.network_type
+    network = args.network
     network_param = args.network_param
     return (
         I_0,
@@ -164,7 +166,7 @@ def parameters_init(args):
         infected_time_series,
         n,
         ratios,
-        network_type,
+        network,
         network_param,
     )
 

@@ -4,10 +4,7 @@ Common functions for all models
 
 import sys
 import random
-import heapq
-import networkx as nx
 import numpy as np
-import matplotlib.pyplot as plt
 
 # -------------------------
 
@@ -108,17 +105,6 @@ def monotonically_increasing(array):
 def time_dist(lambd):
     """ Time intervals of a Poisson process follow an exponential distribution"""
     return random.expovariate(lambd)
-
-
-# -------------------------
-
-
-def _truncated_exponential_(lambd, T):
-    """returns a number between 0 and T from an
-    exponential distribution conditional on the outcome being between 0 and T"""
-    t = random.expovariate(lambd)
-    L = int(t / T)
-    return t - L * T
 
 
 # -------------------------
@@ -227,63 +213,14 @@ def mean_alive(I_day, t_total, day_max, nseed):
 # -------------------------
 
 
-def plotting(infected_time_series, I_day, day_max, I_m, I_std):
-    """ If --plot is added makes some plots"""
-
-    # S_m = S_day.mean(0)
-    # I_m = I_day.mean(0)
-    # I_std = I_day.std(0)
-    # R_m = R_day.mean(0)
-    # S_std = S_day.std(0)
-    # R_std = R_day.std(0)
-    # print(r_m[day_max],"recovered individuals")
-
-    plt.errorbar(
-        np.arange(day_max),
-        I_m[:day_max],
-        yerr=I_std[:day_max],
-        marker="o",
-        ls="",
-        label="i mean",
-    )
-    plt.show()
-
-    # I_m = np.median(i_day,0)
-
-    # alpha = 0.70
-    # p_l = ((1.0-alpha)/2.0) * 100
-    # p_u = (alpha+((1.0-alpha)/2.0)) * 100
-    # I_95[:,0] = np.percentile(i_day, p_l,0)
-    # I_95[:,1] = np.percentile(i_day, p_u,0)
-
-    # plt.plot(i_m,'o',c='orange',label='i median')
-    # plt.plot(i_95[:,0],c='orange')
-    # plt.plot(i_95[:,1],c='orange')
-
-    plt.errorbar(
-        np.arange(day_max),
-        I_m[:day_max],
-        yerr=I_std[:day_max],
-        marker="o",
-        ls="",
-        label="i mean",
-    )
-    plt.plot(infected_time_series, "o", label="data")
-    plt.legend()
-    plt.show()
-
-
-# -------------------------
-
-
 def saving(args, I_m, I_std, day_max, program_name, custom_name=None):
     """ If --save is added creates an output file with date and time"""
     import time
 
     if custom_name is None:
-        filename = f"results/{program_name}_" + time.strftime("%d%m_%H%M%S") + ".dat"
+        filename = f"../results/{program_name}_" + time.strftime("%d%m_%H%M%S") + ".dat"
     else:
-        filename = f"results/{program_name}_" + custom_name + ".dat"
+        filename = f"../results/{program_name}_" + custom_name + ".dat"
     with open(filename, "w") as out_file:
         out_file.write(f"#{args}\n")
         for day in range(day_max):
@@ -371,98 +308,3 @@ def parser_common(parser):
     parser_act.add_argument(
         "--save", type=str, default=None, help="specify a name for outputfile"
     )
-
-
-# -------------------------------------
-# Used in models with a social network:
-# -------------------------------------
-
-
-def choose_network(n, network_type, network_param, seed=None):
-    """ select network type to create a graph using networkx"""
-    if network_type == "er":
-        G = nx.erdos_renyi_graph(n, network_param / n, seed)
-    elif network_type == "ba":
-        G = nx.barabasi_albert_graph(n, network_param, seed)
-    else:
-        raise ValueError("Network type not avaliable")
-    return G
-
-
-# -------------------------
-
-
-class myQueue(object):
-    r"""
-    This class is used to store and act on a priority queue of events for
-    event-driven simulations.  It is based on heapq.
-
-    Each queue is given a tmax (default is infinity) so that any event at later
-    time is ignored.
-
-    This is a priority queue of 4-tuples of the form
-        ``(t, counter, function, function_arguments)``
-
-    The ``counter`` is present just to break ties, which generally only occur when
-    multiple events are put in place for the initial condition, but could also
-    occur in cases where events tend to happen at discrete times.
-
-    note that the function is understood to have its first argument be t, and
-    the tuple ``function_arguments`` does not include this first t.
-
-    So function is called as
-        ``function(t, *function_arguments)``
-    """
-
-    def __init__(self, tmax=float("Inf")):
-        self._Q_ = []
-        self.tmax = tmax
-        self.counter = 0  # tie-breaker for putting things in priority queue
-
-    def add(self, time, function, args=()):
-        r"""time is the time of the event.  args are the arguments of the
-        function not including the first argument which must be time"""
-        if time < self.tmax:
-            heapq.heappush(self._Q_, (time, self.counter, function, args))
-            self.counter += 1
-
-    def pop_and_run(self):
-        r"""Pops the next event off the queue and performs the function"""
-        t, counter, function, args = heapq.heappop(self._Q_)
-        function(t, *args)
-
-    def __len__(self):
-        r"""this will allow us to use commands like ``while Q:`` """
-        return len(self._Q_)
-
-
-# -------------------------
-
-
-def Markovian_times(node, sus_neighbors, beta, delta, epsilon=None):
-    """Cycle through, find infection times and check it it is less than recovery time"""
-
-    duration = random.expovariate(delta)
-
-    if epsilon is not None:
-        duration2 = random.expovariate(epsilon)
-        if duration < duration2:
-            pass
-        else:
-            duration = duration2
-
-    trans_prob = 1 - np.exp(-beta * duration)
-    number_to_infect = np.random.binomial(len(sus_neighbors), trans_prob)
-    # print(len(suscep_neighbors),number_to_infect,trans_prob, beta, duration)
-    transmission_recipients = random.sample(sus_neighbors, number_to_infect)
-    trans_delay = {}
-    for v in transmission_recipients:
-        trans_delay[v] = _truncated_exponential_(beta, duration)
-
-    if epsilon is not None:
-        if duration < duration2:
-            return (trans_delay, duration, "recover")
-        else:
-            return (trans_delay, duration, "infect")
-    else:
-        return trans_delay, duration

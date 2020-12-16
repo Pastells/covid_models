@@ -36,6 +36,5 @@ case $key in
 esac
 done
 
-#./scenario/venv/bin/python -u ./scenario/src/sir_erlang_sections.py \
-python ./src/sir_erlang_sections.py \
+./scenario/venv/bin/python -u ./scenario/src/sir_erlang_sections.py \
     $var_beta $var_delta $var_n $other

@@ -7,7 +7,6 @@ models/*.dat
 models/*.sh
 !models/wrapper_sections.sh
 models/*.tar.gz
-models/__pycache__/
-models/src/__pycache__/
 models/results/*
 !models/results/.gitkeep
+**/__pycache__

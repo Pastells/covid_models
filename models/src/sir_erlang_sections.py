@@ -15,6 +15,7 @@ import sys
 import traceback
 import numpy as np
 import utils
+import plots
 import sir_erlang
 
 
@@ -133,7 +134,7 @@ def main():
         utils.saving(args, I_m, I_std, day_max, "net_sir", save)
 
     if plot:
-        utils.plotting(infected_time_series, I_day, day_max, I_m, I_std)
+        plots.plotting(infected_time_series, I_day, day_max, I_m, I_std)
 
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%
@@ -208,7 +209,7 @@ def parsing():
         "--transition_days",
         type=int,
         default=4,
-        help="days it takes to transition from one parameter to the next",
+        help="days it takes to transition from one number of individuals to the next [1,10]",
     )
 
     utils.parser_common(parser)

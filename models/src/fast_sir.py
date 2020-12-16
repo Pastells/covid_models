@@ -1,7 +1,7 @@
 import random
 from collections import defaultdict
 import numpy as np
-import utils
+import utils_net
 
 
 def _process_trans_SIR_(
@@ -70,7 +70,7 @@ def _process_trans_SIR_(
 
         suscep_neighbors = [v for v in G.neighbors(target) if status[v] == "S"]
 
-        trans_delay, rec_delay = utils.Markovian_times(
+        trans_delay, rec_delay = utils_net.Markovian_times(
             target, suscep_neighbors, ratios["beta"], ratios["delta"]
         )
 
@@ -211,7 +211,7 @@ def fast_SIR(
     # infection time defaults to \infty  --- this could be set to tmax,
     # probably with a slight improvement to performance.
 
-    Q = utils.myQueue(tmax)
+    Q = utils_net.myQueue(tmax)
 
     """
     if I_0 is None:  # create initial infecteds list if not given

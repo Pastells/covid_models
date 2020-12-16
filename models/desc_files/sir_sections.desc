@@ -3,14 +3,8 @@
 
 %PARAMS
 --n01 integer [10000,1000000]
---n02 integer [10000,1000000]
---n03 integer [10000,1000000]
 --beta01 real [0.05,1.0]
---beta02 real [0.05,1.0]
---beta03 real [0.05,1.0]
 --delta01 real [0.05,1.0]
---delta02 real [0.05,1.0]
---delta03 real [0.05,1.0]
 
 %MODULES
 python/3.6.5
