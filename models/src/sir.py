@@ -92,20 +92,13 @@ def parsing():
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="stochastic mean-field SIR model using the Gillespie algorithm",
+        description="stochastic mean-field SIR model using the Gillespie algorithm. \
+            Dependencies: utils.py",
         # formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         formatter_class=argparse.MetavarTypeHelpFormatter,
     )
 
-    parser_init = parser.add_argument_group("initial conditions")
     parser_params = parser.add_argument_group("parameters")
-
-    parser_init.add_argument(
-        "--I_0", type=int, default=20, help="initial number of infected individuals"
-    )
-    parser_init.add_argument(
-        "--R_0", type=int, default=0, help="initial number of inmune individuals"
-    )
 
     parser_params.add_argument(
         "--n",

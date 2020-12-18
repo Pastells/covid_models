@@ -83,20 +83,13 @@ def parsing():
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="stochastic SIR model with a social network using the event-driven algorithm",
+        description="stochastic SIR model with a social network using the event-driven algorithm. \
+                Dependencies: utils.py, utils_net.py, fast_sir.py",
         # formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         formatter_class=argparse.MetavarTypeHelpFormatter,
     )
 
-    parser_init = parser.add_argument_group("initial conditions")
     parser_params = parser.add_argument_group("parameters")
-
-    parser_init.add_argument(
-        "--I_0", type=int, default=20, help="initial number of infected individuals"
-    )
-    parser_init.add_argument(
-        "--R_0", type=int, default=0, help="initial number of inmune individuals"
-    )
 
     parser_params.add_argument(
         "--network",

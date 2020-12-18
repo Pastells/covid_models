@@ -250,12 +250,25 @@ def cost_func(infected_time_series, I_m, I_std):
 # -------------------------
 
 
-def parser_common(parser):
+def parser_common(parser, E_0=False):
     """ create configuration, data and actions groups for the parser"""
 
+    parser_init = parser.add_argument_group("initial conditions")
     parser_config = parser.add_argument_group("configuration")
     parser_data = parser.add_argument_group("data")
     parser_act = parser.add_argument_group("actions")
+
+    if E_0 is True:
+        parser_init.add_argument(
+            "--E_0", type=int, default=0, help="initial number of latent individuals"
+        )
+
+    parser_init.add_argument(
+        "--I_0", type=int, default=63, help="initial number of infected individuals"
+    )
+    parser_init.add_argument(
+        "--R_0", type=int, default=0, help="initial number of inmune individuals"
+    )
 
     parser_config.add_argument(
         "--seed", type=int, default=1, help="seed for the automatic configuration"
@@ -294,7 +307,7 @@ def parser_common(parser):
     parser_data.add_argument(
         "--day_min",
         type=int,
-        default=33,
+        default=34,
         help="first day to consider on data series",
     )
     parser_data.add_argument(

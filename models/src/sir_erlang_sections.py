@@ -152,19 +152,12 @@ def parsing():
         description="Stochastic mean-field SIR model using the Gillespie algorithm and Erlang \
             distribution transition times. It allows for different sections with different \
             n, delta and beta: same number of arguments must be specified for all three, \
-            and one more for section_days.",
+            and one more for section_days. \
+            Dependencies: utils.py, sir_erlang.py",
         formatter_class=argparse.MetavarTypeHelpFormatter,
     )
 
-    parser_init = parser.add_argument_group("initial conditions")
     parser_params = parser.add_argument_group("parameters")
-
-    parser_init.add_argument(
-        "--I_0", type=int, default=20, help="initial number of infected individuals"
-    )
-    parser_init.add_argument(
-        "--R_0", type=int, default=0, help="initial number of inmune individuals"
-    )
 
     parser_params.add_argument(
         "--n",

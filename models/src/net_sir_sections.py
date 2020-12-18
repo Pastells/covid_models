@@ -143,20 +143,13 @@ def parsing():
         description="Stochastic SIR model with a social network using the event-driven algorithm \
             It allows for different sections with different n, delta and beta: \
             same number of arguments must be specified for all three, \
-            and one more for section_days.",
+            and one more for section_days. \
+                Dependencies: utils.py, utils_net.py, fast_sir_sections.py",
         # formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         formatter_class=argparse.MetavarTypeHelpFormatter,
     )
 
-    parser_init = parser.add_argument_group("initial conditions")
     parser_params = parser.add_argument_group("parameters")
-
-    parser_init.add_argument(
-        "--I_0", type=int, default=20, help="initial number of infected individuals"
-    )
-    parser_init.add_argument(
-        "--R_0", type=int, default=0, help="initial number of inmune individuals"
-    )
 
     parser_params.add_argument(
         "--network",

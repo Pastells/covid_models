@@ -95,23 +95,13 @@ def parsing():
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="stochastic SEIR model using the Gillespie algorithm",
+        description="stochastic SEIR model using the Gillespie algorithm. \
+                Dependencies: utils.py, utils_net.py, fast_seir.py",
         # formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         formatter_class=argparse.MetavarTypeHelpFormatter,
     )
 
-    parser_init = parser.add_argument_group("initial conditions")
     parser_params = parser.add_argument_group("parameters")
-
-    parser_init.add_argument(
-        "--E_0", type=int, default=0, help="initial number of latent individuals"
-    )
-    parser_init.add_argument(
-        "--I_0", type=int, default=20, help="initial number of infected individuals"
-    )
-    parser_init.add_argument(
-        "--R_0", type=int, default=0, help="initial number of inmune individuals"
-    )
 
     parser_params.add_argument(
         "--network",
@@ -164,7 +154,7 @@ def parsing():
         help="ratio of latency (e->i) [0.05,2]",
     )
 
-    utils.parser_common(parser)
+    utils.parser_common(parser, True)
 
     args = parser.parse_args()
     # print(args)

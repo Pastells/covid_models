@@ -27,5 +27,4 @@ python3 -m venv ./venv
 --timeout ${timeout} \
 --day_max 63 \
 --mc_nseed 5 \
---I_0 50 \
 ${@}
