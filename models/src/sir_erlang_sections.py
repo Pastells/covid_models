@@ -14,8 +14,8 @@ import random
 import sys
 import traceback
 import numpy as np
-import utils
 import sir_erlang
+from utils import utils, config
 
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%
@@ -131,10 +131,10 @@ def main():
     utils.cost_func(infected_time_series, I_m, I_std)
 
     if save is not None:
-        utils.saving(args, I_m, I_std, day_max, "net_sir", save)
+        utils.saving(args, I_m, I_std, day_max, "sir_erlang_sections", save)
 
     if plot:
-        import plots
+        from utils import plots
 
         plots.plotting(infected_time_series, I_day, day_max, I_m, I_std)
 
@@ -153,7 +153,7 @@ def parsing():
             distribution transition times. It allows for different sections with different \
             n, delta and beta: same number of arguments must be specified for all three, \
             and one more for section_days. \
-            Dependencies: utils.py, sir_erlang.py",
+            Dependencies: config.py, utils.py, sir_erlang.py",
         formatter_class=argparse.MetavarTypeHelpFormatter,
     )
 
@@ -162,40 +162,40 @@ def parsing():
     parser_params.add_argument(
         "--n",
         type=int,
-        default=[int(1e4)],
+        default=[config.N],
         nargs="*",
         help="fixed number of (effecitve) people, initial and increments [1000,1000000]",
     )
     parser_params.add_argument(
         "--delta",
         type=float,
-        default=[0.2],
+        default=[config.DELTA],
         nargs="*",
         help="ratio of recovery [0.05,1]",
     )
     parser_params.add_argument(
         "--k_rec",
         type=int,
-        default=1,
+        default=config.K_REC,
         help="k for the recovery time erlang distribution [1,5]",
     )
     parser_params.add_argument(
         "--beta",
         type=float,
-        default=[0.5],
+        default=[config.BETA],
         nargs="*",
         help="ratio of infection [0.05,1]",
     )
     parser_params.add_argument(
         "--k_inf",
         type=int,
-        default=1,
+        default=config.K_INF,
         help="k for the infection time erlang distribution [1,5]",
     )
     parser_params.add_argument(
         "--section_days",
         type=int,
-        default=[0, 100],
+        default=config.SECTIONS_DAYS,
         nargs="*",
         help="starting day for each section, first one must be 0,\
                         and final day for last one",
@@ -203,7 +203,7 @@ def parsing():
     parser_params.add_argument(
         "--transition_days",
         type=int,
-        default=4,
+        default=config.TRANSITION_DAYS,
         help="days it takes to transition from one number of individuals to the next [1,10]",
     )
 

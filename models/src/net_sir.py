@@ -12,9 +12,8 @@ import random
 import sys
 import traceback
 import numpy as np
-import utils
-import utils_net
 import fast_sir
+from utils import utils, utils_net, config
 
 
 def main():
@@ -69,7 +68,7 @@ def main():
         utils.saving(args, I_m, I_std, day_max, "net_sir", save)
 
     if plot:
-        import plots
+        from utils import plots
 
         plots.plotting(infected_time_series, I_day, day_max, I_m, I_std)
 
@@ -84,7 +83,7 @@ def parsing():
 
     parser = argparse.ArgumentParser(
         description="stochastic SIR model with a social network using the event-driven algorithm. \
-                Dependencies: utils.py, utils_net.py, fast_sir.py",
+                Dependencies: config.py, utils.py, utils_net.py, fast_sir.py",
         # formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         formatter_class=argparse.MetavarTypeHelpFormatter,
     )
@@ -94,29 +93,29 @@ def parsing():
     parser_params.add_argument(
         "--network",
         type=str,
-        default="er",
+        default=config.NETWORK,
         choices=["er", "ba"],
         help="Erdos-Renyi or Barabasi Albert {er,ba}",
     )
     parser_params.add_argument(
         "--network_param",
         type=int,
-        default=5,
+        default=config.NETWORK_PARAM,
         help="mean number of edges [1,50]",
     )
 
     parser_params.add_argument(
         "--n",
         type=int,
-        default=int(1e4),
+        default=config.N,
         help="fixed number of (effecitve) people [1000,1000000]",
     )
 
     parser_params.add_argument(
-        "--delta", type=float, default=0.2, help="ratio of recovery [0.05,1]"
+        "--delta", type=float, default=config.DELTA, help="ratio of recovery [0.05,1]"
     )
     parser_params.add_argument(
-        "--beta", type=float, default=0.5, help="ratio of infection [0.05,1]"
+        "--beta", type=float, default=config.BETA, help="ratio of infection [0.05,1]"
     )
 
     utils.parser_common(parser)

@@ -5,11 +5,18 @@ Common functions for all models
 import sys
 import random
 import numpy as np
+from . import config
 
 # -------------------------
 
 
-def n_individuals(n, n_old, t_0=0, transition_days=4, points_per_day=4):
+def n_individuals(
+    n,
+    n_old,
+    t_0=0,
+    transition_days=config.TRANSITION_DAYS,
+    points_per_day=config.POINTS_PER_DAY,
+):
     """returns a vector n_ind with n increment as a function of time:
     interpolates between the two given values using a tanh"""
 
@@ -34,7 +41,9 @@ def n_individuals(n, n_old, t_0=0, transition_days=4, points_per_day=4):
 # -------------------------
 
 
-def ratios_sir(time, ratios, ratios_old=None, t_0=0, transition_days=4):
+def ratios_sir(
+    time, ratios, ratios_old=None, t_0=0, transition_days=config.TRANSITION_DAYS
+):
     """returns beta and delta as a function of time:
     interpolates between the two given values using a tanh"""
 
@@ -53,7 +62,9 @@ def ratios_sir(time, ratios, ratios_old=None, t_0=0, transition_days=4):
 # -------------------------
 
 
-def ratios_seir(time, ratios, ratios_old=None, t_0=0, transition_days=4):
+def ratios_seir(
+    time, ratios, ratios_old=None, t_0=0, transition_days=config.TRANSITION_DAYS
+):
     """returns beta1/2, delta1/2 and epsilon as a function of time:
     interpolates between the two given values using a tanh"""
 
@@ -218,9 +229,14 @@ def saving(args, I_m, I_std, day_max, program_name, custom_name=None):
     import time
 
     if custom_name is None:
-        filename = f"../results/{program_name}_" + time.strftime("%d%m_%H%M%S") + ".dat"
+        filename = (
+            config.SAVE_FOLDER
+            + f"{program_name}_"
+            + time.strftime("%d%m_%H%M%S")
+            + ".dat"
+        )
     else:
-        filename = f"../results/{program_name}_" + custom_name + ".dat"
+        filename = config.SAVE_FOLDER + f"{program_name}_" + custom_name + ".dat"
     with open(filename, "w") as out_file:
         out_file.write(f"#{args}\n")
         for day in range(day_max):
@@ -251,7 +267,7 @@ def cost_func(infected_time_series, I_m, I_std):
 
 
 def parser_common(parser, E_0=False):
-    """ create configuration, data and actions groups for the parser"""
+    """ create init, configuration, data and actions groups for the parser"""
 
     parser_init = parser.add_argument_group("initial conditions")
     parser_config = parser.add_argument_group("configuration")
@@ -260,60 +276,72 @@ def parser_common(parser, E_0=False):
 
     if E_0 is True:
         parser_init.add_argument(
-            "--E_0", type=int, default=0, help="initial number of latent individuals"
+            "--E_0",
+            type=int,
+            default=config.E_0,
+            help="initial number of latent individuals",
         )
 
     parser_init.add_argument(
-        "--I_0", type=int, default=63, help="initial number of infected individuals"
+        "--I_0",
+        type=int,
+        default=config.I_0,
+        help="initial number of infected individuals",
     )
     parser_init.add_argument(
-        "--R_0", type=int, default=0, help="initial number of inmune individuals"
+        "--R_0",
+        type=int,
+        default=config.R_0,
+        help="initial number of inmune individuals",
     )
 
     parser_config.add_argument(
-        "--seed", type=int, default=1, help="seed for the automatic configuration"
+        "--seed",
+        type=int,
+        default=config.SEED,
+        help="seed for the automatic configuration",
     )
     parser_config.add_argument(
         "--timeout",
         type=int,
-        default=1200,
+        default=config.TIMEOUT,
         help="timeout for the automatic configuration",
     )
     parser_config.add_argument(
         "--mc_nseed",
         type=int,
-        default=int(5),
+        default=config.MC_NSEED,
         help="number of mc realizations, not really a parameter",
     )
     parser_config.add_argument(
         "--mc_seed0",
         type=int,
-        default=1,
+        default=config.MC_SEED0,
         help="initial mc seed, not really a parameter",
     )
     parser_config.add_argument(
         "--n_t_steps",
         type=int,
-        default=int(1e7),
+        default=config.N_T_STEPS,
         help="maximum number of simulation steps, dimension for the arrays",
     )
 
     parser_data.add_argument(
         "--data",
         type=str,
-        default="../../data/italy_i.csv",
+        default=config.DATA,
         help="file with time series",
     )
     parser_data.add_argument(
         "--day_min",
         type=int,
-        default=34,
+        default=config.DAY_MIN,
         help="first day to consider on data series",
     )
     parser_data.add_argument(
         "--day_max",
         type=int,
-        default=58,
+        default=config.DAY_MAX,
         help="last day to consider on data series",
     )
 

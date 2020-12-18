@@ -13,7 +13,7 @@ import random
 import sys
 import traceback
 import numpy as np
-import utils
+from utils import utils, config
 
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%
@@ -83,10 +83,10 @@ def main():
     utils.cost_func(infected_time_series, I_m, I_std)
 
     if save is not None:
-        utils.saving(args, I_m, I_std, day_max, "net_sir", save)
+        utils.saving(args, I_m, I_std, day_max, "sir_erlang", save)
 
     if plot:
-        import plots
+        from utils import plots
 
         plots.plotting(infected_time_series, I_day, day_max, I_m, I_std)
 
@@ -102,7 +102,7 @@ def parsing():
     parser = argparse.ArgumentParser(
         description="stochastic mean-field SIR model using the Gillespie algorithm and Erlang \
             distribution transition times. \
-            Dependencies: utils.py",
+            Dependencies: config.py, utils.py",
         formatter_class=argparse.MetavarTypeHelpFormatter,
     )
 
@@ -111,31 +111,31 @@ def parsing():
     parser_params.add_argument(
         "--n",
         type=int,
-        default=int(1e4),
+        default=config.N,
         help="fixed number of (effecitve) people [1000,1000000]",
     )
     parser_params.add_argument(
         "--delta",
         type=float,
-        default=0.2,
+        default=config.DELTA,
         help="ratio of recovery [0.05,1]",
     )
     parser_params.add_argument(
         "--k_rec",
         type=int,
-        default=1,
+        default=config.K_REC,
         help="k for the recovery time erlang distribution [1,5]",
     )
     parser_params.add_argument(
         "--beta",
         type=float,
-        default=0.5,
+        default=config.BETA,
         help="ratio of infection [0.05,1]",
     )
     parser_params.add_argument(
         "--k_inf",
         type=int,
-        default=1,
+        default=config.K_INF,
         help="k for the infection time erlang distribution [1,5]",
     )
 

@@ -13,7 +13,7 @@ import random
 import sys
 import traceback
 import numpy as np
-import utils
+from utils import utils, config
 
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%
@@ -77,10 +77,10 @@ def main():
     utils.cost_func(infected_time_series, I_m, I_std)
 
     if save is not None:
-        utils.saving(args, I_m, I_std, day_max, "net_sir", save)
+        utils.saving(args, I_m, I_std, day_max, "seir", save)
 
     if plot:
-        import plots
+        from utils import plots
 
         plots.plotting(infected_time_series, I_day, day_max, I_m, I_std)
 
@@ -94,7 +94,7 @@ def parsing():
 
     parser = argparse.ArgumentParser(
         description="stochastic mean-field SEIR model using the Gillespie algorithm. \
-            Dependencies: utils.py",
+            Dependencies: config.py, utils.py",
         formatter_class=argparse.MetavarTypeHelpFormatter,
     )
 
@@ -103,37 +103,37 @@ def parsing():
     parser_params.add_argument(
         "--n",
         type=int,
-        default=int(1e4),
+        default=config.N,
         help="fixed number of (effecitve) people [1000,1000000]",
     )
     parser_params.add_argument(
         "--delta1",
         type=float,
-        default=0.01,
+        default=config.DELTA1,
         help="ratio of recovery from latent fase (e->r) [0.05,1]",
     )
     parser_params.add_argument(
         "--delta2",
         type=float,
-        default=0.2,
+        default=config.DELTA,
         help="ratio of recovery from infected fase (i->r) [0.05,1]",
     )
     parser_params.add_argument(
         "--beta1",
         type=float,
-        default=0.01,
+        default=config.BETA1,
         help="ratio of infection due to latent [0.05,1]",
     )
     parser_params.add_argument(
         "--beta2",
         type=float,
-        default=0.5,
+        default=config.BETA,
         help="ratio of infection due to infected [0.05,1]",
     )
     parser_params.add_argument(
         "--epsilon",
         type=float,
-        default=1,
+        default=config.EPSILON,
         help="ratio of latency (e->i) [0.05,2]",
     )
 

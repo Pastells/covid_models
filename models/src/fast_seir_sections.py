@@ -1,8 +1,7 @@
 import random
 from collections import defaultdict
 import numpy as np
-import utils
-import utils_net
+from utils import utils, utils_net
 
 
 def _process_trans_SEIR_(

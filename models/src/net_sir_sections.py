@@ -13,9 +13,8 @@ import random
 import sys
 import traceback
 import numpy as np
-import utils
-import utils_net
 import fast_sir_sections
+from utils import utils, utils_net, config
 
 
 def main():
@@ -95,7 +94,7 @@ def main():
                 ) = parameters_section(args, section, ratios, section_day)
                 if section == n_sections - 1:
                     section_day -= 0.9
-                G = utils.choose_network(n, network, network_param)
+                G = utils_net.choose_network(n, network, network_param)
                 I_0 = I[-1]
                 # R will have jumps, given that the n
                 R_0 = R[-1]
@@ -114,7 +113,7 @@ def main():
     utils.cost_func(infected_time_series, I_m, I_std)
 
     if save is not None:
-        utils.saving(args, I_m, I_std, day_max, "net_sir", save)
+        utils.saving(args, I_m, I_std, day_max, "net_sir_sections", save)
 
     import matplotlib.pyplot as plt
 
@@ -126,7 +125,7 @@ def main():
     plt.legend()
     plt.show()
     if plot:
-        import plots
+        from utils import plots
 
         plots.plotting(infected_time_series, I_day, day_max, I_m, I_std)
 
@@ -144,7 +143,7 @@ def parsing():
             It allows for different sections with different n, delta and beta: \
             same number of arguments must be specified for all three, \
             and one more for section_days. \
-                Dependencies: utils.py, utils_net.py, fast_sir_sections.py",
+                Dependencies: config.py, utils.py, utils_net.py, fast_sir_sections.py",
         # formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         formatter_class=argparse.MetavarTypeHelpFormatter,
     )
@@ -154,42 +153,42 @@ def parsing():
     parser_params.add_argument(
         "--network",
         type=str,
-        default="er",
+        default=config.NETWORK,
         choices=["er", "ba"],
         help="Erdos-Renyi or Barabasi Albert {er,ba}",
     )
     parser_params.add_argument(
         "--network_param",
         type=int,
-        default=5,
+        default=config.NETWORK_PARAM,
         help="mean number of edges [1,50]",
     )
 
     parser_params.add_argument(
         "--n",
         type=int,
-        default=[int(1e4)],
+        default=[config.N],
         nargs="*",
         help="fixed number of (effecitve) people, initial and increments [1000,1000000]",
     )
     parser_params.add_argument(
         "--delta",
         type=float,
-        default=[0.2],
+        default=[config.DELTA],
         nargs="*",
         help="mean ratio of recovery [0.05,1]",
     )
     parser_params.add_argument(
         "--beta",
         type=float,
-        default=[0.5],
+        default=[config.BETA],
         nargs="*",
         help="ratio of infection [0.05,1]",
     )
     parser_params.add_argument(
         "--section_days",
         type=int,
-        default=[0, 100],
+        default=config.SECTIONS_DAYS,
         nargs="*",
         help="starting day for each section, first one must be 0,\
                         and final day for last one",
