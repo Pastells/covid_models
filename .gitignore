@@ -5,7 +5,6 @@ models/all
 models/old/
 models/*.dat
 models/*.sh
-!models/wrapper_sections.sh
 models/*.tar.gz
 models/results/*
 !models/results/.gitkeep

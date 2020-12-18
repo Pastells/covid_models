@@ -65,7 +65,5 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-echo ""
-echo ""
-python seir_erlang_sections.py \
+./scenario/venv/bin/python -u ./scenario/seir_erlang_sections.py \
     $var_beta1 $var_beta2 $var_delta1 $var_delta2 $var_epsilon $var_n $other

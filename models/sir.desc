@@ -1,3 +1,0 @@
---n integer [1000,1000000]
---delta real [0.05,1]
---beta real [0.05,1]
