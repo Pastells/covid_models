@@ -15,7 +15,6 @@ import traceback
 import numpy as np
 import utils
 import utils_net
-import plots
 import fast_seir_sections
 
 
@@ -136,6 +135,8 @@ def main():
     plt.legend()
     plt.show()
     if plot:
+        import plots
+
         plots.plotting(infected_time_series, I_day, day_max, I_m, I_std)
 
 

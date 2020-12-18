@@ -14,7 +14,6 @@ import sys
 import traceback
 import numpy as np
 import utils
-import plots
 
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%
@@ -87,6 +86,8 @@ def main():
         utils.saving(args, I_m, I_std, day_max, "net_sir", save)
 
     if plot:
+        import plots
+
         plots.plotting(infected_time_series, I_day, day_max, I_m, I_std)
 
 

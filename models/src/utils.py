@@ -13,7 +13,7 @@ def n_individuals(n, n_old, t_0=0, transition_days=4, points_per_day=4):
     """returns a vector n_ind with n increment as a function of time:
     interpolates between the two given values using a tanh"""
 
-    if n_old is None:
+    if (n_old is None) or (n == n_old):
         return None
 
     def weight(time):
