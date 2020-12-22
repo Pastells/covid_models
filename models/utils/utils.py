@@ -126,8 +126,8 @@ def day_data(time, t_total, day, day_max, I, I_day, last_event=False):
     Write number of infected per day instead of event
     Also tracks day_max
 
-    I :  is the the number of infected for the last event, i.e. I[t]
-    I_day : is the number of infected when time is a day multiple for the current seed,
+    I :  number of infected for the last event, i.e. I[t]
+    I_day : number of infected when time is a day multiple for the current seed,
             i.e. I_day[mc_seed]
 
     :Returns:
@@ -247,7 +247,19 @@ def saving(args, I_m, I_std, day_max, program_name, custom_name=None):
 # Output
 # ~~~~~~~~~~~~~~~~~~~
 def cost_func(infected_time_series, I_m, I_std):
-    """ compute cost function with a weighted mean squared error"""
+    """compute cost function with a weighted mean squared error
+    comparing with data from input in cumulative form
+
+    :Input:
+
+    I_m :  number of _new_ infected per day
+
+    :Generates:
+
+    I_cum :  number of _cumulative_ infected
+
+    """
+
     import sys
 
     pad = len(infected_time_series) - len(I_m)
@@ -257,8 +269,16 @@ def cost_func(infected_time_series, I_m, I_std):
         I_std = np.pad(I_std, (0, pad), "constant")
 
     cost = 0
+    I_cum = 0
+    I_cum_std = 0
     for u, _ in enumerate(infected_time_series):
-        cost += (I_m[u] - infected_time_series[u]) ** 2 / (1 + I_std[u])
+        I_cum += I_m[u]
+        I_cum_std += I_std[u]
+        cost += (
+            (I_cum - infected_time_series[u]) ** 2
+            / infected_time_series[u] ** 2
+            / (1 + I_cum_std)
+        )
     cost = np.sqrt(cost)
     sys.stdout.write(f"GGA SUCCESS {cost}\n")
 

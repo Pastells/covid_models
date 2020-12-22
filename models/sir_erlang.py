@@ -22,6 +22,7 @@ from utils import utils, config
 
 def main():
     args = parsing()
+    # print(args)
     (
         I_0,
         R_0,
@@ -141,9 +142,7 @@ def parsing():
 
     utils.parser_common(parser)
 
-    args = parser.parse_args()
-    # print(args)
-    return args
+    return parser.parse_args()
 
 
 # -------------------------
