@@ -21,22 +21,14 @@ def main():
     args = parsing()
     # print(args)
     (
-        I_0,
-        R_0,
         t_total,
-        mc_nseed,
-        mc_seed0,
-        plot,
-        save,
         infected_time_series,
-        network,
-        network_param,
         n_sections,
     ) = parameters_init(args)
 
     # results per day and seed
     I_day, I_m = (
-        np.zeros([mc_nseed, t_total]),
+        np.zeros([args.mc_nseed, t_total]),
         np.zeros(t_total),
     )
 
@@ -44,7 +36,7 @@ def main():
     # =========================
     # MC loop
     # =========================
-    for mc_seed in range(mc_seed0, mc_seed0 + mc_nseed):
+    for mc_seed in range(args.mc_seed0, args.mc_seed0 + args.mc_nseed):
         random.seed(mc_seed)
         np.random.seed(mc_seed)
 
@@ -58,7 +50,7 @@ def main():
             section_day_old,
         ) = parameters_section(args, section)
 
-        G = utils_net.choose_network(n, network, network_param)
+        G = utils_net.choose_network(n, args.network, args.network_param)
 
         t_all, S_all, I_all, R_all = (
             np.array([]),
@@ -66,7 +58,7 @@ def main():
             np.array([]),
             np.array([]),
         )
-        I_day[mc_step, 0] = I_0
+        I_day[mc_step, 0] = args.I_0
 
         # Sections
         while section < n_sections:
@@ -75,8 +67,8 @@ def main():
                 ratios,
                 ratios_old,
                 section_day_old,
-                I_0,
-                R_0,
+                args.I_0,
+                args.R_0,
                 tmin=section_day_old - 1,
                 tmax=section_day,
             )
@@ -95,10 +87,10 @@ def main():
                 ) = parameters_section(args, section, ratios, section_day)
                 if section == n_sections - 1:
                     section_day -= 0.9
-                G = utils_net.choose_network(n, network, network_param)
-                I_0 = I[-1]
+                G = utils_net.choose_network(n, args.network, args.network_param)
+                args.I_0 = I[-1]
                 # R will have jumps, given that the n
-                R_0 = R[-1]
+                args.R_0 = R[-1]
 
         day = 1
         for t_step, time in enumerate(t_all):
@@ -109,12 +101,12 @@ def main():
         mc_step += 1
     # =========================
 
-    I_m, I_std = utils.mean_alive(I_day, t_total, day_max, mc_nseed)
+    I_m, I_std = utils.mean_alive(I_day, t_total, day_max, args.mc_nseed)
 
     utils.cost_func(infected_time_series, I_m, I_std)
 
-    if save is not None:
-        utils.saving(args, I_m, I_std, day_max, "net_sir_sections", save)
+    if args.save is not None:
+        utils.saving(args, I_m, I_std, day_max, "net_sir_sections", args.save)
 
     import matplotlib.pyplot as plt
 
@@ -125,7 +117,7 @@ def main():
     plt.plot(t_all, sum_all, label="total")
     plt.legend()
     plt.show()
-    if plot:
+    if args.plot:
         from utils import plots
 
         plots.plotting(infected_time_series, I_day, day_max, I_m, I_std)
@@ -206,33 +198,12 @@ def parsing():
 
 def parameters_init(args):
     """initial parameters from argparse"""
-    from numpy import genfromtxt
+    t_total, infected_time_series = utils.parameters_init_common(args)
 
-    I_0 = args.I_0
-    R_0 = args.R_0
-    t_total = args.day_max - args.day_min  # max simulated days
-    mc_nseed = args.mc_nseed  # MC realizations
-    mc_seed0 = args.mc_seed0
-    plot = args.plot
-    save = args.save
-    infected_time_series = genfromtxt(args.data, delimiter=",")[
-        args.day_min : args.day_max
-    ]
-    # print(infected_time_series)
-    network = args.network
-    network_param = args.network_param
     n_sections = len(args.section_days) - 1
     return (
-        I_0,
-        R_0,
         t_total,
-        mc_nseed,
-        mc_seed0,
-        plot,
-        save,
         infected_time_series,
-        network,
-        network_param,
         n_sections,
     )
 

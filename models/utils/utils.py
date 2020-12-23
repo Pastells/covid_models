@@ -188,15 +188,15 @@ def mean_alive(I_day, t_total, day_max, nseed):
     check_realization_alive = day_max // 2
 
     # first seed alive
-    for u in range(nseed):
-        if I_day[u, check_realization_alive] != 0:
-            _x_var = I_day[u]
+    for day in range(nseed):
+        if I_day[day, check_realization_alive] != 0:
+            _x_var = I_day[day]
             alive_realizations = 1
             _s_var = np.zeros(t_total)
             I_m = _x_var
             break
 
-    for j in range(u + 1, nseed):
+    for j in range(day + 1, nseed):
         if I_day[j, check_realization_alive] != 0:
             alive_realizations += 1
             _x_var = I_day[j]
@@ -237,10 +237,16 @@ def saving(args, I_m, I_std, day_max, program_name, custom_name=None):
         )
     else:
         filename = config.SAVE_FOLDER + f"{program_name}_" + custom_name + ".dat"
+
+    I_cum = 0
+    I_cum_std = 0
     with open(filename, "w") as out_file:
         out_file.write(f"#{args}\n")
+        out_file.write("# day, I_m, I_std, I_cum, I_cum_std\n")
         for day in range(day_max):
-            out_file.write(f"{day} {I_m[day]} {I_std[day]}\n")
+            I_cum += I_m[day]
+            I_cum_std += I_std[day]
+            out_file.write(f"{day} {I_m[day]} {I_std[day]} {I_cum} {I_cum_std}\n")
 
 
 # ~~~~~~~~~~~~~~~~~~~
@@ -271,15 +277,18 @@ def cost_func(infected_time_series, I_m, I_std):
     cost = 0
     I_cum = 0
     I_cum_std = 0
-    for u, _ in enumerate(infected_time_series):
-        I_cum += I_m[u]
-        I_cum_std += I_std[u]
-        cost += (
-            (I_cum - infected_time_series[u]) ** 2
-            / infected_time_series[u] ** 2
-            / (1 + I_cum_std)
-        )
-    cost = np.sqrt(cost)
+    for day, _ in enumerate(infected_time_series):
+        I_cum += I_m[day]
+        I_cum_std += I_std[day]
+        cost += (I_cum - infected_time_series[day]) ** 2 / infected_time_series[day]
+        """ print(
+            day,
+            "{:12.2f}".format((I_cum - infected_time_series[day]) ** 2),
+            "{:10.2f}".format(infected_time_series[day]),
+            "{:5.2f}".format(
+                (I_cum - infected_time_series[day]) ** 2 / infected_time_series[day]
+            ),
+        ) """
     sys.stdout.write(f"GGA SUCCESS {cost}\n")
 
 
@@ -305,8 +314,9 @@ def parser_common(parser, E_0=False):
     parser_init.add_argument(
         "--I_0",
         type=int,
-        default=config.I_0,
-        help="initial number of infected individuals",
+        default=None,
+        help="initial number of infected individuals,\
+                if None is specified is set to first day of input data",
     )
     parser_init.add_argument(
         "--R_0",
@@ -369,3 +379,22 @@ def parser_common(parser, E_0=False):
     parser_act.add_argument(
         "--save", type=str, default=None, help="specify a name for outputfile"
     )
+
+
+# -------------------------
+
+
+def parameters_init_common(args):
+    """initial parameters from argparse"""
+    from numpy import genfromtxt
+
+    t_total = args.day_max - args.day_min  # max simulated days
+    infected_time_series = genfromtxt(args.data, delimiter=",")[
+        args.day_min : args.day_max
+    ]
+    # print(infected_time_series)
+
+    if args.I_0 is None:
+        args.I_0 = int(infected_time_series[0])
+
+    return t_total, infected_time_series

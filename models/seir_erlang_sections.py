@@ -24,22 +24,14 @@ def main():
     args = parsing()
     # print(args)
     (
-        E_0,
-        I_0,
-        R_0,
-        n_t_steps,
         t_total,
-        mc_nseed,
-        mc_seed0,
-        plot,
-        save,
         infected_time_series,
         n_sections,
     ) = parameters_init(args)
 
     # results per day and seed
     I_day, I_m = (
-        np.zeros([mc_nseed, t_total]),
+        np.zeros([args.mc_nseed, t_total]),
         np.zeros(t_total),
     )
 
@@ -47,7 +39,7 @@ def main():
     # =========================
     # MC loop
     # =========================
-    for mc_seed in range(mc_seed0, mc_seed0 + mc_nseed):
+    for mc_seed in range(args.mc_seed0, args.mc_seed0 + args.mc_nseed):
         random.seed(mc_seed)
         np.random.seed(mc_seed)
 
@@ -63,10 +55,10 @@ def main():
             n_ind,
         ) = parameters_section(args, section)
 
-        comp = seir_erlang.Compartments(n_t_steps, shapes, args)
+        comp = seir_erlang.Compartments(shapes, args)
 
         t_step, time, day = 0, 0, 1
-        I_day[mc_step, 0] = I_0
+        I_day[mc_step, 0] = args.I_0
         index_n = 1  # just to avoid pylint complaining
 
         # Sections
@@ -126,14 +118,14 @@ def main():
         mc_step += 1
     # =========================
 
-    I_m, I_std = utils.mean_alive(I_day, t_total, day_max, mc_nseed)
+    I_m, I_std = utils.mean_alive(I_day, t_total, day_max, args.mc_nseed)
 
     utils.cost_func(infected_time_series, I_m, I_std)
 
-    if save is not None:
-        utils.saving(args, I_m, I_std, day_max, "seir_erlang_sections", save)
+    if args.save is not None:
+        utils.saving(args, I_m, I_std, day_max, "seir_erlang_sections", args.save)
 
-    if plot:
+    if args.plot:
         from utils import plots
 
         plots.plotting(infected_time_series, I_day, day_max, I_m, I_std)
@@ -245,32 +237,12 @@ def parsing():
 
 def parameters_init(args):
     """Initial parameters from argparse"""
-    from numpy import genfromtxt
+    t_total, infected_time_series = utils.parameters_init_common(args)
 
-    E_0 = args.E_0
-    I_0 = args.I_0
-    R_0 = args.R_0
-    n_t_steps = args.n_t_steps  # max simulation steps
-    t_total = args.section_days[-1]  # max simulated days
-    mc_nseed = args.mc_nseed  # MC realizations
-    mc_seed0 = args.mc_seed0
-    plot = args.plot
-    save = args.save
-    infected_time_series = genfromtxt(args.data, delimiter=",")[
-        args.day_min : args.day_max
-    ]
     n_sections = len(args.section_days) - 1
     # print(infected_time_series)
     return (
-        E_0,
-        I_0,
-        R_0,
-        n_t_steps,
         t_total,
-        mc_nseed,
-        mc_seed0,
-        plot,
-        save,
         infected_time_series,
         n_sections,
     )

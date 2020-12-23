@@ -4,13 +4,12 @@ Global deafult variables or parameters
 
 # Initial conditions
 E_0 = 0
-I_0 = 62  # value at day 34 of italy_i.csv
 R_0 = 0
 
 # Parameters
-N = 10000
-BETA = 0.5
-DELTA = 0.2
+N = 81600
+BETA = 0.89
+DELTA = 0.64
 BETA1 = 0.01
 DELTA1 = 0.01
 EPSILON = 1

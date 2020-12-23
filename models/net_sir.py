@@ -20,23 +20,14 @@ def main():
     args = parsing()
     # print(args)
     (
-        I_0,
-        R_0,
         t_total,
-        mc_nseed,
-        mc_seed0,
-        plot,
-        save,
         infected_time_series,
-        n,
         ratios,
-        network,
-        network_param,
     ) = parameters_init(args)
 
     # results per day and seed
     I_day, I_m = (
-        np.zeros([mc_nseed, t_total]),
+        np.zeros([args.mc_nseed, t_total]),
         np.zeros(t_total),
     )
 
@@ -44,14 +35,14 @@ def main():
     # =========================
     # MC loop
     # =========================
-    for mc_seed in range(mc_seed0, mc_seed0 + mc_nseed):
+    for mc_seed in range(args.mc_seed0, args.mc_seed0 + args.mc_nseed):
         random.seed(mc_seed)
         np.random.seed(mc_seed)
 
-        G = utils_net.choose_network(n, network, network_param)
-        t, S, I, R = fast_sir.fast_SIR(G, ratios, I_0, R_0)
+        G = utils_net.choose_network(args.n, args.network, args.network_param)
+        t, S, I, R = fast_sir.fast_SIR(G, ratios, args.I_0, args.R_0)
 
-        I_day[mc_step, 0] = I_0
+        I_day[mc_step, 0] = args.I_0
         day = 1
         for t, time in enumerate(t):
             day, day_max = utils.day_data(
@@ -61,14 +52,14 @@ def main():
         mc_step += 1
     # =========================
 
-    I_m, I_std = utils.mean_alive(I_day, t_total, day_max, mc_nseed)
+    I_m, I_std = utils.mean_alive(I_day, t_total, day_max, args.mc_nseed)
 
     utils.cost_func(infected_time_series, I_m, I_std)
 
-    if save is not None:
-        utils.saving(args, I_m, I_std, day_max, "net_sir", save)
+    if args.save is not None:
+        utils.saving(args, I_m, I_std, day_max, "net_sir", args.save)
 
-    if plot:
+    if args.plot:
         from utils import plots
 
         plots.plotting(infected_time_series, I_day, day_max, I_m, I_std)
@@ -130,36 +121,13 @@ def parsing():
 
 def parameters_init(args):
     """initial parameters from argparse"""
-    from numpy import genfromtxt
+    t_total, infected_time_series = utils.parameters_init_common(args)
 
-    I_0 = args.I_0
-    R_0 = args.R_0
-    t_total = args.day_max - args.day_min  # max simulated days
-    mc_nseed = args.mc_nseed  # MC realizations
-    mc_seed0 = args.mc_seed0
-    plot = args.plot
-    save = args.save
-    infected_time_series = genfromtxt(args.data, delimiter=",")[
-        args.day_min : args.day_max
-    ]
-    # print(infected_time_series)
-    n = args.n
     ratios = {"beta": args.beta, "delta": args.delta}
-    network = args.network
-    network_param = args.network_param
     return (
-        I_0,
-        R_0,
         t_total,
-        mc_nseed,
-        mc_seed0,
-        plot,
-        save,
         infected_time_series,
-        n,
         ratios,
-        network,
-        network_param,
     )
 
 

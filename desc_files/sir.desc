@@ -1,5 +1,5 @@
 %DATA
-./data/italy_i.csv
+./italy_i.csv
 
 %PARAMS
 --n integer [10000,1000000]
@@ -18,10 +18,10 @@ python3 -m venv ./venv
 ./venv/bin/pip install numpy
 
 %EXECUTION
-./venv/bin/python -u ./models/sir.py \
+./venv/bin/python -u ./sir.py \
 --data ${instance} \
 --seed ${seed} \
 --timeout ${timeout} \
---day_max 45 \
+--day_max 90 \
 --mc_nseed 5 \
 ${@}

@@ -22,23 +22,14 @@ def main():
     args = parsing()
     # print(args)
     (
-        E_0,
-        I_0,
-        R_0,
-        n_t_steps,
         t_total,
-        mc_nseed,
-        mc_seed0,
-        plot,
-        save,
         infected_time_series,
-        n,
         ratios,
     ) = parameters_init(args)
 
     # results per day and seed
     I_day, I_m = (
-        np.zeros([mc_nseed, t_total]),
+        np.zeros([args.mc_nseed, t_total]),
         np.zeros(t_total),
     )
 
@@ -46,17 +37,17 @@ def main():
     # =========================
     # MC loop
     # =========================
-    for mc_seed in range(mc_seed0, mc_seed0 + mc_nseed):
+    for mc_seed in range(args.mc_seed0, args.mc_seed0 + args.mc_nseed):
         random.seed(mc_seed)
         np.random.seed(mc_seed)
 
         # -------------------------
         # initialization
-        comp = Compartments(n_t_steps, args)
+        comp = Compartments(args)
 
         # T = np.zeros(n_t_steps)
         # T[0]=0
-        I_day[mc_step, 0] = I_0
+        I_day[mc_step, 0] = args.I_0
         t_step, time, day = 0, 0, 1
 
         # -------------------------
@@ -72,14 +63,14 @@ def main():
 
         mc_step += 1
     # =========================
-    I_m, I_std = utils.mean_alive(I_day, t_total, day_max, mc_nseed)
+    I_m, I_std = utils.mean_alive(I_day, t_total, day_max, args.mc_nseed)
 
     utils.cost_func(infected_time_series, I_m, I_std)
 
-    if save is not None:
-        utils.saving(args, I_m, I_std, day_max, "seir", save)
+    if args.save is not None:
+        utils.saving(args, I_m, I_std, day_max, "seir", args.save)
 
-    if plot:
+    if args.plot:
         from utils import plots
 
         plots.plotting(infected_time_series, I_day, day_max, I_m, I_std)
@@ -148,42 +139,19 @@ def parsing():
 
 def parameters_init(args):
     """initial parameters from argparse"""
-    from numpy import genfromtxt
+    t_total, infected_time_series = utils.parameters_init_common(args)
 
-    E_0 = args.E_0
-    I_0 = args.I_0
-    R_0 = args.R_0
-    n_t_steps = args.n_t_steps  # max simulation steps
-    t_total = args.day_max - args.day_min  # max simulated days
-    mc_nseed = args.mc_nseed  # MC realizations
-    mc_seed0 = args.mc_seed0
-    plot = args.plot
-    save = args.save
-    infected_time_series = genfromtxt(args.data, delimiter=",")[
-        args.day_min : args.day_max
-    ]
-    # print(infected_time_series)
-    n = args.n
     ratios = {
-        "beta1": args.beta1 / n,
-        "beta2": args.beta2 / n,
+        "beta1": args.beta1 / args.n,
+        "beta2": args.beta2 / args.n,
         "delta1": args.delta1,
         "delta2": args.delta2,
         "epsilon": args.epsilon,
     }
 
     return (
-        E_0,
-        I_0,
-        R_0,
-        n_t_steps,
         t_total,
-        mc_nseed,
-        mc_seed0,
-        plot,
-        save,
         infected_time_series,
-        n,
         ratios,
     )
 
@@ -194,12 +162,12 @@ def parameters_init(args):
 class Compartments:
     """Compartments for SEIR model"""
 
-    def __init__(self, n_t_steps, args):
+    def __init__(self, args):
         """Initialization"""
-        self.S = np.zeros(n_t_steps)
-        self.E = np.zeros(n_t_steps)
-        self.I = np.zeros(n_t_steps)
-        self.R = np.zeros(n_t_steps)
+        self.S = np.zeros(args.n_t_steps)
+        self.E = np.zeros(args.n_t_steps)
+        self.I = np.zeros(args.n_t_steps)
+        self.R = np.zeros(args.n_t_steps)
         self.E[0] = args.E_0
         self.I[0] = args.I_0
         self.R[0] = args.R_0

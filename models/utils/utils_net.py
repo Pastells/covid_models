@@ -25,7 +25,7 @@ def choose_network(n, network_type, network_param, seed=None):
     elif network_type == "ba":
         G = nx.barabasi_albert_graph(n, network_param, seed)
     else:
-        raise ValueError("Network type not avaliable")
+        raise ValueError(f"Network type '{network_type}' not avaliable")
     return G
 
 
