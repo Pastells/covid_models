@@ -23,11 +23,7 @@ from utils import utils, config
 def main():
     args = parsing()
     # print(args)
-    (
-        t_total,
-        infected_time_series,
-        n_sections,
-    ) = parameters_init(args)
+    t_total, infected_time_series, n_sections = parameters_init(args)
 
     # results per day and seed
     I_day, I_m = (
@@ -67,13 +63,12 @@ def main():
             while comp.I[t_step, :-1].sum() > 0 and day < section_day:
 
                 # add individuals
-                if n_ind is not None:
-                    if time // n_ind[index_n, 1] == 1:
-                        comp.S[t_step] += n_ind[index_n, 0] / shapes["k_inf"]
-                        if index_n < (len(n_ind) - 1):
-                            index_n += 1
-                        else:
-                            n_ind = None
+                if (n_ind is not None) and (time // n_ind[index_n, 1] == 1):
+                    comp.S[t_step] += n_ind[index_n, 0] / shapes["k_inf"]
+                    if index_n < (len(n_ind) - 1):
+                        index_n += 1
+                    else:
+                        n_ind = None
 
                 day, day_max = utils.day_data(
                     time,
@@ -233,6 +228,7 @@ def parsing():
 
 # -------------------------
 # Parameters
+# -------------------------
 
 
 def parameters_init(args):
@@ -241,11 +237,10 @@ def parameters_init(args):
 
     n_sections = len(args.section_days) - 1
     # print(infected_time_series)
-    return (
-        t_total,
-        infected_time_series,
-        n_sections,
-    )
+    return t_total, infected_time_series, n_sections
+
+
+# -------------------------
 
 
 def parameters_section(args, section, ratios_old=None, section_day_old=0, n_old=None):
@@ -293,25 +288,22 @@ def gillespie(
     etot_inf = comp.E[t_step, :-1, 1].sum()
     etot = etot_inf + etot_rec - comp.E[t_step, 0, 0]
 
-    beta1_eval, beta2_eval, delta1_eval, delta2_eval, epsilon_eval = utils.ratios_seir(
-        time,
-        ratios,
-        ratios_old,
-        section_day_old,
-    )
-
+    ratios_eval = utils.ratios_seir(time, ratios, ratios_old, section_day_old)
     lambda_sum = (
-        epsilon_eval * etot_inf
-        + delta1_eval * etot_rec
-        + delta2_eval * itot
-        + (beta1_eval * etot + beta2_eval * itot) * stot
+        ratios_eval["epsilon"] * etot_inf
+        + ratios_eval["delta1"] * etot_rec
+        + ratios_eval["delta2"] * itot
+        + (ratios_eval["beta1"] * etot + ratios_eval["beta2"] * itot) * stot
     )
 
-    prob_heal1 = delta1_eval * comp.E[t_step, :-1, 0] / lambda_sum
-    prob_heal2 = delta2_eval * comp.I[t_step, :-1] / lambda_sum
-    prob_latent = epsilon_eval * comp.E[t_step, :-1, 1] / lambda_sum
-    prob_infect = (
-        (beta1_eval * etot + beta2_eval * itot) * comp.S[t_step, :-1] / lambda_sum
+    probs = {}
+    probs["heal1"] = ratios_eval["delta1"] * comp.E[t_step, :-1, 0] / lambda_sum
+    probs["heal2"] = ratios_eval["delta2"] * comp.I[t_step, :-1] / lambda_sum
+    probs["latent"] = ratios_eval["epsilon"] * comp.E[t_step, :-1, 1] / lambda_sum
+    probs["infect"] = (
+        (ratios_eval["beta1"] * etot + ratios_eval["beta2"] * itot)
+        * comp.S[t_step, :-1]
+        / lambda_sum
     )
 
     t_step += 1
@@ -319,15 +311,7 @@ def gillespie(
     if time > t_total:
         return t_step, True  # rare,  but sometimes long times may appear
 
-    seir_erlang.gillespie_step(
-        t_step,
-        comp,
-        prob_heal1,
-        prob_heal2,
-        prob_latent,
-        prob_infect,
-        shapes,
-    )
+    seir_erlang.gillespie_step(t_step, comp, probs, shapes)
     return t_step, time
 
 

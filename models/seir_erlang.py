@@ -20,12 +20,7 @@ from utils import utils, config
 def main():
     args = parsing()
     # print(args)
-    (
-        t_total,
-        infected_time_series,
-        ratios,
-        shapes,
-    ) = parameters_init(args)
+    t_total, infected_time_series, ratios, shapes = parameters_init(args)
 
     # results per day and seed
     I_day, I_m = (
@@ -182,12 +177,7 @@ def parameters_init(args):
         "delta2": args.delta2 * args.k_rec,
         "epsilon": args.epsilon * args.k_lat,
     }
-    return (
-        t_total,
-        infected_time_series,
-        ratios,
-        shapes,
-    )
+    return t_total, infected_time_series, ratios, shapes
 
 
 # -------------------------
@@ -287,10 +277,11 @@ def gillespie(
         + (ratios["beta1"] * etot + ratios["beta2"] * itot) * stot
     )
 
-    prob_heal1 = ratios["delta1"] * comp.E[t_step, :-1, 0] / lambda_sum
-    prob_heal2 = ratios["delta2"] * comp.I[t_step, :-1] / lambda_sum
-    prob_latent = ratios["epsilon"] * comp.E[t_step, :-1, 1] / lambda_sum
-    prob_infect = (
+    probs = {}
+    probs["heal1"] = ratios["delta1"] * comp.E[t_step, :-1, 0] / lambda_sum
+    probs["heal2"] = ratios["delta2"] * comp.I[t_step, :-1] / lambda_sum
+    probs["latent"] = ratios["epsilon"] * comp.E[t_step, :-1, 1] / lambda_sum
+    probs["infect"] = (
         (ratios["beta1"] * etot + ratios["beta2"] * itot)
         * comp.S[t_step, :-1]
         / lambda_sum
@@ -302,38 +293,28 @@ def gillespie(
         return t_step, True  # rare,  but sometimes long times may appear
     # T[t_step] = time
 
-    gillespie_step(
-        t_step,
-        comp,
-        prob_heal1,
-        prob_heal2,
-        prob_latent,
-        prob_infect,
-        shapes,
-    )
+    gillespie_step(t_step, comp, probs, shapes)
     return t_step, time
 
 
 # -------------------------
 
 
-def gillespie_step(
-    t_step, comp, prob_heal1, prob_heal2, prob_latent, prob_infect, shapes
-):
+def gillespie_step(t_step, comp, probs, shapes):
     """
     Perform an event of the algorithm, either infect or recover a single individual
     S and I have one extra dimension to temporally store the infected and recovered
     after k stages, due to the Erlang distribution
     """
     random = np.random.random()
-    prob_heal1_tot = prob_heal1.sum()
-    prob_heal2_tot = prob_heal2.sum()
-    prob_latent_tot = prob_latent.sum()
+    prob_heal1_tot = probs["heal1"].sum()
+    prob_heal2_tot = probs["heal2"].sum()
+    prob_latent_tot = probs["latent"].sum()
 
     # E(k)-> E(k+1)/R
     if random < prob_heal1_tot:
         for k in range(shapes["k_lat"]):
-            if random < prob_heal1[: k + 1].sum():
+            if random < probs["heal1"][: k + 1].sum():
                 comp.recover_adv_e(t_step, k)
                 break
 
@@ -341,7 +322,7 @@ def gillespie_step(
     elif random < (prob_heal1_tot + prob_heal2_tot):
         random -= prob_heal1_tot
         for k in range(shapes["k_rec"]):
-            if random < prob_heal2[: k + 1].sum():
+            if random < probs["heal2"][: k + 1].sum():
                 comp.recover_adv_i(t_step, k)
                 break
 
@@ -349,7 +330,7 @@ def gillespie_step(
     elif random < (prob_heal1_tot + prob_heal2_tot + prob_latent_tot):
         random -= prob_heal1_tot + prob_heal2_tot
         for k in range(shapes["k_lat"]):
-            if random < prob_latent[: k + 1].sum():
+            if random < probs["latent"][: k + 1].sum():
                 comp.infect_adv_e(t_step, k)
                 break
 
@@ -357,7 +338,7 @@ def gillespie_step(
     else:
         random -= prob_heal1_tot + prob_heal2_tot + prob_latent_tot
         for k in range(shapes["k_inf"]):
-            if random < prob_infect[: k + 1].sum():
+            if random < probs["infect"][: k + 1].sum():
                 comp.latent_adv_s(t_step, k)
                 break
 

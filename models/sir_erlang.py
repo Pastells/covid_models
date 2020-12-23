@@ -23,12 +23,7 @@ from utils import utils, config
 def main():
     args = parsing()
     # print(args)
-    (
-        t_total,
-        infected_time_series,
-        ratios,
-        shapes,
-    ) = parameters_init(args)
+    t_total, infected_time_series, ratios, shapes = parameters_init(args)
 
     # results per day and seed
     I_day, I_m = (
@@ -147,12 +142,7 @@ def parameters_init(args):
 
     shapes = {"k_inf": args.k_inf, "k_rec": args.k_rec}
     ratios = {"beta": args.beta / args.n * args.k_inf, "delta": args.delta * args.k_rec}
-    return (
-        t_total,
-        infected_time_series,
-        ratios,
-        shapes,
-    )
+    return t_total, infected_time_series, ratios, shapes
 
 
 # -------------------------
@@ -208,40 +198,41 @@ def gillespie(t_step, time, comp, ratios, shapes):
     itot = comp.I[t_step, :-1].sum()
 
     lambda_sum = (ratios["delta"] + ratios["beta"] * stot) * itot
-    prob_heal = ratios["delta"] * comp.I[t_step, :-1] / lambda_sum
-    prob_infect = ratios["beta"] * comp.S[t_step, :-1] * itot / lambda_sum
+    probs = {}
+    probs["heal"] = ratios["delta"] * comp.I[t_step, :-1] / lambda_sum
+    probs["infect"] = ratios["beta"] * comp.S[t_step, :-1] * itot / lambda_sum
 
     t_step += 1
     time += utils.time_dist(lambda_sum)
     # T[t_step] = time
 
-    gillespie_step(t_step, comp, prob_heal, prob_infect, shapes)
+    gillespie_step(t_step, comp, probs, shapes)
     return t_step, time
 
 
 # -------------------------
 
 
-def gillespie_step(t_step, comp, prob_heal, prob_infect, shapes):
+def gillespie_step(t_step, comp, probs, shapes):
     """
     Perform an event of the algorithm, either infect or recover a single individual
     S and I have one extra dimension to temporally store the infected and recovered
     after k stages, due to the Erlang distribution
     """
     random = np.random.random()
-    prob_heal_tot = prob_heal.sum()
+    prob_heal_tot = probs["heal"].sum()
 
     # I(k)-> I(k+1)/R
     if random < prob_heal_tot:
         for k in range(shapes["k_rec"]):
-            if random < prob_heal[: k + 1].sum():
+            if random < probs["heal"][: k + 1].sum():
                 comp.recover_adv_i(t_step, k)
                 break
 
     # S(k)-> S(k+1)/I(0)
     else:
         for k in range(shapes["k_inf"]):
-            if random < (prob_heal_tot + prob_infect[: k + 1].sum()):
+            if random < (prob_heal_tot + probs["infect"][: k + 1].sum()):
                 comp.infect_adv_s(t_step, k)
                 break
 

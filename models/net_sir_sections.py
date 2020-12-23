@@ -20,11 +20,7 @@ from utils import utils, utils_net, config
 def main():
     args = parsing()
     # print(args)
-    (
-        t_total,
-        infected_time_series,
-        n_sections,
-    ) = parameters_init(args)
+    t_total, infected_time_series, n_sections = parameters_init(args)
 
     # results per day and seed
     I_day, I_m = (
@@ -201,11 +197,7 @@ def parameters_init(args):
     t_total, infected_time_series = utils.parameters_init_common(args)
 
     n_sections = len(args.section_days) - 1
-    return (
-        t_total,
-        infected_time_series,
-        n_sections,
-    )
+    return t_total, infected_time_series, n_sections
 
 
 # -------------------------

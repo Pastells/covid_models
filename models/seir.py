@@ -21,11 +21,7 @@ from utils import utils, config
 def main():
     args = parsing()
     # print(args)
-    (
-        t_total,
-        infected_time_series,
-        ratios,
-    ) = parameters_init(args)
+    t_total, infected_time_series, ratios = parameters_init(args)
 
     # results per day and seed
     I_day, I_m = (
@@ -149,11 +145,7 @@ def parameters_init(args):
         "epsilon": args.epsilon,
     }
 
-    return (
-        t_total,
-        infected_time_series,
-        ratios,
-    )
+    return t_total, infected_time_series, ratios
 
 
 # -------------------------
@@ -217,32 +209,33 @@ def gillespie(t_total, t_step, time, comp, ratios):
         * comp.S[t_step]
     )
 
-    prob_heal1 = ratios["delta1"] * comp.E[t_step] / lambda_sum
-    prob_heal2 = ratios["delta2"] * comp.I[t_step] / lambda_sum
-    prob_latent = ratios["epsilon"] * comp.E[t_step] / lambda_sum
+    probs = {}
+    probs["heal1"] = ratios["delta1"] * comp.E[t_step] / lambda_sum
+    probs["heal2"] = ratios["delta2"] * comp.I[t_step] / lambda_sum
+    probs["latent"] = ratios["epsilon"] * comp.E[t_step] / lambda_sum
 
     t_step += 1
     time += utils.time_dist(lambda_sum)
     # T[t_step] = time
 
-    gillespie_step(t_step, comp, prob_heal1, prob_heal2, prob_latent)
+    gillespie_step(t_step, comp, probs)
     return t_step, time
 
 
 # -------------------------
 
 
-def gillespie_step(t_step, comp, prob_heal1, prob_heal2, prob_latent):
+def gillespie_step(t_step, comp, probs):
     """
     Perform an event of the algorithm, either infect or recover a single individual
     """
     random = np.random.random()
 
-    if random < prob_heal1:
+    if random < probs["heal1"]:
         comp.recover1(t_step)
-    elif random < (prob_heal1 + prob_heal2):
+    elif random < (probs["heal1"] + probs["heal2"]):
         comp.recover2(t_step)
-    elif random < (prob_heal1 + prob_heal2 + prob_latent):
+    elif random < (probs["heal1"] + probs["heal2"] + probs["latent"]):
         comp.turn_infectious(t_step)
     else:
         comp.turn_latent(t_step)

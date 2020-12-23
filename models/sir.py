@@ -21,11 +21,7 @@ from utils import utils, config
 def main():
     args = parsing()
     # print(args)
-    (
-        t_total,
-        infected_time_series,
-        ratios,
-    ) = parameters_init(args)
+    t_total, infected_time_series, ratios = parameters_init(args)
 
     # results per day and seed
     I_day, I_m = (
@@ -126,11 +122,7 @@ def parameters_init(args):
     t_total, infected_time_series = utils.parameters_init_common(args)
 
     ratios = {"beta": args.beta / args.n, "delta": args.delta}
-    return (
-        t_total,
-        infected_time_series,
-        ratios,
-    )
+    return t_total, infected_time_series, ratios
 
 
 # -------------------------

@@ -23,11 +23,7 @@ from utils import utils, config
 def main():
     args = parsing()
     # print(args)
-    (
-        t_total,
-        infected_time_series,
-        n_sections,
-    ) = parameters_init(args)
+    t_total, infected_time_series, n_sections = parameters_init(args)
 
     # results per day and seed
     I_day, I_m = (
@@ -70,13 +66,12 @@ def main():
                 # print(time, day, section_day)
 
                 # add individuals
-                if n_ind is not None:
-                    if time // n_ind[index_n, 1] == 1:
-                        comp.S[t_step] += n_ind[index_n, 0] / shapes["k_inf"]
-                        if index_n < (len(n_ind) - 1):
-                            index_n += 1
-                        else:
-                            n_ind = None
+                if (n_ind is not None) and (time // n_ind[index_n, 1] == 1):
+                    comp.S[t_step] += n_ind[index_n, 0] / shapes["k_inf"]
+                    if index_n < (len(n_ind) - 1):
+                        index_n += 1
+                    else:
+                        n_ind = None
 
                 day, day_max = utils.day_data(
                     time,
@@ -215,11 +210,7 @@ def parameters_init(args):
     t_total, infected_time_series = utils.parameters_init_common(args)
 
     n_sections = len(args.section_days) - 1
-    return (
-        t_total,
-        infected_time_series,
-        n_sections,
-    )
+    return t_total, infected_time_series, n_sections
 
 
 # -------------------------
@@ -251,16 +242,17 @@ def gillespie(t_step, time, section_day_old, comp, ratios, ratios_old, shapes):
     stot = comp.S[t_step, :-1].sum()
     itot = comp.I[t_step, :-1].sum()
 
-    beta_eval, delta_eval = utils.ratios_sir(time, ratios, ratios_old, section_day_old)
+    ratios_eval = utils.ratios_sir(time, ratios, ratios_old, section_day_old)
 
-    lambda_sum = (delta_eval + beta_eval * stot) * itot
-    prob_heal = delta_eval * comp.I[t_step, :-1] / lambda_sum
-    prob_infect = beta_eval * comp.S[t_step, :-1] * itot / lambda_sum
+    lambda_sum = (ratios_eval["delta"] + ratios_eval["beta"] * stot) * itot
+    probs = {}
+    probs["heal"] = ratios_eval["delta"] * comp.I[t_step, :-1] / lambda_sum
+    probs["infect"] = ratios_eval["beta"] * comp.S[t_step, :-1] * itot / lambda_sum
 
     t_step += 1
     time += utils.time_dist(lambda_sum)
 
-    sir_erlang.gillespie_step(t_step, comp, prob_heal, prob_infect, shapes)
+    sir_erlang.gillespie_step(t_step, comp, probs, shapes)
     return t_step, time
 
 

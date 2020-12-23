@@ -48,15 +48,20 @@ def ratios_sir(
     interpolates between the two given values using a tanh"""
 
     if ratios_old is None:
-        return ratios["beta"], ratios["delta"]
+        return ratios
 
     if time > t_0 + transition_days:
-        return ratios["beta"], ratios["delta"]
+        return ratios
 
+    ratios_eval = {}
     weight = 0.5 * (1 + np.tanh((time - transition_days / 2) * 5.33 / transition_days))
-    delta = ratios_old["delta"] + (ratios["delta"] - ratios_old["delta"]) * weight
-    beta = ratios_old["beta"] + (ratios["beta"] - ratios_old["beta"]) * weight
-    return beta, delta
+    ratios_eval["delta"] = (
+        ratios_old["delta"] + (ratios["delta"] - ratios_old["delta"]) * weight
+    )
+    ratios_eval["beta"] = (
+        ratios_old["beta"] + (ratios["beta"] - ratios_old["beta"]) * weight
+    )
+    return ratios_eval
 
 
 # -------------------------
@@ -69,32 +74,29 @@ def ratios_seir(
     interpolates between the two given values using a tanh"""
 
     if ratios_old is None:
-        return (
-            ratios["beta1"],
-            ratios["beta2"],
-            ratios["delta1"],
-            ratios["delta2"],
-            ratios["epsilon"],
-        )
+        return ratios
 
     if time > t_0 + 4:
-        return (
-            ratios["beta1"],
-            ratios["beta2"],
-            ratios["delta1"],
-            ratios["delta2"],
-            ratios["epsilon"],
-        )
+        return ratios
 
+    ratios_eval = {}
     weight = 0.5 * (1 + np.tanh((time - transition_days / 2) * 5.33 / transition_days))
-    delta1 = ratios_old["delta1"] + (ratios["delta1"] - ratios_old["delta1"]) * weight
-    delta2 = ratios_old["delta2"] + (ratios["delta2"] - ratios_old["delta2"]) * weight
-    beta1 = ratios_old["beta1"] + (ratios["beta1"] - ratios_old["beta1"]) * weight
-    beta2 = ratios_old["beta2"] + (ratios["beta2"] - ratios_old["beta2"]) * weight
-    epsilon = (
+    ratios_eval["delta1"] = (
+        ratios_old["delta1"] + (ratios["delta1"] - ratios_old["delta1"]) * weight
+    )
+    ratios_eval["delta2"] = (
+        ratios_old["delta2"] + (ratios["delta2"] - ratios_old["delta2"]) * weight
+    )
+    ratios_eval["beta1"] = (
+        ratios_old["beta1"] + (ratios["beta1"] - ratios_old["beta1"]) * weight
+    )
+    ratios_eval["beta2"] = (
+        ratios_old["beta2"] + (ratios["beta2"] - ratios_old["beta2"]) * weight
+    )
+    ratios_eval["epsilon"] = (
         ratios_old["epsilon"] + (ratios["epsilon"] - ratios_old["epsilon"]) * weight
     )
-    return beta1, beta2, delta1, delta2, epsilon
+    return ratios_eval
 
 
 # -------------------------
