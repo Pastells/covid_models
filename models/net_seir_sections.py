@@ -166,28 +166,28 @@ def parsing():
         help="fixed number of (effecitve) people, initial and increments [1000,1000000]",
     )
     parser_params.add_argument(
-        "--delta1",
+        "--delta_e",
         type=float,
-        default=[config.DELTA1],
+        default=[config.DELTA_E],
         nargs="*",
         help="ratio of recovery from latent fase (e->r) [0.05,1]",
     )
     parser_params.add_argument(
-        "--delta2",
+        "--delta_i",
         type=float,
         default=[config.DELTA],
         nargs="*",
         help="ratio of recovery from infected fase (i->r) [0.05,1]",
     )
     parser_params.add_argument(
-        "--beta1",
+        "--beta_e",
         type=float,
-        default=[config.BETA1],
+        default=[config.BETA_E],
         nargs="*",
         help="ratio of infection due to latent [0.05,1]",
     )
     parser_params.add_argument(
-        "--beta2",
+        "--beta_i",
         type=float,
         default=[config.BETA],
         nargs="*",
@@ -236,10 +236,10 @@ def parameters_section(args, section, ratios_old=None, section_day_old=0):
     """
     n = sum(args.n[: section + 1])
     ratios = {
-        "beta1": args.beta1[section],
-        "beta2": args.beta2[section],
-        "delta1": args.delta1[section],
-        "delta2": args.delta2[section],
+        "beta_e": args.beta_e[section],
+        "beta_i": args.beta_i[section],
+        "delta_e": args.delta_e[section],
+        "delta_i": args.delta_i[section],
         "epsilon": args.epsilon[section],
     }
     section_day = args.section_days[section + 1]

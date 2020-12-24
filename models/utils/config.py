@@ -8,10 +8,10 @@ R_0 = 0
 
 # Parameters
 N = 81600
-BETA = 0.89
-DELTA = 0.64
-BETA1 = 0.01
-DELTA1 = 0.01
+BETA = 0.89  # BETA_I
+DELTA = 0.64  # DELTA_I
+BETA_E = 0.01
+DELTA_E = 0.01
 EPSILON = 1
 
 K_INF = 1

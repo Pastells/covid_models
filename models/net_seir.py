@@ -110,25 +110,25 @@ def parsing():
         help="fixed number of (effecitve) people [1000,1000000]",
     )
     parser_params.add_argument(
-        "--delta1",
+        "--delta_e",
         type=float,
-        default=config.DELTA1,
+        default=config.DELTA_E,
         help="ratio of recovery from latent fase (e->r) [0.05,1]",
     )
     parser_params.add_argument(
-        "--delta2",
+        "--delta_i",
         type=float,
         default=config.DELTA,
         help="ratio of recovery from infected fase (i->r) [0.05,1]",
     )
     parser_params.add_argument(
-        "--beta1",
+        "--beta_e",
         type=float,
-        default=config.BETA1,
+        default=config.BETA_E,
         help="ratio of infection due to latent [0.05,1]",
     )
     parser_params.add_argument(
-        "--beta2",
+        "--beta_i",
         type=float,
         default=config.BETA,
         help="ratio of infection due to infected [0.05,1]",
@@ -154,10 +154,10 @@ def parameters_init(args):
     t_total, infected_time_series = utils.parameters_init_common(args)
 
     ratios = {
-        "beta1": args.beta1,
-        "beta2": args.beta2,
-        "delta1": args.delta1,
-        "delta2": args.delta2,
+        "beta_e": args.beta_e,
+        "beta_i": args.beta_i,
+        "delta_e": args.delta_e,
+        "delta_i": args.delta_i,
         "epsilon": args.epsilon,
     }
 

@@ -4,10 +4,10 @@ using the Gillespie algorithm and Erlang distribution transition times
 Pol Pastells,  october 2020
 
 equations of the deterministic system
-s[t] = S[t-1] - beta1*e[t-1]*s[t-1] - beta2*i[t-1]*s[t-1]
-e[t] = E[t-1] + beta1*e[t-1]*s[t-1] + beta2*i[t-1]*s[t-1] - (epsilon+delta1)*e[t-1]
-i[t] = I[t-1] + epsilon*e[t-1] - delta2 * I[t-1]
-r[t] = R[t-1] + delta1 *e[t-1] + delta2 * I[t-1]
+s[t] = S[t-1] - beta_e*e[t-1]*s[t-1] - beta_i*i[t-1]*s[t-1]
+e[t] = E[t-1] + beta_e*e[t-1]*s[t-1] + beta_i*i[t-1]*s[t-1] - (epsilon+delta_e)*e[t-1]
+i[t] = I[t-1] + epsilon*e[t-1] - delta_i * I[t-1]
+r[t] = R[t-1] + delta_e *e[t-1] + delta_i * I[t-1]
 """
 
 import random
@@ -109,13 +109,13 @@ def parsing():
         help="fixed number of (effecitve) people [1000,1000000]",
     )
     parser_params.add_argument(
-        "--delta1",
+        "--delta_e",
         type=float,
-        default=config.DELTA1,
+        default=config.DELTA_E,
         help="ratio of recovery from latent fase (e->r) [0.05,1]",
     )
     parser_params.add_argument(
-        "--delta2",
+        "--delta_i",
         type=float,
         default=config.DELTA,
         help="ratio of recovery from infected fase (i->r) [0.05,1]",
@@ -127,13 +127,13 @@ def parsing():
         help="k for the recovery time erlang distribution [1,5]",
     )
     parser_params.add_argument(
-        "--beta1",
+        "--beta_e",
         type=float,
-        default=config.BETA1,
+        default=config.BETA_E,
         help="ratio of infection due to latent [0.05,1]",
     )
     parser_params.add_argument(
-        "--beta2",
+        "--beta_i",
         type=float,
         default=config.BETA,
         help="ratio of infection due to infected [0.05,1]",
@@ -171,10 +171,10 @@ def parameters_init(args):
 
     shapes = {"k_inf": args.k_inf, "k_rec": args.k_rec, "k_lat": args.k_lat}
     ratios = {
-        "beta1": args.beta1 / args.n * args.k_inf,
-        "beta2": args.beta2 / args.n * args.k_inf,
-        "delta1": args.delta1 * args.k_rec,
-        "delta2": args.delta2 * args.k_rec,
+        "beta_e": args.beta_e / args.n * args.k_inf,
+        "beta_i": args.beta_i / args.n * args.k_inf,
+        "delta_e": args.delta_e * args.k_rec,
+        "delta_i": args.delta_i * args.k_rec,
         "epsilon": args.epsilon * args.k_lat,
     }
     return t_total, infected_time_series, ratios, shapes
@@ -272,17 +272,17 @@ def gillespie(
 
     lambda_sum = (
         ratios["epsilon"] * etot_inf
-        + ratios["delta1"] * etot_rec
-        + ratios["delta2"] * itot
-        + (ratios["beta1"] * etot + ratios["beta2"] * itot) * stot
+        + ratios["delta_e"] * etot_rec
+        + ratios["delta_i"] * itot
+        + (ratios["beta_e"] * etot + ratios["beta_i"] * itot) * stot
     )
 
     probs = {}
-    probs["heal1"] = ratios["delta1"] * comp.E[t_step, :-1, 0] / lambda_sum
-    probs["heal2"] = ratios["delta2"] * comp.I[t_step, :-1] / lambda_sum
+    probs["heal1"] = ratios["delta_e"] * comp.E[t_step, :-1, 0] / lambda_sum
+    probs["heal2"] = ratios["delta_i"] * comp.I[t_step, :-1] / lambda_sum
     probs["latent"] = ratios["epsilon"] * comp.E[t_step, :-1, 1] / lambda_sum
     probs["infect"] = (
-        (ratios["beta1"] * etot + ratios["beta2"] * itot)
+        (ratios["beta_e"] * etot + ratios["beta_i"] * itot)
         * comp.S[t_step, :-1]
         / lambda_sum
     )
@@ -316,31 +316,30 @@ def gillespie_step(t_step, comp, probs, shapes):
         for k in range(shapes["k_lat"]):
             if random < probs["heal1"][: k + 1].sum():
                 comp.recover_adv_e(t_step, k)
-                break
+                return
 
     # I(k)-> I(k+1)/R
-    elif random < (prob_heal1_tot + prob_heal2_tot):
+    if random < (prob_heal1_tot + prob_heal2_tot):
         random -= prob_heal1_tot
         for k in range(shapes["k_rec"]):
             if random < probs["heal2"][: k + 1].sum():
                 comp.recover_adv_i(t_step, k)
-                break
+                return
 
     # E(k)-> E(k+1)/I(0)
-    elif random < (prob_heal1_tot + prob_heal2_tot + prob_latent_tot):
+    if random < (prob_heal1_tot + prob_heal2_tot + prob_latent_tot):
         random -= prob_heal1_tot + prob_heal2_tot
         for k in range(shapes["k_lat"]):
             if random < probs["latent"][: k + 1].sum():
                 comp.infect_adv_e(t_step, k)
-                break
+                return
 
     # S(k)-> S(k+1)/E(0)
-    else:
-        random -= prob_heal1_tot + prob_heal2_tot + prob_latent_tot
-        for k in range(shapes["k_inf"]):
-            if random < probs["infect"][: k + 1].sum():
-                comp.latent_adv_s(t_step, k)
-                break
+    random -= prob_heal1_tot + prob_heal2_tot + prob_latent_tot
+    for k in range(shapes["k_inf"]):
+        if random < probs["infect"][: k + 1].sum():
+            comp.latent_adv_s(t_step, k)
+            return
 
 
 # -------------------------

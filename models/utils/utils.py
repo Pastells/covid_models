@@ -70,7 +70,7 @@ def ratios_sir(
 def ratios_seir(
     time, ratios, ratios_old=None, t_0=0, transition_days=config.TRANSITION_DAYS
 ):
-    """returns beta1/2, delta1/2 and epsilon as a function of time:
+    """returns beta_e/2, delta_e/2 and epsilon as a function of time:
     interpolates between the two given values using a tanh"""
 
     if ratios_old is None:
@@ -81,17 +81,17 @@ def ratios_seir(
 
     ratios_eval = {}
     weight = 0.5 * (1 + np.tanh((time - transition_days / 2) * 5.33 / transition_days))
-    ratios_eval["delta1"] = (
-        ratios_old["delta1"] + (ratios["delta1"] - ratios_old["delta1"]) * weight
+    ratios_eval["delta_e"] = (
+        ratios_old["delta_e"] + (ratios["delta_e"] - ratios_old["delta_e"]) * weight
     )
-    ratios_eval["delta2"] = (
-        ratios_old["delta2"] + (ratios["delta2"] - ratios_old["delta2"]) * weight
+    ratios_eval["delta_i"] = (
+        ratios_old["delta_i"] + (ratios["delta_i"] - ratios_old["delta_i"]) * weight
     )
-    ratios_eval["beta1"] = (
-        ratios_old["beta1"] + (ratios["beta1"] - ratios_old["beta1"]) * weight
+    ratios_eval["beta_e"] = (
+        ratios_old["beta_e"] + (ratios["beta_e"] - ratios_old["beta_e"]) * weight
     )
-    ratios_eval["beta2"] = (
-        ratios_old["beta2"] + (ratios["beta2"] - ratios_old["beta2"]) * weight
+    ratios_eval["beta_i"] = (
+        ratios_old["beta_i"] + (ratios["beta_i"] - ratios_old["beta_i"]) * weight
     )
     ratios_eval["epsilon"] = (
         ratios_old["epsilon"] + (ratios["epsilon"] - ratios_old["epsilon"]) * weight

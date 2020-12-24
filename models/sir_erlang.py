@@ -227,14 +227,13 @@ def gillespie_step(t_step, comp, probs, shapes):
         for k in range(shapes["k_rec"]):
             if random < probs["heal"][: k + 1].sum():
                 comp.recover_adv_i(t_step, k)
-                break
+                return
 
     # S(k)-> S(k+1)/I(0)
-    else:
-        for k in range(shapes["k_inf"]):
-            if random < (prob_heal_tot + probs["infect"][: k + 1].sum()):
-                comp.infect_adv_s(t_step, k)
-                break
+    for k in range(shapes["k_inf"]):
+        if random < (prob_heal_tot + probs["infect"][: k + 1].sum()):
+            comp.infect_adv_s(t_step, k)
+            return
 
 
 # -------------------------

@@ -43,7 +43,7 @@ def _process_trans_SEIR_(
             dictionary giving recovery time of each node
         pred_inf_time : dict
             dictionary giving predicted infeciton time of nodes
-        ratios (beta1/2,delta1/2, epsilon):
+        ratios (beta_e/2,delta_e/2, epsilon):
             rates of infection, recovery and latency
 
         :Returns:
@@ -80,8 +80,8 @@ def _process_trans_SEIR_(
             trans_delay, rec_delay, recover_or_infect = utils_net.Markovian_times(
                 target,
                 suscep_neighbors,
-                ratios["beta1"],
-                ratios["delta1"],
+                ratios["beta_e"],
+                ratios["delta_e"],
                 ratios["epsilon"],
             )
         else:
@@ -92,8 +92,8 @@ def _process_trans_SEIR_(
             trans_delay, rec_delay = utils_net.Markovian_times(
                 target,
                 suscep_neighbors,
-                ratios["beta2"],
-                ratios["delta2"],
+                ratios["beta_i"],
+                ratios["delta_i"],
             )
             recover_or_infect = "recover"
 

@@ -3,10 +3,10 @@ Stochastic mean-field SEIR model using the Gillespie algorithm
 Pol Pastells, october 2020
 
 equations of the deterministic system
-s[t] = S[t-1] - beta1*e[t-1]*s[t-1] - beta2*i[t-1]*s[t-1]
-e[t] = E[t-1] + beta1*e[t-1]*s[t-1] + beta2*i[t-1]*s[t-1] - (epsilon+delta1)*e[t-1]
-i[t] = I[t-1] + epsilon*e[t-1] - delta2 * I[t-1]
-r[t] = R[t-1] + delta1 *e[t-1] + delta2 * I[t-1]
+s[t] = S[t-1] - beta_e*e[t-1]*s[t-1] - beta_i*i[t-1]*s[t-1]
+e[t] = E[t-1] + beta_e*e[t-1]*s[t-1] + beta_i*i[t-1]*s[t-1] - (epsilon+delta_e)*e[t-1]
+i[t] = I[t-1] + epsilon*e[t-1] - delta_i * I[t-1]
+r[t] = R[t-1] + delta_e *e[t-1] + delta_i * I[t-1]
 """
 
 import random
@@ -94,25 +94,25 @@ def parsing():
         help="fixed number of (effecitve) people [1000,1000000]",
     )
     parser_params.add_argument(
-        "--delta1",
+        "--delta_e",
         type=float,
-        default=config.DELTA1,
+        default=config.DELTA_E,
         help="ratio of recovery from latent fase (e->r) [0.05,1]",
     )
     parser_params.add_argument(
-        "--delta2",
+        "--delta_i",
         type=float,
         default=config.DELTA,
         help="ratio of recovery from infected fase (i->r) [0.05,1]",
     )
     parser_params.add_argument(
-        "--beta1",
+        "--beta_e",
         type=float,
-        default=config.BETA1,
+        default=config.BETA_E,
         help="ratio of infection due to latent [0.05,1]",
     )
     parser_params.add_argument(
-        "--beta2",
+        "--beta_i",
         type=float,
         default=config.BETA,
         help="ratio of infection due to infected [0.05,1]",
@@ -138,10 +138,10 @@ def parameters_init(args):
     t_total, infected_time_series = utils.parameters_init_common(args)
 
     ratios = {
-        "beta1": args.beta1 / args.n,
-        "beta2": args.beta2 / args.n,
-        "delta1": args.delta1,
-        "delta2": args.delta2,
+        "beta_e": args.beta_e / args.n,
+        "beta_i": args.beta_i / args.n,
+        "delta_e": args.delta_e,
+        "delta_i": args.delta_i,
         "epsilon": args.epsilon,
     }
 
@@ -203,15 +203,15 @@ def gillespie(t_total, t_step, time, comp, ratios):
     Calls gillespie_step
     """
     lambda_sum = (
-        (ratios["epsilon"] + ratios["delta1"]) * comp.E[t_step]
-        + ratios["delta2"] * comp.I[t_step]
-        + (ratios["beta1"] * comp.E[t_step] + ratios["beta2"] * comp.I[t_step])
+        (ratios["epsilon"] + ratios["delta_e"]) * comp.E[t_step]
+        + ratios["delta_i"] * comp.I[t_step]
+        + (ratios["beta_e"] * comp.E[t_step] + ratios["beta_i"] * comp.I[t_step])
         * comp.S[t_step]
     )
 
     probs = {}
-    probs["heal1"] = ratios["delta1"] * comp.E[t_step] / lambda_sum
-    probs["heal2"] = ratios["delta2"] * comp.I[t_step] / lambda_sum
+    probs["heal1"] = ratios["delta_e"] * comp.E[t_step] / lambda_sum
+    probs["heal2"] = ratios["delta_i"] * comp.I[t_step] / lambda_sum
     probs["latent"] = ratios["epsilon"] * comp.E[t_step] / lambda_sum
 
     t_step += 1

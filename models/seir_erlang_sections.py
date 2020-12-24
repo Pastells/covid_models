@@ -154,14 +154,14 @@ def parsing():
         help="fixed number of (effecitve) people, initial and increments [1000,1000000]",
     )
     parser_params.add_argument(
-        "--delta1",
+        "--delta_e",
         type=float,
-        default=[config.DELTA1],
+        default=[config.DELTA_E],
         nargs="*",
         help="ratio of recovery from latent fase (e->r) [0.05,1]",
     )
     parser_params.add_argument(
-        "--delta2",
+        "--delta_i",
         type=float,
         default=[config.DELTA],
         nargs="*",
@@ -174,14 +174,14 @@ def parsing():
         help="k for the recovery time erlang distribution [1,5]",
     )
     parser_params.add_argument(
-        "--beta1",
+        "--beta_e",
         type=float,
-        default=[config.BETA1],
+        default=[config.BETA_E],
         nargs="*",
         help="ratio of infection due to latent [0.05,1]",
     )
     parser_params.add_argument(
-        "--beta2",
+        "--beta_i",
         type=float,
         default=[config.BETA],
         nargs="*",
@@ -251,10 +251,10 @@ def parameters_section(args, section, ratios_old=None, section_day_old=0, n_old=
     n_ind = utils.n_individuals(n, n_old, section_day_old, args.transition_days)
     shapes = {"k_inf": args.k_inf, "k_rec": args.k_rec, "k_lat": args.k_lat}
     ratios = {
-        "beta1": args.beta1[section] / n * args.k_inf,
-        "beta2": args.beta2[section] / n * args.k_inf,
-        "delta1": args.delta1[section] * args.k_rec,
-        "delta2": args.delta2[section] * args.k_rec,
+        "beta_e": args.beta_e[section] / n * args.k_inf,
+        "beta_i": args.beta_i[section] / n * args.k_inf,
+        "delta_e": args.delta_e[section] * args.k_rec,
+        "delta_i": args.delta_i[section] * args.k_rec,
         "epsilon": args.epsilon[section] * args.k_lat,
     }
     section_day = args.section_days[section + 1]
@@ -291,17 +291,17 @@ def gillespie(
     ratios_eval = utils.ratios_seir(time, ratios, ratios_old, section_day_old)
     lambda_sum = (
         ratios_eval["epsilon"] * etot_inf
-        + ratios_eval["delta1"] * etot_rec
-        + ratios_eval["delta2"] * itot
-        + (ratios_eval["beta1"] * etot + ratios_eval["beta2"] * itot) * stot
+        + ratios_eval["delta_e"] * etot_rec
+        + ratios_eval["delta_i"] * itot
+        + (ratios_eval["beta_e"] * etot + ratios_eval["beta_i"] * itot) * stot
     )
 
     probs = {}
-    probs["heal1"] = ratios_eval["delta1"] * comp.E[t_step, :-1, 0] / lambda_sum
-    probs["heal2"] = ratios_eval["delta2"] * comp.I[t_step, :-1] / lambda_sum
+    probs["heal1"] = ratios_eval["delta_e"] * comp.E[t_step, :-1, 0] / lambda_sum
+    probs["heal2"] = ratios_eval["delta_i"] * comp.I[t_step, :-1] / lambda_sum
     probs["latent"] = ratios_eval["epsilon"] * comp.E[t_step, :-1, 1] / lambda_sum
     probs["infect"] = (
-        (ratios_eval["beta1"] * etot + ratios_eval["beta2"] * itot)
+        (ratios_eval["beta_e"] * etot + ratios_eval["beta_i"] * itot)
         * comp.S[t_step, :-1]
         / lambda_sum
     )

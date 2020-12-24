@@ -72,12 +72,10 @@ def _process_trans_SIR_(
 
         suscep_neighbors = [v for v in G.neighbors(target) if status[v] == "S"]
 
-        beta_eval, delta_eval = utils.ratios_sir(
-            time, ratios, ratios_old, section_day_old
-        )
+        ratios_eval = utils.ratios_sir(time, ratios, ratios_old, section_day_old)
 
         trans_delay, rec_delay = utils_net.Markovian_times(
-            target, suscep_neighbors, beta_eval, delta_eval
+            target, suscep_neighbors, ratios_eval["beta"], ratios_eval["delta"]
         )
 
         rec_time[target] = time + rec_delay

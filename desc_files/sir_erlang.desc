@@ -8,6 +8,9 @@
 --k_inf integer [1,5]
 --k_rec integer [1,5]
 
+%INITIAL-CONFIGURATIONS
+--n 269800 --beta 0.68 --delta 0.52 --k_inf 1 --k_rec 1
+
 %MODULES
 python/3.6.5
 
