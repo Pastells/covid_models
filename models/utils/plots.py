@@ -7,8 +7,18 @@ import matplotlib.pyplot as plt
 from . import config
 
 
-def plotting(infected_time_series, I_day, day_max, I_m, I_std):
+def plotting(args, I_day, day_max, I_m, I_std):
     """ If --plot is added makes some plots"""
+    from numpy import genfromtxt
+
+    infected_cumulative = genfromtxt(args.data, delimiter=",")[
+        args.day_min : args.day_max
+    ]
+
+    infected_daily = np.copy(infected_cumulative)
+
+    for day in range(len(infected_daily) - 1, 0, -1):
+        infected_daily[day] = infected_daily[day] - infected_daily[day - 1]
 
     # S_m = S_day.mean(0)
     # I_m = I_day.mean(0)
@@ -26,6 +36,7 @@ def plotting(infected_time_series, I_day, day_max, I_m, I_std):
         ls="",
         label="Daily infected cases",
     )
+    plt.plot(infected_daily, "o", label="data")
     plt.legend()
     plt.show()
 
@@ -41,34 +52,23 @@ def plotting(infected_time_series, I_day, day_max, I_m, I_std):
     # plt.plot(i_95[:,0],c='orange')
     # plt.plot(i_95[:,1],c='orange')
 
-    if config.CUMULATIVE is True:
-        I_cum = np.zeros(day_max)
-        I_cum_std = np.zeros(day_max)
-        I_cum[0] = I_m[0]
-        I_cum_std[0] = I_std[0]
-        for u in range(1, day_max):
-            I_cum[u] = I_cum[u - 1] + I_m[u]
-            I_cum_std[u] = I_cum_std[u - 1] + I_std[u]
+    I_cum = np.zeros(day_max)
+    I_cum_std = np.zeros(day_max)
+    I_cum[0] = I_m[0]
+    I_cum_std[0] = I_std[0]
+    for u in range(1, day_max):
+        I_cum[u] = I_cum[u - 1] + I_m[u]
+        I_cum_std[u] = I_cum_std[u - 1] + I_std[u]
 
-        plt.errorbar(
-            np.arange(day_max),
-            I_cum,
-            yerr=I_cum_std,
-            marker="o",
-            ls="",
-            label="Daily infected cases (cumulative)",
-        )
+    plt.errorbar(
+        np.arange(day_max),
+        I_cum,
+        yerr=I_cum_std,
+        marker="o",
+        ls="",
+        label="Daily infected cases (cumulative)",
+    )
 
-    else:
-        plt.errorbar(
-            np.arange(day_max),
-            I_m[:day_max],
-            yerr=I_std[:day_max],
-            marker="o",
-            ls="",
-            label="Daily infected cases",
-        )
-
-    plt.plot(infected_time_series, "o", label="data")
+    plt.plot(infected_cumulative, "o", label="data")
     plt.legend()
     plt.show()

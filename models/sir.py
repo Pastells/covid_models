@@ -71,7 +71,7 @@ def main():
     if args.plot:
         from utils import plots
 
-        plots.plotting(infected_time_series, I_day, day_max, I_m, I_std)
+        plots.plotting(args, I_day, day_max, I_m, I_std)
 
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%
