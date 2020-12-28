@@ -1,5 +1,5 @@
 %DATA
-./italy_i.csv
+./data/italy_i.csv
 
 %PARAMS
 --n integer [10000,1000000]
@@ -23,7 +23,7 @@ python3 -m venv ./venv
 ./venv/bin/pip install numpy
 
 %EXECUTION
-./venv/bin/python -u ./sir_erlang.py \
+./venv/bin/python -u ./models/sir_erlang.py \
 --data ${instance} \
 --seed ${seed} \
 --timeout ${timeout} \
