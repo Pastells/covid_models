@@ -256,7 +256,8 @@ def saving(args, I_m, I_std, day_max, program_name, custom_name=None):
 # ~~~~~~~~~~~~~~~~~~~
 def cost_func(infected_time_series, I_m, I_std):
     """compute cost function with a weighted mean squared error
-    comparing with data from input in cumulative form
+    comparing with data from input
+    if config.CUMULATIVE is True us cumulative data
 
     :Input:
 
@@ -277,20 +278,27 @@ def cost_func(infected_time_series, I_m, I_std):
         I_std = np.pad(I_std, (0, pad), "constant")
 
     cost = 0
-    I_cum = 0
-    I_cum_std = 0
+    if config.CUMULATIVE is True:
+        I_cum = 0
+        I_cum_std = 0
+        for day, _ in enumerate(infected_time_series):
+            I_cum += I_m[day]
+            I_cum_std += I_std[day]
+            cost += (I_cum - infected_time_series[day]) ** 2 / infected_time_series[day]
+            """ print(
+                day,
+                "{:12.2f}".format((I_cum - infected_time_series[day]) ** 2),
+                "{:10.2f}".format(infected_time_series[day]),
+                "{:5.2f}".format(
+                    (I_cum - infected_time_series[day]) ** 2 / infected_time_series[day]
+                ),
+            ) """
+        sys.stdout.write(f"GGA SUCCESS {cost}\n")
+        return
+
     for day, _ in enumerate(infected_time_series):
-        I_cum += I_m[day]
-        I_cum_std += I_std[day]
-        cost += (I_cum - infected_time_series[day]) ** 2 / infected_time_series[day]
-        """ print(
-            day,
-            "{:12.2f}".format((I_cum - infected_time_series[day]) ** 2),
-            "{:10.2f}".format(infected_time_series[day]),
-            "{:5.2f}".format(
-                (I_cum - infected_time_series[day]) ** 2 / infected_time_series[day]
-            ),
-        ) """
+        cost += (I_m[day] - infected_time_series[day]) ** 2 / infected_time_series[day]
+
     sys.stdout.write(f"GGA SUCCESS {cost}\n")
 
 
@@ -394,7 +402,12 @@ def parameters_init_common(args):
     infected_time_series = genfromtxt(args.data, delimiter=",")[
         args.day_min : args.day_max
     ]
-    # print(infected_time_series)
+
+    if config.CUMULATIVE is False:
+        for day in range(len(infected_time_series) - 1, 0, -1):
+            infected_time_series[day] = (
+                infected_time_series[day] - infected_time_series[day - 1]
+            )
 
     if args.I_0 is None:
         args.I_0 = int(infected_time_series[0])

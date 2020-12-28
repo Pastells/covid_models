@@ -4,6 +4,7 @@ Generate plots
 
 import numpy as np
 import matplotlib.pyplot as plt
+from . import config
 
 
 def plotting(infected_time_series, I_day, day_max, I_m, I_std):
@@ -40,22 +41,34 @@ def plotting(infected_time_series, I_day, day_max, I_m, I_std):
     # plt.plot(i_95[:,0],c='orange')
     # plt.plot(i_95[:,1],c='orange')
 
-    I_cum = np.zeros(day_max)
-    I_cum_std = np.zeros(day_max)
-    I_cum[0] = I_m[0]
-    I_cum_std[0] = I_std[0]
-    for u in range(1, day_max):
-        I_cum[u] = I_cum[u - 1] + I_m[u]
-        I_cum_std[u] = I_cum_std[u - 1] + I_std[u]
+    if config.CUMULATIVE is True:
+        I_cum = np.zeros(day_max)
+        I_cum_std = np.zeros(day_max)
+        I_cum[0] = I_m[0]
+        I_cum_std[0] = I_std[0]
+        for u in range(1, day_max):
+            I_cum[u] = I_cum[u - 1] + I_m[u]
+            I_cum_std[u] = I_cum_std[u - 1] + I_std[u]
 
-    plt.errorbar(
-        np.arange(day_max),
-        I_cum,
-        yerr=I_cum_std,
-        marker="o",
-        ls="",
-        label="Daily infected cases (cumulative)",
-    )
+        plt.errorbar(
+            np.arange(day_max),
+            I_cum,
+            yerr=I_cum_std,
+            marker="o",
+            ls="",
+            label="Daily infected cases (cumulative)",
+        )
+
+    else:
+        plt.errorbar(
+            np.arange(day_max),
+            I_m[:day_max],
+            yerr=I_std[:day_max],
+            marker="o",
+            ls="",
+            label="Daily infected cases",
+        )
+
     plt.plot(infected_time_series, "o", label="data")
     plt.legend()
     plt.show()

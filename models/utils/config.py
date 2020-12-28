@@ -40,6 +40,9 @@ DATA = "/home/pol/Documents/iiia_udl/programs/data/italy_i.csv"
 DAY_MIN = 34
 DAY_MAX = 58
 
+# Work with new daily cases (if False) or cumulative data (if True)
+CUMULATIVE = True
+
 # Save
 SAVE_FOLDER = "/home/pol/Documents/iiia_udl/programs/models/results/"
 
