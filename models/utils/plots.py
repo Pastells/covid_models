@@ -11,9 +11,11 @@ def plotting(args, I_day, day_max, I_m, I_std):
     """ If --plot is added makes some plots"""
     from numpy import genfromtxt
 
-    infected_cumulative = genfromtxt(args.data, delimiter=",")[
-        args.day_min : args.day_max
-    ]
+    infected_cumulative = (
+        genfromtxt(args.data, delimiter=",")[args.day_min : args.day_max]
+        * 100
+        / (100 - args.undiagnosed)
+    )
 
     infected_daily = np.copy(infected_cumulative)
 

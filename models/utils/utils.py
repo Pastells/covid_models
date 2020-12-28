@@ -384,6 +384,13 @@ def parser_common(parser, E_0=False):
         default=config.DAY_MAX,
         help="last day to consider on data series",
     )
+    parser_data.add_argument(
+        "--undiagnosed",
+        type=float,
+        default=89.4,
+        help="percentage of undiagnosed cases, default taken from \
+                Alex Arenas 2020 paper (Physical Review X, 10(4), 041055.)",
+    )
 
     parser_act.add_argument("--plot", action="store_true", help="specify for plots")
     parser_act.add_argument(
@@ -399,9 +406,11 @@ def parameters_init_common(args):
     from numpy import genfromtxt
 
     t_total = args.day_max - args.day_min  # max simulated days
-    infected_time_series = genfromtxt(args.data, delimiter=",")[
-        args.day_min : args.day_max
-    ]
+    infected_time_series = (
+        genfromtxt(args.data, delimiter=",")[args.day_min : args.day_max]
+        * 100
+        / (100 - args.undiagnosed)
+    )
 
     if config.CUMULATIVE is False:
         for day in range(len(infected_time_series) - 1, 0, -1):
