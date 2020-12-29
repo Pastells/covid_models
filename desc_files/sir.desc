@@ -22,6 +22,6 @@ python3 -m venv ./venv
 --data ${instance} \
 --seed ${seed} \
 --timeout ${timeout} \
---day_max 90 \
+--day_max 70 \
 --mc_nseed 5 \
 ${@}

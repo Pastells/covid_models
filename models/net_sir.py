@@ -1,11 +1,13 @@
 """
 Stochastic SIR model with a social network using the event-driven algorithm
-Pol Pastells, november 2020
 
-equations of the deterministic system
-s[t] = S[t-1] - beta*i[t-1]*s[t-1]
-i[t] = I[t-1] + beta*i[t-1]*s[t-1] - delta * I[t-1]
-r[t] = R[t-1] + delta * I[t-1]
+Pol Pastells, 2020
+
+Equations of the deterministic system:
+
+dS(t)/dt = - beta*I(t)*S(t) \n
+dI(t)/dt =   beta*I(t)*S(t) - delta * I(t) \n
+dR(t)/dt =                    delta * I(t)
 """
 
 import random

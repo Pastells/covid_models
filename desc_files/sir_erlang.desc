@@ -1,5 +1,5 @@
 %DATA
-./data/italy_i.csv
+./italy_i.csv
 
 %PARAMS
 --n integer [10000,1000000]
@@ -10,6 +10,7 @@
 
 %INITIAL-CONFIGURATIONS
 --n 269800 --beta 0.68 --delta 0.52 --k_inf 1 --k_rec 1
+--n 826724 --beta 0.9796 --delta 0.7495 --k_inf 1 --k_rec 1
 
 %MODULES
 python/3.6.5
@@ -23,10 +24,10 @@ python3 -m venv ./venv
 ./venv/bin/pip install numpy
 
 %EXECUTION
-./venv/bin/python -u ./models/sir_erlang.py \
+./venv/bin/python -u ./sir_erlang.py \
 --data ${instance} \
 --seed ${seed} \
 --timeout ${timeout} \
---day_max 90 \
+--day_max 70 \
 --mc_nseed 5 \
 ${@}

@@ -3,11 +3,11 @@ Stochastic mean-field SIR model using the Gillespie algorithm
 
 Pol Pastells, 2020
 
-equations of the deterministic system
+Equations of the deterministic system:
 
-S[t] = S[t-1] - beta*i[t-1]*s[t-1] \n
-I[t] = I[t-1] + beta*i[t-1]*s[t-1] - delta * I[t-1] \n
-R[t] = R[t-1] + delta * I[t-1]
+dS(t)/dt = - beta*I(t)*S(t) \n
+dI(t)/dt =   beta*I(t)*S(t) - delta * I(t) \n
+dR(t)/dt =                    delta * I(t)
 """
 
 import random

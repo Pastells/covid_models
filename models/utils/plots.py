@@ -1,6 +1,4 @@
-"""
-Generate plots
-"""
+""" Generate plots """
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -40,6 +38,8 @@ def plotting(args, I_day, day_max, I_m, I_std):
     )
     plt.plot(infected_daily, "o", label="data")
     plt.legend()
+    if args.save is not None:
+        plt.savefig(args.save + "_daily.png")
     plt.show()
 
     # I_m = np.median(i_day,0)
@@ -73,4 +73,6 @@ def plotting(args, I_day, day_max, I_m, I_std):
 
     plt.plot(infected_cumulative, "o", label="data")
     plt.legend()
+    if args.save is not None:
+        plt.savefig(args.save + "_cumulative.png")
     plt.show()

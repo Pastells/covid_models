@@ -1,6 +1,8 @@
-"""
-Global deafult variables or parameters
-"""
+""" Global default variables or parameters """
+
+# ---------------------------------------
+# can be changed via parser at runtime
+# ---------------------------------------
 
 # Initial conditions
 E_0 = 0
@@ -35,17 +37,22 @@ MC_NSEED = 5
 # Size of arrays
 N_T_STEPS = int(1e7)
 
-# Data
-DATA = "/home/pol/Documents/iiia_udl/programs/data/italy_i.csv"
-DAY_MIN = 34
-DAY_MAX = 58
-
-# Work with new daily cases (if False) or cumulative data (if True)
-CUMULATIVE = True
-
 # Save
 SAVE_FOLDER = "/home/pol/Documents/iiia_udl/programs/models/results/"
 
 # Automatic configurator
 SEED = 1
 TIMEOUT = 1200
+
+# Data
+DATA = "/home/pol/Documents/iiia_udl/programs/data/italy_i.csv"
+DAY_MIN = 34
+DAY_MAX = 58
+UNDIAGNOSED = 89.4
+
+# ---------------------------------------
+# can't be changed via parser, only here
+# ---------------------------------------
+
+# Work with new daily cases (if False) or cumulative data (if True)
+CUMULATIVE = True

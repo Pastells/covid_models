@@ -1,6 +1,4 @@
-"""
-Common functions for all models
-"""
+""" Common functions for all models """
 
 import sys
 import random
@@ -227,7 +225,8 @@ def mean_alive(I_day, t_total, day_max, nseed):
 
 
 def saving(args, I_m, I_std, day_max, program_name, custom_name=None):
-    """ If --save is added creates an output file with date and time"""
+    """If --save is added creates an output file with date and time
+    Modifies args.save to filename for the plots module to use (if specified)"""
     import time
 
     if custom_name is None:
@@ -238,7 +237,9 @@ def saving(args, I_m, I_std, day_max, program_name, custom_name=None):
             + ".dat"
         )
     else:
-        filename = config.SAVE_FOLDER + f"{program_name}_" + custom_name + ".dat"
+        filename = config.SAVE_FOLDER + f"{program_name}_" + custom_name
+        args.save = filename
+        filename += ".dat"
 
     I_cum = 0
     I_cum_std = 0
@@ -351,13 +352,13 @@ def parser_common(parser, E_0=False):
         "--mc_nseed",
         type=int,
         default=config.MC_NSEED,
-        help="number of mc realizations, not really a parameter",
+        help="number of mc realizations to average over",
     )
     parser_config.add_argument(
         "--mc_seed0",
         type=int,
         default=config.MC_SEED0,
-        help="initial mc seed, not really a parameter",
+        help="initial mc seed",
     )
     parser_config.add_argument(
         "--n_t_steps",
@@ -376,19 +377,19 @@ def parser_common(parser, E_0=False):
         "--day_min",
         type=int,
         default=config.DAY_MIN,
-        help="first day to consider on data series",
+        help="first day to consider of the data series",
     )
     parser_data.add_argument(
         "--day_max",
         type=int,
         default=config.DAY_MAX,
-        help="last day to consider on data series",
+        help="last day to consider of the data series",
     )
     parser_data.add_argument(
         "--undiagnosed",
         type=float,
-        default=89.4,
-        help="percentage of undiagnosed cases, default taken from \
+        default=config.UNDIAGNOSED,
+        help="percentage of undiagnosed cases, used to rescale the data, default taken from \
                 Alex Arenas 2020 paper (Physical Review X, 10(4), 041055.)",
     )
 

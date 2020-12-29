@@ -1,13 +1,16 @@
 """
-Stochastic mean-field SIR model
-using the Gillespie algorithm and Erlang distribution transition times
+Stochastic mean-field SEIR model.
+Uses the Gillespie algorithm and Erlang distribution transition times.
 It allows for different sections with different n, delta and beta
-Pol Pastells, october 2020
 
-Equations of the deterministic system
-s[t] = S[t-1] - beta*i[t-1]*s[t-1]
-i[t] = I[t-1] + beta*i[t-1]*s[t-1] - delta * I[t-1]
-r[t] = R[t-1] + delta * I[t-1]
+Pol Pastells, 2020
+
+Equations of the deterministic system:
+
+dS(t)/dt = - beta_e*E(t)*S(t) - beta_i*I(t)*S(t) \n
+dE(t)/dt =   beta_e*E(t)*S(t) + beta_i*I(t)*S(t) -(epsilon+delta_e)*E(t)\n
+dI(t)/dt = - delta_i * I(t)                      + epsilon*E(t)\n
+dR(t)/dt =   delta_i * I(t)                      + delta_e * E(t)
 """
 
 import random
