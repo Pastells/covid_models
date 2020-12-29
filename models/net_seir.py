@@ -5,10 +5,10 @@ Pol Pastells, 2020
 
 Equations of the deterministic system:
 
-dS(t)/dt = - beta_e*E(t)*S(t) - beta_i*I(t)*S(t) \n
-dE(t)/dt =   beta_e*E(t)*S(t) + beta_i*I(t)*S(t) -(epsilon+delta_e)*E(t)\n
-dI(t)/dt = - delta_i * I(t)                      + epsilon*E(t)\n
-dR(t)/dt =   delta_i * I(t)                      + delta_e * E(t)
+dS(t)/dt = - beta_e/N*E(t)*S(t) - beta_i/N*I(t)*S(t) \n
+dE(t)/dt =   beta_e/N*E(t)*S(t) + beta_i/N*I(t)*S(t) -(epsilon+delta_e)*E(t)\n
+dI(t)/dt = - delta_i * I(t)                          + epsilon*E(t)\n
+dR(t)/dt =   delta_i * I(t)                          + delta_e * E(t)
 """
 
 import random

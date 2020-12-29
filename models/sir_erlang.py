@@ -6,9 +6,9 @@ Pol Pastells, 2020
 
 Equations of the deterministic system:
 
-dS(t)/dt = - beta*I(t)*S(t) \n
-dI(t)/dt =   beta*I(t)*S(t) - delta * I(t) \n
-dR(t)/dt =                    delta * I(t)
+dS(t)/dt = - beta/N*I(t)*S(t) \n
+dI(t)/dt =   beta/N*I(t)*S(t) - delta * I(t) \n
+dR(t)/dt =                      delta * I(t)
 """
 
 import random
