@@ -21,7 +21,7 @@ from utils import utils, utils_net, config
 def main():
     args = parsing()
     # print(args)
-    t_total, infected_time_series, ratios = parameters_init(args)
+    t_total, infected_time_series, rates = parameters_init(args)
 
     # results per day and seed
     I_day, I_m = (
@@ -38,7 +38,7 @@ def main():
         np.random.seed(mc_seed)
 
         G = utils_net.choose_network(args.n, args.network, args.network_param)
-        t, S, I, R = fast_sir.fast_SIR(G, ratios, args.I_0, args.R_0)
+        t, S, I, R = fast_sir.fast_SIR(G, rates, args.I_0, args.R_0)
 
         I_day[mc_step, 0] = args.I_0
         day = 1
@@ -102,10 +102,10 @@ def parsing():
     )
 
     parser_params.add_argument(
-        "--delta", type=float, default=config.DELTA, help="ratio of recovery [0.05,1]"
+        "--delta", type=float, default=config.DELTA, help="rate of recovery [0.05,1]"
     )
     parser_params.add_argument(
-        "--beta", type=float, default=config.BETA, help="ratio of infection [0.05,1]"
+        "--beta", type=float, default=config.BETA, help="infectivity [0.05,1]"
     )
 
     utils.parser_common(parser)
@@ -121,8 +121,8 @@ def parameters_init(args):
     """initial parameters from argparse"""
     t_total, infected_time_series = utils.parameters_init_common(args)
 
-    ratios = {"beta": args.beta, "delta": args.delta}
-    return t_total, infected_time_series, ratios
+    rates = {"beta": args.beta, "delta": args.delta}
+    return t_total, infected_time_series, rates
 
 
 # -------------------------

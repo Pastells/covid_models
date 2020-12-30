@@ -16,8 +16,8 @@ def _process_trans_SIR_(
     status,
     rec_time,
     pred_inf_time,
-    ratios,
-    ratios_old,
+    rates,
+    rates_old,
     section_day_old,
 ):
     r"""
@@ -43,7 +43,7 @@ def _process_trans_SIR_(
             dictionary giving recovery time of each node
         pred_inf_time : dict
             dictionary giving predicted infeciton time of nodes
-        ratios (beta,delta):
+        rates (beta,delta):
             rates of infection and recovery
 
         :Returns:
@@ -72,10 +72,10 @@ def _process_trans_SIR_(
 
         suscep_neighbors = [v for v in G.neighbors(target) if status[v] == "S"]
 
-        ratios_eval = utils.ratios_sir(time, ratios, ratios_old, section_day_old)
+        rates_eval = utils.rates_sir(time, rates, rates_old, section_day_old)
 
         trans_delay, rec_delay = utils_net.Markovian_times(
-            target, suscep_neighbors, ratios_eval["beta"], ratios_eval["delta"]
+            target, suscep_neighbors, rates_eval["beta"], rates_eval["delta"]
         )
 
         rec_time[target] = time + rec_delay
@@ -106,8 +106,8 @@ def _process_trans_SIR_(
                         status,
                         rec_time,
                         pred_inf_time,
-                        ratios,
-                        ratios_old,
+                        rates,
+                        rates_old,
                         section_day_old,
                     ),
                 )
@@ -157,8 +157,8 @@ def _process_rec_SIR_(time, node, times, S, I, R, status):
 
 def fast_SIR(
     G,
-    ratios,
-    ratios_old,
+    rates,
+    rates_old,
     section_day_old,
     I_0=None,
     R_0=0,
@@ -174,7 +174,7 @@ def fast_SIR(
     **G** networkx Graph
         The underlying network
 
-    **ratios** (beta,delta):
+    **rates** (beta,delta):
             rates of infection and recovery
 
     **I_0** number
@@ -250,8 +250,8 @@ def fast_SIR(
                 status,
                 rec_time,
                 pred_inf_time,
-                ratios,
-                ratios_old,
+                rates,
+                rates_old,
                 section_day_old,
             ),
         )

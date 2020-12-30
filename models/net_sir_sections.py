@@ -42,9 +42,9 @@ def main():
         section = 0
         (
             n,
-            ratios,
+            rates,
             section_day,
-            ratios_old,
+            rates_old,
             section_day_old,
         ) = parameters_section(args, section)
 
@@ -62,8 +62,8 @@ def main():
         while section < n_sections:
             t, S, I, R = fast_sir_sections.fast_SIR(
                 G,
-                ratios,
-                ratios_old,
+                rates,
+                rates_old,
                 section_day_old,
                 args.I_0,
                 args.R_0,
@@ -78,11 +78,11 @@ def main():
             if section < n_sections:
                 (
                     n,
-                    ratios,
+                    rates,
                     section_day,
-                    ratios_old,
+                    rates_old,
                     section_day_old,
-                ) = parameters_section(args, section, ratios, section_day)
+                ) = parameters_section(args, section, rates, section_day)
                 if section == n_sections - 1:
                     section_day -= 0.9
                 G = utils_net.choose_network(n, args.network, args.network_param)
@@ -167,14 +167,14 @@ def parsing():
         type=float,
         default=[config.DELTA],
         nargs="*",
-        help="mean ratio of recovery [0.05,1]",
+        help="mean rate of recovery [0.05,1]",
     )
     parser_params.add_argument(
         "--beta",
         type=float,
         default=[config.BETA],
         nargs="*",
-        help="ratio of infection [0.05,1]",
+        help="infectivity [0.05,1]",
     )
     parser_params.add_argument(
         "--section_days",
@@ -205,18 +205,18 @@ def parameters_init(args):
 # -------------------------
 
 
-def parameters_section(args, section, ratios_old=None, section_day_old=0):
+def parameters_section(args, section, rates_old=None, section_day_old=0):
     """
     Section dependent parameters from argparse
     """
     n = sum(args.n[: section + 1])
-    ratios = {"beta": args.beta[section], "delta": args.delta[section]}
+    rates = {"beta": args.beta[section], "delta": args.delta[section]}
     section_day = args.section_days[section + 1]
     return (
         n,
-        ratios,
+        rates,
         section_day,
-        ratios_old,
+        rates_old,
         section_day_old + 1,
     )
 

@@ -39,62 +39,62 @@ def n_individuals(
 # -------------------------
 
 
-def ratios_sir(
-    time, ratios, ratios_old=None, t_0=0, transition_days=config.TRANSITION_DAYS
+def rates_sir(
+    time, rates, rates_old=None, t_0=0, transition_days=config.TRANSITION_DAYS
 ):
     """returns beta and delta as a function of time:
     interpolates between the two given values using a tanh"""
 
-    if ratios_old is None:
-        return ratios
+    if rates_old is None:
+        return rates
 
     if time > t_0 + transition_days:
-        return ratios
+        return rates
 
-    ratios_eval = {}
+    rates_eval = {}
     weight = 0.5 * (1 + np.tanh((time - transition_days / 2) * 5.33 / transition_days))
-    ratios_eval["delta"] = (
-        ratios_old["delta"] + (ratios["delta"] - ratios_old["delta"]) * weight
+    rates_eval["delta"] = (
+        rates_old["delta"] + (rates["delta"] - rates_old["delta"]) * weight
     )
-    ratios_eval["beta"] = (
-        ratios_old["beta"] + (ratios["beta"] - ratios_old["beta"]) * weight
+    rates_eval["beta"] = (
+        rates_old["beta"] + (rates["beta"] - rates_old["beta"]) * weight
     )
-    return ratios_eval
+    return rates_eval
 
 
 # -------------------------
 
 
-def ratios_seir(
-    time, ratios, ratios_old=None, t_0=0, transition_days=config.TRANSITION_DAYS
+def rates_sair(
+    time, rates, rates_old=None, t_0=0, transition_days=config.TRANSITION_DAYS
 ):
-    """returns beta_e/2, delta_e/2 and epsilon as a function of time:
+    """returns beta_a/2, delta_a/2 and alpha as a function of time:
     interpolates between the two given values using a tanh"""
 
-    if ratios_old is None:
-        return ratios
+    if rates_old is None:
+        return rates
 
     if time > t_0 + 4:
-        return ratios
+        return rates
 
-    ratios_eval = {}
+    rates_eval = {}
     weight = 0.5 * (1 + np.tanh((time - transition_days / 2) * 5.33 / transition_days))
-    ratios_eval["delta_e"] = (
-        ratios_old["delta_e"] + (ratios["delta_e"] - ratios_old["delta_e"]) * weight
+    rates_eval["delta_a"] = (
+        rates_old["delta_a"] + (rates["delta_a"] - rates_old["delta_a"]) * weight
     )
-    ratios_eval["delta_i"] = (
-        ratios_old["delta_i"] + (ratios["delta_i"] - ratios_old["delta_i"]) * weight
+    rates_eval["delta_i"] = (
+        rates_old["delta_i"] + (rates["delta_i"] - rates_old["delta_i"]) * weight
     )
-    ratios_eval["beta_e"] = (
-        ratios_old["beta_e"] + (ratios["beta_e"] - ratios_old["beta_e"]) * weight
+    rates_eval["beta_a"] = (
+        rates_old["beta_a"] + (rates["beta_a"] - rates_old["beta_a"]) * weight
     )
-    ratios_eval["beta_i"] = (
-        ratios_old["beta_i"] + (ratios["beta_i"] - ratios_old["beta_i"]) * weight
+    rates_eval["beta_i"] = (
+        rates_old["beta_i"] + (rates["beta_i"] - rates_old["beta_i"]) * weight
     )
-    ratios_eval["epsilon"] = (
-        ratios_old["epsilon"] + (ratios["epsilon"] - ratios_old["epsilon"]) * weight
+    rates_eval["alpha"] = (
+        rates_old["alpha"] + (rates["alpha"] - rates_old["alpha"]) * weight
     )
-    return ratios_eval
+    return rates_eval
 
 
 # -------------------------
@@ -306,13 +306,21 @@ def cost_func(infected_time_series, I_m, I_std):
 # -------------------------
 
 
-def parser_common(parser, E_0=False):
-    """ create init, configuration, data and actions groups for the parser"""
+def parser_common(parser, A_0=False, E_0=False):
+    """ create init, configuraten, data and actions groups for the parser"""
 
     parser_init = parser.add_argument_group("initial conditions")
-    parser_config = parser.add_argument_group("configuration")
+    parser_config = parser.add_argument_group("configuraten")
     parser_data = parser.add_argument_group("data")
     parser_act = parser.add_argument_group("actions")
+
+    if A_0 is True:
+        parser_init.add_argument(
+            "--A_0",
+            type=int,
+            default=config.A_0,
+            help="initial number of asymptomatic individuals",
+        )
 
     if E_0 is True:
         parser_init.add_argument(
@@ -325,7 +333,7 @@ def parser_common(parser, E_0=False):
     parser_init.add_argument(
         "--I_0",
         type=int,
-        default=None,
+        default=config.I_0,
         help="initial number of infected individuals,\
                 if None is specified is set to first day of input data",
     )
@@ -340,13 +348,13 @@ def parser_common(parser, E_0=False):
         "--seed",
         type=int,
         default=config.SEED,
-        help="seed for the automatic configuration",
+        help="seed for the automatic configuraten",
     )
     parser_config.add_argument(
         "--timeout",
         type=int,
         default=config.TIMEOUT,
-        help="timeout for the automatic configuration",
+        help="timeout for the automatic configuraten",
     )
     parser_config.add_argument(
         "--mc_nseed",
@@ -421,5 +429,11 @@ def parameters_init_common(args):
 
     if args.I_0 is None:
         args.I_0 = int(infected_time_series[0])
+
+    if (hasattr(args, "E_0")) and (args.A_0 is None):
+        args.E_0 = int(infected_time_series[0])
+
+    if (hasattr(args, "A_0")) and (args.A_0 is None):
+        args.A_0 = int(infected_time_series[0])
 
     return t_total, infected_time_series

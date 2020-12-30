@@ -46,10 +46,10 @@ def main():
         section = 0
         (
             n,
-            ratios,
+            rates,
             shapes,
             section_day,
-            ratios_old,
+            rates_old,
             section_day_old,
             n_ind,
         ) = parameters_section(args, section)
@@ -88,8 +88,8 @@ def main():
                     time,
                     section_day_old,
                     comp,
-                    ratios,
-                    ratios_old,
+                    rates,
+                    rates_old,
                     shapes,
                 )
 
@@ -97,13 +97,13 @@ def main():
             if section < n_sections:
                 (
                     n,
-                    ratios,
+                    rates,
                     shapes,
                     section_day,
-                    ratios_old,
+                    rates_old,
                     section_day_old,
                     n_ind,
-                ) = parameters_section(args, section, ratios, section_day, n)
+                ) = parameters_section(args, section, rates, section_day, n)
                 if n_ind is not None:
                     comp.S[t_step, :-1] += n_ind[0, 0] / shapes["k_inf"]
                 index_n = 1
@@ -162,7 +162,7 @@ def parsing():
         type=float,
         default=[config.DELTA],
         nargs="*",
-        help="ratio of recovery [0.05,1]",
+        help="rate of recovery [0.05,1]",
     )
     parser_params.add_argument(
         "--k_rec",
@@ -175,7 +175,7 @@ def parsing():
         type=float,
         default=[config.BETA],
         nargs="*",
-        help="ratio of infection [0.05,1]",
+        help="infectivity [0.05,1]",
     )
     parser_params.add_argument(
         "--k_inf",
@@ -218,25 +218,25 @@ def parameters_init(args):
 # -------------------------
 
 
-def parameters_section(args, section, ratios_old=None, section_day_old=0, n_old=None):
+def parameters_section(args, section, rates_old=None, section_day_old=0, n_old=None):
     """
     Section dependent parameters from argparse
     """
     n = sum(args.n[: section + 1])
     n_ind = utils.n_individuals(n, n_old, section_day_old, args.transition_days)
     shapes = {"k_inf": args.k_inf, "k_rec": args.k_rec}
-    ratios = {"beta": args.beta[section] / n, "delta": args.delta[section]}
+    rates = {"beta": args.beta[section] / n, "delta": args.delta[section]}
     section_day = args.section_days[section + 1]
 
     # should return section_day_old , given that the input will be section_day.
-    # but I want to add 2 to it for the tanh in ratios_sir/n_individuals
-    return (n, ratios, shapes, section_day, ratios_old, section_day_old + 1, n_ind)
+    # but I want to add 2 to it for the tanh in rates_sir/n_individuals
+    return (n, rates, shapes, section_day, rates_old, section_day_old + 1, n_ind)
 
 
 # -------------------------
 
 
-def gillespie(t_step, time, section_day_old, comp, ratios, ratios_old, shapes):
+def gillespie(t_step, time, section_day_old, comp, rates, rates_old, shapes):
     """
     Time elapsed for the next event
     Calls gillespie_step
@@ -244,12 +244,12 @@ def gillespie(t_step, time, section_day_old, comp, ratios, ratios_old, shapes):
     stot = comp.S[t_step, :-1].sum()
     itot = comp.I[t_step, :-1].sum()
 
-    ratios_eval = utils.ratios_sir(time, ratios, ratios_old, section_day_old)
+    rates_eval = utils.rates_sir(time, rates, rates_old, section_day_old)
 
-    lambda_sum = (ratios_eval["delta"] + ratios_eval["beta"] * stot) * itot
+    lambda_sum = (rates_eval["delta"] + rates_eval["beta"] * stot) * itot
     probs = {}
-    probs["heal"] = ratios_eval["delta"] * comp.I[t_step, :-1] / lambda_sum
-    probs["infect"] = ratios_eval["beta"] * comp.S[t_step, :-1] * itot / lambda_sum
+    probs["heal"] = rates_eval["delta"] * comp.I[t_step, :-1] / lambda_sum
+    probs["infect"] = rates_eval["beta"] * comp.S[t_step, :-1] * itot / lambda_sum
 
     t_step += 1
     time += utils.time_dist(lambda_sum)

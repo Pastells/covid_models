@@ -77,30 +77,30 @@ class myQueue(object):
 # -------------------------
 
 
-def Markovian_times(node, sus_neighbors, beta, delta, epsilon=None):
+def Markovian_times(node, sus_neighbors, beta, delta, alpha=None):
     """Cycle through, find infection times and check it it is less than recovery time"""
 
-    duration = random.expovariate(delta)
+    duraten = random.expovariate(delta)
 
-    if epsilon is not None:
-        duration2 = random.expovariate(epsilon)
-        if duration < duration2:
+    if alpha is not None:
+        duraten2 = random.expovariate(alpha)
+        if duraten < duraten2:
             pass
         else:
-            duration = duration2
+            duraten = duraten2
 
-    trans_prob = 1 - np.exp(-beta * duration)
+    trans_prob = 1 - np.exp(-beta * duraten)
     number_to_infect = np.random.binomial(len(sus_neighbors), trans_prob)
-    # print(len(suscep_neighbors),number_to_infect,trans_prob, beta, duration)
+    # print(len(suscep_neighbors),number_to_infect,trans_prob, beta, duraten)
     transmission_recipients = random.sample(sus_neighbors, number_to_infect)
     trans_delay = {}
     for v in transmission_recipients:
-        trans_delay[v] = _truncated_exponential_(beta, duration)
+        trans_delay[v] = _truncated_exponential_(beta, duraten)
 
-    if epsilon is not None:
-        if duration < duration2:
-            return (trans_delay, duration, "recover")
+    if alpha is not None:
+        if duraten < duraten2:
+            return (trans_delay, duraten, "recover")
         else:
-            return (trans_delay, duration, "infect")
+            return (trans_delay, duraten, "infect")
     else:
-        return trans_delay, duration
+        return trans_delay, duraten

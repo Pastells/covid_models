@@ -1,22 +1,22 @@
 """
-Stochastic SEIR model with a social network using the event-driven algorithm.
+Stochastic SAIR model with a social network using the event-driven algorithm.
 It allows for different sections with different n, delta and beta
 
 Pol Pastells, 2020
 
 Equations of the deterministic system:
 
-dS(t)/dt = - beta_e/N*E(t)*S(t) - beta_i/N*I(t)*S(t) \n
-dE(t)/dt =   beta_e/N*E(t)*S(t) + beta_i/N*I(t)*S(t) -(epsilon+delta_e)*E(t)\n
-dI(t)/dt = - delta_i * I(t)                          + epsilon*E(t)\n
-dR(t)/dt =   delta_i * I(t)                          + delta_e * E(t)
+dS(t)/dt = - beta_a/N*A(t)*S(t) - beta_i/N*I(t)*S(t) \n
+dA(t)/dt =   beta_a/N*A(t)*S(t) + beta_i/N*I(t)*S(t) -(alpha+delta_a)*A(t)\n
+dI(t)/dt = - delta_i * I(t)                          + alpha*A(t)\n
+dR(t)/dt =   delta_i * I(t)                          + delta_a * A(t)
 """
 
 import random
 import sys
 import traceback
 import numpy as np
-from event_driven import fast_seir_sections
+from event_driven import fast_sair_sections
 from utils import utils, utils_net, config
 
 
@@ -43,15 +43,15 @@ def main():
         section = 0
         (
             n,
-            ratios,
+            rates,
             section_day,
-            ratios_old,
+            rates_old,
             section_day_old,
         ) = parameters_section(args, section)
 
         G = utils_net.choose_network(n, args.network, args.network_param)
 
-        t_all, S_all, E_all, I_all, R_all = (
+        t_all, S_all, A_all, I_all, R_all = (
             np.array([]),
             np.array([]),
             np.array([]),
@@ -62,12 +62,12 @@ def main():
 
         # Sections
         while section < n_sections:
-            t, S, E, I, R = fast_seir_sections.fast_SEIR(
+            t, S, A, I, R = fast_sair_sections.fast_SAIR(
                 G,
-                ratios,
-                ratios_old,
+                rates,
+                rates_old,
                 section_day_old,
-                args.E_0,
+                args.A_0,
                 args.I_0,
                 args.R_0,
                 tmin=section_day_old - 1,
@@ -75,22 +75,22 @@ def main():
             )
             t_all = np.append(t_all, t)
             S_all = np.append(S_all, S)
-            E_all = np.append(E_all, E)
+            A_all = np.append(A_all, A)
             I_all = np.append(I_all, I)
             R_all = np.append(R_all, R)
             section += 1
             if section < n_sections:
                 (
                     n,
-                    ratios,
+                    rates,
                     section_day,
-                    ratios_old,
+                    rates_old,
                     section_day_old,
-                ) = parameters_section(args, section, ratios, section_day)
+                ) = parameters_section(args, section, rates, section_day)
                 if section == n_sections - 1:
                     section_day -= 0.9
                 G = utils_net.choose_network(n, args.network, args.network_param)
-                args.E_0 = E[-1]
+                args.A_0 = A[-1]
                 args.I_0 = I[-1]
                 # R will have jumps, given that the n
                 args.R_0 = R[-1]
@@ -112,13 +112,13 @@ def main():
     utils.cost_func(infected_time_series, I_m, I_std)
 
     if args.save is not None:
-        utils.saving(args, I_m, I_std, day_max, "net_seir_sections", args.save)
+        utils.saving(args, I_m, I_std, day_max, "net_sair_sections", args.save)
 
     import matplotlib.pyplot as plt
 
-    sum_all = S_all + E_all + I_all + R_all
+    sum_all = S_all + A_all + I_all + R_all
     plt.plot(t_all, S_all, label="S")
-    plt.plot(t_all, E_all, label="E")
+    plt.plot(t_all, A_all, label="A")
     plt.plot(t_all, I_all, label="I")
     plt.plot(t_all, R_all, label="R")
     plt.plot(t_all, sum_all, label="total")
@@ -139,8 +139,8 @@ def parsing():
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="stochastic SEIR model using the Gillespie algorithm. \
-                Dependencies: config.py, utils.py, utils_net.py, fast_seir_sections.py",
+        description="stochastic SAIR model using the Gillespie algorithm. \
+                Dependencies: config.py, utils.py, utils_net.py, fast_sair_sections.py",
         # formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         formatter_class=argparse.MetavarTypeHelpFormatter,
     )
@@ -169,39 +169,39 @@ def parsing():
         help="fixed number of (effecitve) people, initial and increments [1000,1000000]",
     )
     parser_params.add_argument(
-        "--delta_e",
+        "--delta_a",
         type=float,
-        default=[config.DELTA_E],
+        default=[config.DELTA_A],
         nargs="*",
-        help="ratio of recovery from latent fase (e->r) [0.05,1]",
+        help="rate of recovery from asymptomatic phase (a->r) [0.05,1]",
     )
     parser_params.add_argument(
         "--delta_i",
         type=float,
         default=[config.DELTA],
         nargs="*",
-        help="ratio of recovery from infected fase (i->r) [0.05,1]",
+        help="rate of recovery from infected phase (i->r) [0.05,1]",
     )
     parser_params.add_argument(
-        "--beta_e",
+        "--beta_a",
         type=float,
-        default=[config.BETA_E],
+        default=[config.BETA_A],
         nargs="*",
-        help="ratio of infection due to latent [0.05,1]",
+        help="infectivity due to asymptomatic [0.05,1]",
     )
     parser_params.add_argument(
         "--beta_i",
         type=float,
         default=[config.BETA],
         nargs="*",
-        help="ratio of infection due to infected [0.05,1]",
+        help="infectivity due to infected [0.05,1]",
     )
     parser_params.add_argument(
-        "--epsilon",
+        "--alpha",
         type=float,
-        default=[config.EPSILON],
+        default=[config.ALPHA],
         nargs="*",
-        help="ratio of latency (e->i) [0.05,2]",
+        help="asymptomatic rate (a->i) [0.05,2]",
     )
     parser_params.add_argument(
         "--section_days",
@@ -233,24 +233,24 @@ def parameters_init(args):
 # -------------------------
 
 
-def parameters_section(args, section, ratios_old=None, section_day_old=0):
+def parameters_section(args, section, rates_old=None, section_day_old=0):
     """
     Section dependent parameters from argparse
     """
     n = sum(args.n[: section + 1])
-    ratios = {
-        "beta_e": args.beta_e[section],
+    rates = {
+        "beta_a": args.beta_a[section],
         "beta_i": args.beta_i[section],
-        "delta_e": args.delta_e[section],
+        "delta_a": args.delta_a[section],
         "delta_i": args.delta_i[section],
-        "epsilon": args.epsilon[section],
+        "alpha": args.alpha[section],
     }
     section_day = args.section_days[section + 1]
     return (
         n,
-        ratios,
+        rates,
         section_day,
-        ratios_old,
+        rates_old,
         section_day_old + 1,
     )
 

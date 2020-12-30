@@ -5,15 +5,19 @@
 # ---------------------------------------
 
 # Initial conditions
-E_0 = 0
+# if set to None they are computed from the input data
+E_0 = None
+A_0 = None
+I_0 = None
 R_0 = 0
 
 # Parameters
 N = 81600
 BETA = 0.89  # BETA_I
 DELTA = 0.64  # DELTA_I
-BETA_E = 0.01
-DELTA_E = 0.01
+BETA_A = 0.01
+DELTA_A = 0.01
+ALPHA = 1
 EPSILON = 1
 
 K_INF = 1

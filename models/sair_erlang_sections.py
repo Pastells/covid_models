@@ -1,5 +1,5 @@
 """
-Stochastic mean-field SEIR model.
+Stochastic mean-field SAIR model.
 Uses the Gillespie algorithm and Erlang distribution transition times.
 It allows for different sections with different n, delta and beta
 
@@ -7,17 +7,17 @@ Pol Pastells, 2020
 
 Equations of the deterministic system:
 
-dS(t)/dt = - beta_e/N*E(t)*S(t) - beta_i/N*I(t)*S(t) \n
-dE(t)/dt =   beta_e/N*E(t)*S(t) + beta_i/N*I(t)*S(t) -(epsilon+delta_e)*E(t)\n
-dI(t)/dt = - delta_i * I(t)                          + epsilon*E(t)\n
-dR(t)/dt =   delta_i * I(t)                          + delta_e * E(t)
+dS(t)/dt = - beta_a/N*A(t)*S(t) - beta_i/N*I(t)*S(t) \n
+dA(t)/dt =   beta_a/N*A(t)*S(t) + beta_i/N*I(t)*S(t) -(alpha+delta_a)*A(t)\n
+dI(t)/dt = - delta_i * I(t)                          + alpha*A(t)\n
+dR(t)/dt =   delta_i * I(t)                          + delta_a * A(t)
 """
 
 import random
 import sys
 import traceback
 import numpy as np
-import seir_erlang
+import sair_erlang
 from utils import utils, config
 
 
@@ -46,15 +46,15 @@ def main():
         section = 0
         (
             n,
-            ratios,
+            rates,
             shapes,
             section_day,
-            ratios_old,
+            rates_old,
             section_day_old,
             n_ind,
         ) = parameters_section(args, section)
 
-        comp = seir_erlang.Compartments(shapes, args)
+        comp = sair_erlang.Compartments(shapes, args)
 
         t_step, time, day = 0, 0, 1
         I_day[mc_step, 0] = args.I_0
@@ -87,8 +87,8 @@ def main():
                     time,
                     section_day_old,
                     comp,
-                    ratios,
-                    ratios_old,
+                    rates,
+                    rates_old,
                     shapes,
                 )
 
@@ -96,13 +96,13 @@ def main():
             if section < n_sections:
                 (
                     n,
-                    ratios,
+                    rates,
                     shapes,
                     section_day,
-                    ratios_old,
+                    rates_old,
                     section_day_old,
                     n_ind,
-                ) = parameters_section(args, section, ratios, section_day, n)
+                ) = parameters_section(args, section, rates, section_day, n)
                 if n_ind is not None:
                     comp.S[t_step, :-1] += n_ind[0, 0] / shapes["k_inf"]
                 index_n = 1
@@ -121,7 +121,7 @@ def main():
     utils.cost_func(infected_time_series, I_m, I_std)
 
     if args.save is not None:
-        utils.saving(args, I_m, I_std, day_max, "seir_erlang_sections", args.save)
+        utils.saving(args, I_m, I_std, day_max, "sair_erlang_sections", args.save)
 
     if args.plot:
         from utils import plots
@@ -139,11 +139,11 @@ def parsing():
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="Stochastic mean-field SEIR model using the Gillespie algorithm and Erlang \
+        description="Stochastic mean-field SAIR model using the Gillespie algorithm and Erlang \
             distribution transition times. It allows for different sections with different \
             n, delta and beta: same number of arguments must be specified for all three, \
             and one more for section_days. \
-            Dependencies: config.py, utils.py, seir_erlang.py",
+            Dependencies: config.py, utils.py, sair_erlang.py",
         formatter_class=argparse.MetavarTypeHelpFormatter,
     )
 
@@ -157,18 +157,18 @@ def parsing():
         help="fixed number of (effecitve) people, initial and increments [1000,1000000]",
     )
     parser_params.add_argument(
-        "--delta_e",
+        "--delta_a",
         type=float,
-        default=[config.DELTA_E],
+        default=[config.DELTA_A],
         nargs="*",
-        help="ratio of recovery from latent fase (e->r) [0.05,1]",
+        help="rate of recovery from asymptomatic phase (a->r) [0.05,1]",
     )
     parser_params.add_argument(
         "--delta_i",
         type=float,
         default=[config.DELTA],
         nargs="*",
-        help="ratio of recovery from infected fase (i->r) [0.05,1]",
+        help="rate of recovery from infected phase (i->r) [0.05,1]",
     )
     parser_params.add_argument(
         "--k_rec",
@@ -177,18 +177,18 @@ def parsing():
         help="k for the recovery time erlang distribution [1,5]",
     )
     parser_params.add_argument(
-        "--beta_e",
+        "--beta_a",
         type=float,
-        default=[config.BETA_E],
+        default=[config.BETA_A],
         nargs="*",
-        help="ratio of infection due to latent [0.05,1]",
+        help="infectivity due to asymptomatic [0.05,1]",
     )
     parser_params.add_argument(
         "--beta_i",
         type=float,
         default=[config.BETA],
         nargs="*",
-        help="ratio of infection due to infected [0.05,1]",
+        help="infectivity due to infected [0.05,1]",
     )
     parser_params.add_argument(
         "--k_inf",
@@ -197,17 +197,17 @@ def parsing():
         help="k for the infection time erlang distribution [1,5]",
     )
     parser_params.add_argument(
-        "--epsilon",
+        "--alpha",
         type=float,
-        default=[config.EPSILON],
+        default=[config.ALPHA],
         nargs="*",
-        help="ratio of latency (e->i) [0.05,1]",
+        help="asymptomatic rate (a->i) [0.05,1]",
     )
     parser_params.add_argument(
         "--k_lat",
         type=int,
         default=config.K_LAT,
-        help="k for the latent time erlang distribution [1,5]",
+        help="k for the asymptomatic time erlang distribution [1,5]",
     )
     parser_params.add_argument(
         "--section_days",
@@ -246,25 +246,25 @@ def parameters_init(args):
 # -------------------------
 
 
-def parameters_section(args, section, ratios_old=None, section_day_old=0, n_old=None):
+def parameters_section(args, section, rates_old=None, section_day_old=0, n_old=None):
     """
     Section dependent parameters from argparse
     """
     n = sum(args.n[: section + 1])
     n_ind = utils.n_individuals(n, n_old, section_day_old, args.transition_days)
     shapes = {"k_inf": args.k_inf, "k_rec": args.k_rec, "k_lat": args.k_lat}
-    ratios = {
-        "beta_e": args.beta_e[section] / n * args.k_inf,
+    rates = {
+        "beta_a": args.beta_a[section] / n * args.k_inf,
         "beta_i": args.beta_i[section] / n * args.k_inf,
-        "delta_e": args.delta_e[section] * args.k_rec,
+        "delta_a": args.delta_a[section] * args.k_rec,
         "delta_i": args.delta_i[section] * args.k_rec,
-        "epsilon": args.epsilon[section] * args.k_lat,
+        "alpha": args.alpha[section] * args.k_lat,
     }
     section_day = args.section_days[section + 1]
 
     # should return section_day_old , given that the input will be section_day.
-    # but I want to add 2 to it for the tanh in ratios_sir/n_individuals
-    return (n, ratios, shapes, section_day, ratios_old, section_day_old + 1, n_ind)
+    # but I want to add 2 to it for the tanh in rates_sir/n_individuals
+    return (n, rates, shapes, section_day, rates_old, section_day_old + 1, n_ind)
 
 
 # -------------------------
@@ -276,8 +276,8 @@ def gillespie(
     time,
     section_day_old,
     comp,
-    ratios,
-    ratios_old,
+    rates,
+    rates_old,
     shapes,
 ):
     """
@@ -287,24 +287,24 @@ def gillespie(
 
     stot = comp.S[t_step, :-1].sum()
     itot = comp.I[t_step, :-1].sum()
-    etot_rec = comp.E[t_step, :-1, 0].sum()
-    etot_inf = comp.E[t_step, :-1, 1].sum()
-    etot = etot_inf + etot_rec - comp.E[t_step, 0, 0]
+    etot_rec = comp.A[t_step, :-1, 0].sum()
+    etot_inf = comp.A[t_step, :-1, 1].sum()
+    etot = etot_inf + etot_rec - comp.A[t_step, 0, 0]
 
-    ratios_eval = utils.ratios_seir(time, ratios, ratios_old, section_day_old)
+    rates_eval = utils.rates_sair(time, rates, rates_old, section_day_old)
     lambda_sum = (
-        ratios_eval["epsilon"] * etot_inf
-        + ratios_eval["delta_e"] * etot_rec
-        + ratios_eval["delta_i"] * itot
-        + (ratios_eval["beta_e"] * etot + ratios_eval["beta_i"] * itot) * stot
+        rates_eval["alpha"] * etot_inf
+        + rates_eval["delta_a"] * etot_rec
+        + rates_eval["delta_i"] * itot
+        + (rates_eval["beta_a"] * etot + rates_eval["beta_i"] * itot) * stot
     )
 
     probs = {}
-    probs["heal1"] = ratios_eval["delta_e"] * comp.E[t_step, :-1, 0] / lambda_sum
-    probs["heal2"] = ratios_eval["delta_i"] * comp.I[t_step, :-1] / lambda_sum
-    probs["latent"] = ratios_eval["epsilon"] * comp.E[t_step, :-1, 1] / lambda_sum
+    probs["heal_a"] = rates_eval["delta_a"] * comp.A[t_step, :-1, 0] / lambda_sum
+    probs["heal_i"] = rates_eval["delta_i"] * comp.I[t_step, :-1] / lambda_sum
+    probs["asymptomatic"] = rates_eval["alpha"] * comp.A[t_step, :-1, 1] / lambda_sum
     probs["infect"] = (
-        (ratios_eval["beta_e"] * etot + ratios_eval["beta_i"] * itot)
+        (rates_eval["beta_a"] * etot + rates_eval["beta_i"] * itot)
         * comp.S[t_step, :-1]
         / lambda_sum
     )
@@ -314,7 +314,7 @@ def gillespie(
     if time > t_total:
         return t_step, True  # rare,  but sometimes long times may appear
 
-    seir_erlang.gillespie_step(t_step, comp, probs, shapes)
+    sair_erlang.gillespie_step(t_step, comp, probs, shapes)
     return t_step, time
 
 

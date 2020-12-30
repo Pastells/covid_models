@@ -25,7 +25,7 @@ from utils import utils, config
 def main():
     args = parsing()
     # print(args)
-    t_total, infected_time_series, ratios, shapes = parameters_init(args)
+    t_total, infected_time_series, rates, shapes = parameters_init(args)
 
     # results per day and seed
     I_day, I_m = (
@@ -53,7 +53,7 @@ def main():
             day, day_max = utils.day_data(
                 time, t_total, day, day_max, comp.I[t_step, :-1].sum(), I_day[mc_step]
             )
-            t_step, time = gillespie(t_step, time, comp, ratios, shapes)
+            t_step, time = gillespie(t_step, time, comp, rates, shapes)
         # -------------------------
 
         # final value for the rest of time, otherwise it contributes with a zero when averaged
@@ -108,7 +108,7 @@ def parsing():
         "--delta",
         type=float,
         default=config.DELTA,
-        help="ratio of recovery [0.05,1]",
+        help="rate of recovery [0.05,1]",
     )
     parser_params.add_argument(
         "--k_rec",
@@ -120,7 +120,7 @@ def parsing():
         "--beta",
         type=float,
         default=config.BETA,
-        help="ratio of infection [0.05,1]",
+        help="infectivity [0.05,1]",
     )
     parser_params.add_argument(
         "--k_inf",
@@ -143,8 +143,8 @@ def parameters_init(args):
     t_total, infected_time_series = utils.parameters_init_common(args)
 
     shapes = {"k_inf": args.k_inf, "k_rec": args.k_rec}
-    ratios = {"beta": args.beta / args.n * args.k_inf, "delta": args.delta * args.k_rec}
-    return t_total, infected_time_series, ratios, shapes
+    rates = {"beta": args.beta / args.n * args.k_inf, "delta": args.delta * args.k_rec}
+    return t_total, infected_time_series, rates, shapes
 
 
 # -------------------------
@@ -191,7 +191,7 @@ class Compartments:
 # -------------------------
 
 
-def gillespie(t_step, time, comp, ratios, shapes):
+def gillespie(t_step, time, comp, rates, shapes):
     """
     Time elapsed for the next event
     Calls gillespie_step
@@ -199,10 +199,10 @@ def gillespie(t_step, time, comp, ratios, shapes):
     stot = comp.S[t_step, :-1].sum()
     itot = comp.I[t_step, :-1].sum()
 
-    lambda_sum = (ratios["delta"] + ratios["beta"] * stot) * itot
+    lambda_sum = (rates["delta"] + rates["beta"] * stot) * itot
     probs = {}
-    probs["heal"] = ratios["delta"] * comp.I[t_step, :-1] / lambda_sum
-    probs["infect"] = ratios["beta"] * comp.S[t_step, :-1] * itot / lambda_sum
+    probs["heal"] = rates["delta"] * comp.I[t_step, :-1] / lambda_sum
+    probs["infect"] = rates["beta"] * comp.S[t_step, :-1] * itot / lambda_sum
 
     t_step += 1
     time += utils.time_dist(lambda_sum)

@@ -5,9 +5,31 @@ import matplotlib.pyplot as plt
 from . import config
 
 
-def plotting(args, I_day, day_max, I_m, I_std):
+def plotting(args, I_day, day_max, I_m, I_std, comp=None, t_step=None):
     """ If --plot is added makes some plots"""
     from numpy import genfromtxt
+
+    if comp is not None:
+        suma = comp.S + comp.E + comp.A + comp.I + comp.R
+        plt.plot(comp.T[:t_step], comp.S[:t_step], label="S")
+        plt.plot(comp.T[:t_step], comp.E[:t_step], label="E")
+        plt.plot(comp.T[:t_step], comp.A[:t_step], label="A")
+        plt.plot(comp.T[:t_step], comp.I[:t_step], label="I")
+        plt.plot(comp.T[:t_step], comp.R[:t_step], label="R")
+        plt.plot(comp.T[:t_step], suma[:t_step], label="total")
+        plt.legend()
+        plt.show()
+
+    plt.errorbar(
+        np.arange(day_max),
+        I_m[:day_max],
+        yerr=I_std[:day_max],
+        marker="o",
+        ls="",
+        label="Daily infected cases",
+    )
+    plt.legend()
+    plt.show()
 
     infected_cumulative = (
         genfromtxt(args.data, delimiter=",")[args.day_min : args.day_max]

@@ -1,15 +1,15 @@
 """
-Stochastic mean-field SEIR model.
+Stochastic mean-field SAIR model.
 Uses the Gillespie algorithm and Erlang distribution transition times
 
 Pol Pastells, 2020
 
 Equations of the deterministic system:
 
-dS(t)/dt = - beta_e/N*E(t)*S(t) - beta_i/N*I(t)*S(t) \n
-dE(t)/dt =   beta_e/N*E(t)*S(t) + beta_i/N*I(t)*S(t) -(epsilon+delta_e)*E(t)\n
-dI(t)/dt = - delta_i * I(t)                          + epsilon*E(t)\n
-dR(t)/dt =   delta_i * I(t)                          + delta_e * E(t)
+dS(t)/dt = - beta_a/N*A(t)*S(t) - beta_i/N*I(t)*S(t) \n
+dA(t)/dt =   beta_a/N*A(t)*S(t) + beta_i/N*I(t)*S(t) -(alpha+delta_a)*A(t)\n
+dI(t)/dt = - delta_i * I(t)                          + alpha*A(t)\n
+dR(t)/dt =   delta_i * I(t)                          + delta_a * A(t)
 """
 
 import random
@@ -22,7 +22,7 @@ from utils import utils, config
 def main():
     args = parsing()
     # print(args)
-    t_total, infected_time_series, ratios, shapes = parameters_init(args)
+    t_total, infected_time_series, rates, shapes = parameters_init(args)
 
     # results per day and seed
     I_day, I_m = (
@@ -57,7 +57,7 @@ def main():
                 t_step,
                 time,
                 comp,
-                ratios,
+                rates,
                 shapes,
             )
             if time is True:
@@ -68,8 +68,8 @@ def main():
         """
         if plot:
             plt.plot(T[:t_step], S[:t_step, :-1].sum(1), c='r')
-            plt.plot(T[:t_step], E[:t_step, :-1, 0].sum(1), c='g')
-            plt.plot(T[:t_step], E[:t_step, :-1, 1].sum(1), c='b')
+            plt.plot(T[:t_step], A[:t_step, :-1, 0].sum(1), c='g')
+            plt.plot(T[:t_step], A[:t_step, :-1, 1].sum(1), c='b')
             plt.plot(T[:t_step], I[:t_step, :-1].sum(1), c='c')
             plt.plot(T[:t_step], R[:t_step], c='m')
         """
@@ -82,7 +82,7 @@ def main():
     utils.cost_func(infected_time_series, I_m, I_std)
 
     if args.save is not None:
-        utils.saving(args, I_m, I_std, day_max, "seir_erlang", args.save)
+        utils.saving(args, I_m, I_std, day_max, "sair_erlang", args.save)
 
     if args.plot:
         from utils import plots
@@ -96,7 +96,7 @@ def parsing():
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="Stochastic mean-field SEIR model using the Gillespie algorithm and Erlang \
+        description="Stochastic mean-field SAIR model using the Gillespie algorithm and Erlang \
             distribution transition times. \
             Dependencies: config.py, utils.py",
         formatter_class=argparse.MetavarTypeHelpFormatter,
@@ -111,16 +111,16 @@ def parsing():
         help="fixed number of (effecitve) people [1000,1000000]",
     )
     parser_params.add_argument(
-        "--delta_e",
+        "--delta_a",
         type=float,
-        default=config.DELTA_E,
-        help="ratio of recovery from latent fase (e->r) [0.05,1]",
+        default=config.DELTA_A,
+        help="rate of recovery from asymptomatic phase (a->r) [0.05,1]",
     )
     parser_params.add_argument(
         "--delta_i",
         type=float,
         default=config.DELTA,
-        help="ratio of recovery from infected fase (i->r) [0.05,1]",
+        help="rate of recovery from infected phase (i->r) [0.05,1]",
     )
     parser_params.add_argument(
         "--k_rec",
@@ -129,16 +129,16 @@ def parsing():
         help="k for the recovery time erlang distribution [1,5]",
     )
     parser_params.add_argument(
-        "--beta_e",
+        "--beta_a",
         type=float,
-        default=config.BETA_E,
-        help="ratio of infection due to latent [0.05,1]",
+        default=config.BETA_A,
+        help="infectivity due to asymptomatic [0.05,1]",
     )
     parser_params.add_argument(
         "--beta_i",
         type=float,
         default=config.BETA,
-        help="ratio of infection due to infected [0.05,1]",
+        help="infectivity due to infected [0.05,1]",
     )
     parser_params.add_argument(
         "--k_inf",
@@ -147,16 +147,16 @@ def parsing():
         help="k for the infection time erlang distribution [1,5]",
     )
     parser_params.add_argument(
-        "--epsilon",
+        "--alpha",
         type=float,
-        default=config.EPSILON,
-        help="ratio of latency (e->i) [0.05,2]",
+        default=config.ALPHA,
+        help="asymptomatic rate (a->i) [0.05,2]",
     )
     parser_params.add_argument(
         "--k_lat",
         type=int,
         default=config.K_LAT,
-        help="k for the latent time erlang distribution [1,5]",
+        help="k for the asymptomatic time erlang distribution [1,5]",
     )
 
     utils.parser_common(parser, True)
@@ -172,78 +172,78 @@ def parameters_init(args):
     t_total, infected_time_series = utils.parameters_init_common(args)
 
     shapes = {"k_inf": args.k_inf, "k_rec": args.k_rec, "k_lat": args.k_lat}
-    ratios = {
-        "beta_e": args.beta_e / args.n * args.k_inf,
+    rates = {
+        "beta_a": args.beta_a / args.n * args.k_inf,
         "beta_i": args.beta_i / args.n * args.k_inf,
-        "delta_e": args.delta_e * args.k_rec,
+        "delta_a": args.delta_a * args.k_rec,
         "delta_i": args.delta_i * args.k_rec,
-        "epsilon": args.epsilon * args.k_lat,
+        "alpha": args.alpha * args.k_lat,
     }
-    return t_total, infected_time_series, ratios, shapes
+    return t_total, infected_time_series, rates, shapes
 
 
 # -------------------------
 
 
 class Compartments:
-    """Compartments for the SEIR Erlang model"""
+    """Compartments for the SAIR Erlang model"""
 
     def __init__(self, shapes, args):
         """Initialization"""
         self.S = np.zeros([args.n_t_steps, shapes["k_inf"] + 1])
-        self.E = np.zeros([args.n_t_steps, shapes["k_lat"] + 1, 2])
+        self.A = np.zeros([args.n_t_steps, shapes["k_lat"] + 1, 2])
         self.I = np.zeros([args.n_t_steps, shapes["k_rec"] + 1])
         self.R = np.zeros(args.n_t_steps)
 
-        # Used for both seir_erlang and seir_erlang sections, where args.n is a vector
+        # Used for both sair_erlang and sair_erlang sections, where args.n is a vector
         try:
             self.S[0, :-1] = (args.n - args.I_0 - args.R_0) / shapes["k_inf"]
         except TypeError:
             self.S[0, :-1] = (args.n[0] - args.I_0 - args.R_0) / shapes["k_inf"]
 
-        self.S[0, -1] = self.E[0, :-1] = args.E_0 / shapes["k_lat"]
-        self.E[0, -1] = self.I[0, :-1] = args.I_0 / shapes["k_rec"]
+        self.S[0, -1] = self.A[0, :-1] = args.A_0 / shapes["k_lat"]
+        self.A[0, -1] = self.I[0, :-1] = args.I_0 / shapes["k_rec"]
         self.I[0, -1] = self.R[0] = args.R_0
 
-    def latent_adv_s(self, t_step, k):
-        """Turn latent or advance in S
-        S(k)-> S(k+1)/E(0)"""
-        self.E[t_step, :-1] = self.E[t_step - 1, :-1]
+    def asymptomatic_adv_s(self, t_step, k):
+        """Turn asymptomatic or advance in S
+        S(k)-> S(k+1)/A(0)"""
+        self.A[t_step, :-1] = self.A[t_step - 1, :-1]
         self.I[t_step, :-1] = self.I[t_step - 1, :-1]
         self.R[t_step] = self.R[t_step - 1]
         self.S[t_step, k] = -1
         self.S[t_step, k + 1] = 1
-        self.E[t_step, 0] += self.S[t_step, -1]
+        self.A[t_step, 0] += self.S[t_step, -1]
         self.S[t_step] += self.S[t_step - 1]
 
-    def infect_adv_e(self, t_step, k):
-        """Turn infectious or advance in E
-        E(k)-> E(k+1)/I(0)"""
+    def infect_adv_a(self, t_step, k):
+        """Turn infectious or advance in A
+        A(k)-> A(k+1)/I(0)"""
         self.S[t_step, :-1] = self.S[t_step - 1, :-1]
         self.I[t_step, :-1] = self.I[t_step - 1, :-1]
         self.R[t_step] = self.R[t_step - 1]
-        self.E[t_step, k, 1] = -1
-        self.E[t_step, k + 1, 1] = 1
-        self.I[t_step, 0] += self.E[t_step, -1, 1]
-        self.E[t_step, 0, 0] = self.E[t_step, 0, 1]
-        self.E[t_step] += self.E[t_step - 1]
+        self.A[t_step, k, 1] = -1
+        self.A[t_step, k + 1, 1] = 1
+        self.I[t_step, 0] += self.A[t_step, -1, 1]
+        self.A[t_step, 0, 0] = self.A[t_step, 0, 1]
+        self.A[t_step] += self.A[t_step - 1]
 
-    def recover_adv_e(self, t_step, k):
-        """Recover or advance in E
-        E(k)-> E(k+1)/R"""
+    def recover_adv_a(self, t_step, k):
+        """Recover or advance in A
+        A(k)-> A(k+1)/R"""
         self.S[t_step, :-1] = self.S[t_step - 1, :-1]
         self.I[t_step, :-1] = self.I[t_step - 1, :-1]
-        self.E[t_step, k, 0] = -1
-        self.E[t_step, k + 1, 0] = 1
-        self.R[t_step] = self.R[t_step - 1] + self.E[t_step, -1, 0]
-        self.E[t_step, 0, 1] = self.E[t_step, 0, 0]
-        self.E[t_step] += self.E[t_step - 1]
+        self.A[t_step, k, 0] = -1
+        self.A[t_step, k + 1, 0] = 1
+        self.R[t_step] = self.R[t_step - 1] + self.A[t_step, -1, 0]
+        self.A[t_step, 0, 1] = self.A[t_step, 0, 0]
+        self.A[t_step] += self.A[t_step - 1]
 
     def recover_adv_i(self, t_step, k):
         """Recover or advance in I
         I(k)-> I(k+1)/R"""
         self.S[t_step, :-1] = self.S[t_step - 1, :-1]
-        self.E[t_step, :-1] = self.E[t_step - 1, :-1]
+        self.A[t_step, :-1] = self.A[t_step - 1, :-1]
         self.I[t_step, k] = -1
         self.I[t_step, k + 1] = 1
         self.R[t_step] = self.R[t_step - 1] + self.I[t_step, -1]
@@ -258,7 +258,7 @@ def gillespie(
     t_step,
     time,
     comp,
-    ratios,
+    rates,
     shapes,
 ):
     """
@@ -268,23 +268,23 @@ def gillespie(
 
     stot = comp.S[t_step, :-1].sum()
     itot = comp.I[t_step, :-1].sum()
-    etot_rec = comp.E[t_step, :-1, 0].sum()
-    etot_inf = comp.E[t_step, :-1, 1].sum()
-    etot = etot_inf + etot_rec - comp.E[t_step, 0, 0]
+    etot_rec = comp.A[t_step, :-1, 0].sum()
+    etot_inf = comp.A[t_step, :-1, 1].sum()
+    etot = etot_inf + etot_rec - comp.A[t_step, 0, 0]
 
     lambda_sum = (
-        ratios["epsilon"] * etot_inf
-        + ratios["delta_e"] * etot_rec
-        + ratios["delta_i"] * itot
-        + (ratios["beta_e"] * etot + ratios["beta_i"] * itot) * stot
+        rates["alpha"] * etot_inf
+        + rates["delta_a"] * etot_rec
+        + rates["delta_i"] * itot
+        + (rates["beta_a"] * etot + rates["beta_i"] * itot) * stot
     )
 
     probs = {}
-    probs["heal1"] = ratios["delta_e"] * comp.E[t_step, :-1, 0] / lambda_sum
-    probs["heal2"] = ratios["delta_i"] * comp.I[t_step, :-1] / lambda_sum
-    probs["latent"] = ratios["epsilon"] * comp.E[t_step, :-1, 1] / lambda_sum
+    probs["heal_a"] = rates["delta_a"] * comp.A[t_step, :-1, 0] / lambda_sum
+    probs["heal_i"] = rates["delta_i"] * comp.I[t_step, :-1] / lambda_sum
+    probs["asymptomatic"] = rates["alpha"] * comp.A[t_step, :-1, 1] / lambda_sum
     probs["infect"] = (
-        (ratios["beta_e"] * etot + ratios["beta_i"] * itot)
+        (rates["beta_a"] * etot + rates["beta_i"] * itot)
         * comp.S[t_step, :-1]
         / lambda_sum
     )
@@ -309,38 +309,38 @@ def gillespie_step(t_step, comp, probs, shapes):
     after k stages, due to the Erlang distribution
     """
     random = np.random.random()
-    prob_heal1_tot = probs["heal1"].sum()
-    prob_heal2_tot = probs["heal2"].sum()
-    prob_latent_tot = probs["latent"].sum()
+    prob_heal_a_tot = probs["heal_a"].sum()
+    prob_heal_i_tot = probs["heal_i"].sum()
+    prob_asymptomatic_tot = probs["asymptomatic"].sum()
 
-    # E(k)-> E(k+1)/R
-    if random < prob_heal1_tot:
+    # A(k)-> A(k+1)/R
+    if random < prob_heal_a_tot:
         for k in range(shapes["k_lat"]):
-            if random < probs["heal1"][: k + 1].sum():
-                comp.recover_adv_e(t_step, k)
+            if random < probs["heal_a"][: k + 1].sum():
+                comp.recover_adv_a(t_step, k)
                 return
 
     # I(k)-> I(k+1)/R
-    if random < (prob_heal1_tot + prob_heal2_tot):
-        random -= prob_heal1_tot
+    if random < (prob_heal_a_tot + prob_heal_i_tot):
+        random -= prob_heal_a_tot
         for k in range(shapes["k_rec"]):
-            if random < probs["heal2"][: k + 1].sum():
+            if random < probs["heal_i"][: k + 1].sum():
                 comp.recover_adv_i(t_step, k)
                 return
 
-    # E(k)-> E(k+1)/I(0)
-    if random < (prob_heal1_tot + prob_heal2_tot + prob_latent_tot):
-        random -= prob_heal1_tot + prob_heal2_tot
+    # A(k)-> A(k+1)/I(0)
+    if random < (prob_heal_a_tot + prob_heal_i_tot + prob_asymptomatic_tot):
+        random -= prob_heal_a_tot + prob_heal_i_tot
         for k in range(shapes["k_lat"]):
-            if random < probs["latent"][: k + 1].sum():
-                comp.infect_adv_e(t_step, k)
+            if random < probs["asymptomatic"][: k + 1].sum():
+                comp.infect_adv_a(t_step, k)
                 return
 
-    # S(k)-> S(k+1)/E(0)
-    random -= prob_heal1_tot + prob_heal2_tot + prob_latent_tot
+    # S(k)-> S(k+1)/A(0)
+    random -= prob_heal_a_tot + prob_heal_i_tot + prob_asymptomatic_tot
     for k in range(shapes["k_inf"]):
         if random < probs["infect"][: k + 1].sum():
-            comp.latent_adv_s(t_step, k)
+            comp.asymptomatic_adv_s(t_step, k)
             return
 
 

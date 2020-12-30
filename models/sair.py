@@ -1,14 +1,14 @@
 """
-Stochastic mean-field SEIR model using the Gillespie algorithm
+Stochastic mean-field SAIR model using the Gillespie algorithm
 
 Pol Pastells, 2020
 
 Equations of the deterministic system:
 
-dS(t)/dt = - beta_e/N*E(t)*S(t) - beta_i/N*I(t)*S(t) \n
-dE(t)/dt =   beta_e/N*E(t)*S(t) + beta_i/N*I(t)*S(t) -(epsilon+delta_e)*E(t)\n
-dI(t)/dt = - delta_i * I(t)                          + epsilon*E(t)\n
-dR(t)/dt =   delta_i * I(t)                          + delta_e * E(t)
+dS(t)/dt = - beta_a/N*A(t)*S(t) - beta_i/N*I(t)*S(t) \n
+dA(t)/dt =   beta_a/N*A(t)*S(t) + beta_i/N*I(t)*S(t) -(alpha+delta_a)*A(t)\n
+dI(t)/dt = - delta_i * I(t)                          + alpha*A(t)\n
+dR(t)/dt =   delta_i * I(t)                          + delta_a * A(t)
 """
 
 import random
@@ -22,8 +22,8 @@ from utils import utils, config
 # %%%%%%%%%%%%%%%%%%%%%%%%%
 def main():
     args = parsing()
+    t_total, infected_time_series, rates = parameters_init(args)
     # print(args)
-    t_total, infected_time_series, ratios = parameters_init(args)
 
     # results per day and seed
     I_day, I_m = (
@@ -55,7 +55,7 @@ def main():
             day, day_max = utils.day_data(
                 time, t_total, day, day_max, comp.I[t_step], I_day[mc_step]
             )
-            t_step, time = gillespie(t_total, t_step, time, comp, ratios)
+            t_step, time = gillespie(t_total, t_step, time, comp, rates)
 
         # -------------------------
 
@@ -66,7 +66,7 @@ def main():
     utils.cost_func(infected_time_series, I_m, I_std)
 
     if args.save is not None:
-        utils.saving(args, I_m, I_std, day_max, "seir", args.save)
+        utils.saving(args, I_m, I_std, day_max, "sair", args.save)
 
     if args.plot:
         from utils import plots
@@ -82,7 +82,7 @@ def parsing():
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="stochastic mean-field SEIR model using the Gillespie algorithm. \
+        description="stochastic mean-field SAIR model using the Gillespie algorithm. \
             Dependencies: config.py, utils.py",
         formatter_class=argparse.MetavarTypeHelpFormatter,
     )
@@ -96,34 +96,34 @@ def parsing():
         help="fixed number of (effecitve) people [1000,1000000]",
     )
     parser_params.add_argument(
-        "--delta_e",
+        "--delta_a",
         type=float,
-        default=config.DELTA_E,
-        help="ratio of recovery from latent fase (e->r) [0.05,1]",
+        default=config.DELTA_A,
+        help="rate of recovery from asymptomatic phase (a->r) [0.05,1]",
     )
     parser_params.add_argument(
         "--delta_i",
         type=float,
         default=config.DELTA,
-        help="ratio of recovery from infected fase (i->r) [0.05,1]",
+        help="rate of recovery from infected phase (i->r) [0.05,1]",
     )
     parser_params.add_argument(
-        "--beta_e",
+        "--beta_a",
         type=float,
-        default=config.BETA_E,
-        help="ratio of infection due to latent [0.05,1]",
+        default=config.BETA_A,
+        help="infectivity due to asymptomatic [0.05,1]",
     )
     parser_params.add_argument(
         "--beta_i",
         type=float,
         default=config.BETA,
-        help="ratio of infection due to infected [0.05,1]",
+        help="infectivity due to infected [0.05,1]",
     )
     parser_params.add_argument(
-        "--epsilon",
+        "--alpha",
         type=float,
-        default=config.EPSILON,
-        help="ratio of latency (e->i) [0.05,2]",
+        default=config.ALPHA,
+        help="asymptomatic rate (a->i) [0.05,2]",
     )
 
     utils.parser_common(parser, True)
@@ -139,59 +139,59 @@ def parameters_init(args):
     """initial parameters from argparse"""
     t_total, infected_time_series = utils.parameters_init_common(args)
 
-    ratios = {
-        "beta_e": args.beta_e / args.n,
+    rates = {
+        "beta_a": args.beta_a / args.n,
         "beta_i": args.beta_i / args.n,
-        "delta_e": args.delta_e,
+        "delta_a": args.delta_a,
         "delta_i": args.delta_i,
-        "epsilon": args.epsilon,
+        "alpha": args.alpha,
     }
 
-    return t_total, infected_time_series, ratios
+    return t_total, infected_time_series, rates
 
 
 # -------------------------
 
 
 class Compartments:
-    """Compartments for SEIR model"""
+    """Compartments for SAIR model"""
 
     def __init__(self, args):
         """Initialization"""
         self.S = np.zeros(args.n_t_steps)
-        self.E = np.zeros(args.n_t_steps)
+        self.A = np.zeros(args.n_t_steps)
         self.I = np.zeros(args.n_t_steps)
         self.R = np.zeros(args.n_t_steps)
-        self.E[0] = args.E_0
+        self.A[0] = args.A_0
         self.I[0] = args.I_0
         self.R[0] = args.R_0
-        self.S[0] = args.n - args.I_0 - args.R_0 - args.E_0
+        self.S[0] = args.n - args.I_0 - args.R_0 - args.A_0
 
-    def turn_latent(self, t_step):
-        """Infection s->e"""
+    def turn_asymptomatic(self, t_step):
+        """Turn asympomatic s->a"""
         self.S[t_step] = self.S[t_step - 1] - 1
-        self.E[t_step] = self.E[t_step - 1] + 1
+        self.A[t_step] = self.A[t_step - 1] + 1
         self.I[t_step] = self.I[t_step - 1]
         self.R[t_step] = self.R[t_step - 1]
 
     def turn_infectious(self, t_step):
-        """Turn infectious e->i"""
+        """Turn infectious a->i"""
         self.S[t_step] = self.S[t_step - 1]
-        self.E[t_step] = self.E[t_step - 1] - 1
+        self.A[t_step] = self.A[t_step - 1] - 1
         self.I[t_step] = self.I[t_step - 1] + 1
         self.R[t_step] = self.R[t_step - 1]
 
-    def recover1(self, t_step):
-        """Recovery e->r"""
+    def recover_a(self, t_step):
+        """Recovery a->r"""
         self.S[t_step] = self.S[t_step - 1]
-        self.E[t_step] = self.E[t_step - 1] - 1
+        self.A[t_step] = self.A[t_step - 1] - 1
         self.I[t_step] = self.I[t_step - 1]
         self.R[t_step] = self.R[t_step - 1] + 1
 
-    def recover2(self, t_step):
+    def recover_i(self, t_step):
         """Recovery i->r"""
         self.S[t_step] = self.S[t_step - 1]
-        self.E[t_step] = self.E[t_step - 1]
+        self.A[t_step] = self.A[t_step - 1]
         self.I[t_step] = self.I[t_step - 1] - 1
         self.R[t_step] = self.R[t_step - 1] + 1
 
@@ -199,22 +199,22 @@ class Compartments:
 # -------------------------
 
 
-def gillespie(t_total, t_step, time, comp, ratios):
+def gillespie(t_total, t_step, time, comp, rates):
     """
     Time elapsed for the next event
     Calls gillespie_step
     """
     lambda_sum = (
-        (ratios["epsilon"] + ratios["delta_e"]) * comp.E[t_step]
-        + ratios["delta_i"] * comp.I[t_step]
-        + (ratios["beta_e"] * comp.E[t_step] + ratios["beta_i"] * comp.I[t_step])
+        (rates["alpha"] + rates["delta_a"]) * comp.A[t_step]
+        + rates["delta_i"] * comp.I[t_step]
+        + (rates["beta_a"] * comp.A[t_step] + rates["beta_i"] * comp.I[t_step])
         * comp.S[t_step]
     )
 
     probs = {}
-    probs["heal1"] = ratios["delta_e"] * comp.E[t_step] / lambda_sum
-    probs["heal2"] = ratios["delta_i"] * comp.I[t_step] / lambda_sum
-    probs["latent"] = ratios["epsilon"] * comp.E[t_step] / lambda_sum
+    probs["heal_a"] = rates["delta_a"] * comp.A[t_step] / lambda_sum
+    probs["heal_i"] = rates["delta_i"] * comp.I[t_step] / lambda_sum
+    probs["asymptomatic"] = rates["alpha"] * comp.A[t_step] / lambda_sum
 
     t_step += 1
     time += utils.time_dist(lambda_sum)
@@ -233,14 +233,14 @@ def gillespie_step(t_step, comp, probs):
     """
     random = np.random.random()
 
-    if random < probs["heal1"]:
-        comp.recover1(t_step)
-    elif random < (probs["heal1"] + probs["heal2"]):
-        comp.recover2(t_step)
-    elif random < (probs["heal1"] + probs["heal2"] + probs["latent"]):
+    if random < probs["heal_a"]:
+        comp.recover_a(t_step)
+    elif random < (probs["heal_a"] + probs["heal_i"]):
+        comp.recover_i(t_step)
+    elif random < (probs["heal_a"] + probs["heal_i"] + probs["asymptomatic"]):
         comp.turn_infectious(t_step)
     else:
-        comp.turn_latent(t_step)
+        comp.turn_asymptomatic(t_step)
 
 
 # -------------------------
