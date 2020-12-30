@@ -14,7 +14,7 @@ import random
 import sys
 import traceback
 import numpy as np
-import fast_sir
+from event_driven import fast_sir
 from utils import utils, utils_net, config
 
 

@@ -16,7 +16,7 @@ import random
 import sys
 import traceback
 import numpy as np
-import fast_seir_sections
+from event_driven import fast_seir_sections
 from utils import utils, utils_net, config
 
 
