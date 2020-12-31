@@ -224,37 +224,58 @@ def mean_alive(I_day, t_total, day_max, nseed):
 # -------------------------
 
 
-def saving(args, I_m, I_std, day_max, program_name, custom_name=None):
-    """If --save is added creates an output file with date and time
-    Modifies args.save to filename for the plots module to use (if specified)"""
-    import time
+def saving(args, I_m, I_std, day_max):
+    """If --save is added creates a file with the daily results to config.SAVE_FOLDER
+    Uses the name of the program that generated it and the given name to args.save
+        e.g. sir.py --save test will generate sir_test.dat
+    If that name already exists uses date and time after program name
+    Modifies args.save to filename for the plots function to use (if specified)"""
 
-    if custom_name is None:
+    import time
+    import inspect
+    import os.path
+
+    # get calling program name
+    frame = inspect.stack()[1]
+    module = inspect.getmodule(frame[0])
+    program_name = module.__file__.split("/")[-1][:-3]
+
+    # create filename
+    filename = config.SAVE_FOLDER + f"{program_name}_" + args.save
+    args.save = filename
+    filename += ".dat"
+
+    # if already exist use date and time
+    if os.path.isfile(filename):
+        print(f"{filename} already exists, changed to:")
         filename = (
-            config.SAVE_FOLDER
-            + f"{program_name}_"
-            + time.strftime("%d%m_%H%M%S")
-            + ".dat"
+            config.SAVE_FOLDER + f"{program_name}_" + time.strftime("%d%m_%H%M%S")
         )
-    else:
-        filename = config.SAVE_FOLDER + f"{program_name}_" + custom_name
         args.save = filename
         filename += ".dat"
+        print(filename)
 
     I_cum = 0
     I_cum_std = 0
     with open(filename, "w") as out_file:
-        out_file.write(f"#{args}\n")
-        out_file.write("# day, I_m, I_std, I_cum, I_cum_std\n")
+        out_file.write("#")
+        for key, value in vars(args).items():
+            out_file.write(f"--{key} {value} ")
+        out_file.write("\n")
+        out_file.write("# day        I_m        I_std        I_cum    I_cum_std\n")
+
+        form = "{:3.0f} {:12.2f} {:12.2f} {:12.2f} {:12.2f} \n"
         for day in range(day_max):
             I_cum += I_m[day]
             I_cum_std += I_std[day]
-            out_file.write(f"{day} {I_m[day]} {I_std[day]} {I_cum} {I_cum_std}\n")
+            out_file.write(form.format(day, I_m[day], I_std[day], I_cum, I_cum_std))
 
 
 # ~~~~~~~~~~~~~~~~~~~
 # Output
 # ~~~~~~~~~~~~~~~~~~~
+
+
 def cost_func(infected_time_series, I_m, I_std):
     """compute cost function with a weighted mean squared error
     comparing with data from input
@@ -285,20 +306,27 @@ def cost_func(infected_time_series, I_m, I_std):
         for day, _ in enumerate(infected_time_series):
             I_cum += I_m[day]
             I_cum_std += I_std[day]
-            cost += (I_cum - infected_time_series[day]) ** 2 / infected_time_series[day]
-            """ print(
+            cost += abs(I_cum - infected_time_series[day]) / infected_time_series[day]
+
+            """print(
                 day,
-                "{:12.2f}".format((I_cum - infected_time_series[day]) ** 2),
+                "{:12.2f}".format(I_cum),
                 "{:10.2f}".format(infected_time_series[day]),
+                "{:12.2f}".format(abs(I_cum - infected_time_series[day])),
                 "{:5.2f}".format(
-                    (I_cum - infected_time_series[day]) ** 2 / infected_time_series[day]
+                    abs(I_cum - infected_time_series[day]) / infected_time_series[day]
                 ),
-            ) """
+                "{:12.2f}".format(cost),
+            )"""
+
         sys.stdout.write(f"GGA SUCCESS {cost}\n")
         return
 
     for day, _ in enumerate(infected_time_series):
-        cost += (I_m[day] - infected_time_series[day]) ** 2 / infected_time_series[day]
+        cost += abs(I_m[day] - infected_time_series[day]) / infected_time_series[day]
+
+    # Normalize with number of days
+    cost = cost / day
 
     sys.stdout.write(f"GGA SUCCESS {cost}\n")
 
@@ -319,7 +347,8 @@ def parser_common(parser, A_0=False, E_0=False):
             "--A_0",
             type=int,
             default=config.A_0,
-            help="initial number of asymptomatic individuals",
+            help="initial number of asymptomatic individuals \
+                if None is specified is set to first day of input data",
         )
 
     if E_0 is True:
@@ -327,7 +356,8 @@ def parser_common(parser, A_0=False, E_0=False):
             "--E_0",
             type=int,
             default=config.E_0,
-            help="initial number of latent individuals",
+            help="initial number of latent individuals \
+                if None is specified is set to first day of input data",
         )
 
     parser_init.add_argument(
@@ -397,8 +427,7 @@ def parser_common(parser, A_0=False, E_0=False):
         "--undiagnosed",
         type=float,
         default=config.UNDIAGNOSED,
-        help="percentage of undiagnosed cases, used to rescale the data, default taken from \
-                Alex Arenas 2020 paper (Physical Review X, 10(4), 041055.)",
+        help="percentage of undiagnosed cases, used to rescale the data",
     )
 
     parser_act.add_argument("--plot", action="store_true", help="specify for plots")

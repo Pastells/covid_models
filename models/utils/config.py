@@ -42,7 +42,7 @@ MC_NSEED = 5
 N_T_STEPS = int(1e7)
 
 # Save
-SAVE_FOLDER = "/home/pol/Documents/iiia_udl/programs/models/results/"
+SAVE_FOLDER = "/home/pol/Documents/iiia_udl/programs/results/"
 
 # Automatic configurator
 SEED = 1
@@ -50,9 +50,9 @@ TIMEOUT = 1200
 
 # Data
 DATA = "/home/pol/Documents/iiia_udl/programs/data/italy_i.csv"
-DAY_MIN = 34
-DAY_MAX = 58
-UNDIAGNOSED = 89.4
+DAY_MIN = 33
+DAY_MAX = 83
+UNDIAGNOSED = 0  # 89.4, from Alex Arenas 2020 paper (Physical Review X, 10(4), 041055.)
 
 # ---------------------------------------
 # can't be changed via parser, only here

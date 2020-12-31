@@ -121,7 +121,7 @@ def main():
     utils.cost_func(infected_time_series, I_m, I_std)
 
     if args.save is not None:
-        utils.saving(args, I_m, I_std, day_max, "sair_erlang_sections", args.save)
+        utils.saving(args, I_m, I_std, day_max)
 
     if args.plot:
         from utils import plots

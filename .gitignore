@@ -6,6 +6,6 @@ models/old/
 models/*.dat
 models/*.sh
 models/*.tar.gz
-models/results/*
-!models/results/.gitkeep
+results/*
+!results/.gitkeep
 **/__pycache__

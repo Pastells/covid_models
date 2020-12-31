@@ -3,11 +3,11 @@
 
 %PARAMS
 --n integer [10000,1000000]
---beta1 real [0.1,1.0]
---beta2 real [0.1,1.0]
---delta1 real [0.1,1.0]
---delta2 real [0.1,1.0]
---epsilon real [0.1,1.0]
+--beta_i real [0.1,1.0]
+--beta_a real [0.1,1.0]
+--delta_i real [0.1,1.0]
+--delta_a real [0.1,1.0]
+--alpha real [0.1,1.0]
 --k_inf integer [1,5]
 --k_rec integer [1,5]
 --k_lat integer [1,5]
@@ -24,7 +24,7 @@ python3 -m venv ./venv
 ./venv/bin/pip install numpy
 
 %EXECUTION
-./venv/bin/python -u ./seir_erlang.py \
+./venv/bin/python -u ./sair_erlang.py \
 --data ${instance} \
 --seed ${seed} \
 --timeout ${timeout} \
