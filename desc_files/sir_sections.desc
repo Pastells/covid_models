@@ -1,5 +1,5 @@
 %DATA
-./italy_i.csv
+./italy_i.dat
 
 %PARAMS
 --n01 integer [10000,1000000]
