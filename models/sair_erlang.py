@@ -22,11 +22,11 @@ from utils import utils, config
 def main():
     args = parsing()
     # print(args)
-    t_total, infected_time_series, rates, shapes = parameters_init(args)
+    t_total, time_series, rates, shapes = parameters_init(args)
 
     # results per day and seed
     I_day, I_m = (
-        np.zeros([args.mc_nseed, t_total]),
+        np.zeros([args.mc_nseed, t_total]).astype(int),
         np.zeros(t_total),
     )
 
@@ -45,13 +45,10 @@ def main():
         I_day[mc_step, 0] = args.I_0
         # T = np.zeros(n_t_steps)
         # T[0]=0
-        t_step, time, day = 0, 0, 1
+        t_step, time = 0, 0
 
         # Time loop
-        while comp.I[t_step, :-1].sum() > 0 and day < t_total:
-            day, day_max = utils.day_data(
-                time, t_total, day, day_max, comp.I[t_step, :-1].sum(), I_day[mc_step]
-            )
+        while comp.I[t_step, :-1].sum() > 0 and time < t_total:
             t_step, time = gillespie(
                 t_total,
                 t_step,
@@ -65,21 +62,22 @@ def main():
 
         # -------------------------
 
-        """
-        if plot:
-            plt.plot(T[:t_step], S[:t_step, :-1].sum(1), c='r')
-            plt.plot(T[:t_step], A[:t_step, :-1, 0].sum(1), c='g')
-            plt.plot(T[:t_step], A[:t_step, :-1, 1].sum(1), c='b')
-            plt.plot(T[:t_step], I[:t_step, :-1].sum(1), c='c')
-            plt.plot(T[:t_step], R[:t_step], c='m')
-        """
+        if config.CUMULATIVE is True:
+            i_var = comp.I_cum
+        else:
+            i_var = comp.I[:, :-1].sum(axis=1)
+
+        day_max = utils.day_data(comp.T[:t_step], i_var[:t_step], I_day[mc_step])
 
         mc_step += 1
     # =========================
 
     I_m, I_std = utils.mean_alive(I_day, t_total, day_max, args.mc_nseed)
 
-    utils.cost_func(infected_time_series, I_m, I_std)
+    if config.CUMULATIVE is True:
+        utils.cost_func(time_series[:, 3], I_m, I_std)
+    else:
+        utils.cost_func(time_series[:, 0], I_m, I_std)
 
     if args.save is not None:
         utils.saving(args, I_m, I_std, day_max)
@@ -169,7 +167,7 @@ def parsing():
 
 def parameters_init(args):
     """Initial parameters from argparse"""
-    t_total, infected_time_series = utils.parameters_init_common(args)
+    t_total, time_series = utils.parameters_init_common(args)
 
     shapes = {"k_inf": args.k_inf, "k_rec": args.k_rec, "k_lat": args.k_lat}
     rates = {
@@ -179,7 +177,7 @@ def parameters_init(args):
         "delta_i": args.delta_i * args.k_rec,
         "alpha": args.alpha * args.k_lat,
     }
-    return t_total, infected_time_series, rates, shapes
+    return t_total, time_series, rates, shapes
 
 
 # -------------------------
@@ -190,10 +188,11 @@ class Compartments:
 
     def __init__(self, shapes, args):
         """Initialization"""
-        self.S = np.zeros([args.n_t_steps, shapes["k_inf"] + 1])
-        self.A = np.zeros([args.n_t_steps, shapes["k_lat"] + 1, 2])
-        self.I = np.zeros([args.n_t_steps, shapes["k_rec"] + 1])
-        self.R = np.zeros(args.n_t_steps)
+        self.S = np.zeros([args.n_t_steps, shapes["k_inf"] + 1]).astype(int)
+        self.A = np.zeros([args.n_t_steps, shapes["k_lat"] + 1, 2]).astype(int)
+        self.I = np.zeros([args.n_t_steps, shapes["k_rec"] + 1]).astype(int)
+        self.R = np.zeros(args.n_t_steps).astype(int)
+        self.T = np.zeros(args.n_t_steps)
 
         # Used for both sair_erlang and sair_erlang sections, where args.n is a vector
         try:
@@ -204,6 +203,9 @@ class Compartments:
         self.S[0, -1] = self.A[0, :-1] = args.A_0 / shapes["k_lat"]
         self.A[0, -1] = self.I[0, :-1] = args.I_0 / shapes["k_rec"]
         self.I[0, -1] = self.R[0] = args.R_0
+        self.T[0] = 0
+        self.I_cum = np.zeros(args.n_t_steps).astype(int)
+        self.I_cum[0] = args.I_0
 
     def asymptomatic_adv_s(self, t_step, k):
         """Turn asymptomatic or advance in S
@@ -215,6 +217,7 @@ class Compartments:
         self.S[t_step, k + 1] = 1
         self.A[t_step, 0] += self.S[t_step, -1]
         self.S[t_step] += self.S[t_step - 1]
+        self.I_cum[t_step] = self.I_cum[t_step - 1]
 
     def infect_adv_a(self, t_step, k):
         """Turn infectious or advance in A
@@ -227,6 +230,7 @@ class Compartments:
         self.I[t_step, 0] += self.A[t_step, -1, 1]
         self.A[t_step, 0, 0] = self.A[t_step, 0, 1]
         self.A[t_step] += self.A[t_step - 1]
+        self.I_cum[t_step] = self.I_cum[t_step - 1] + self.S[t_step, -1]
 
     def recover_adv_a(self, t_step, k):
         """Recover or advance in A
@@ -238,6 +242,7 @@ class Compartments:
         self.R[t_step] = self.R[t_step - 1] + self.A[t_step, -1, 0]
         self.A[t_step, 0, 1] = self.A[t_step, 0, 0]
         self.A[t_step] += self.A[t_step - 1]
+        self.I_cum[t_step] = self.I_cum[t_step - 1]
 
     def recover_adv_i(self, t_step, k):
         """Recover or advance in I
@@ -248,6 +253,7 @@ class Compartments:
         self.I[t_step, k + 1] = 1
         self.R[t_step] = self.R[t_step - 1] + self.I[t_step, -1]
         self.I[t_step] += self.I[t_step - 1]
+        self.I_cum[t_step] = self.I_cum[t_step - 1]
 
 
 # -------------------------
@@ -293,7 +299,7 @@ def gillespie(
     time += utils.time_dist(lambda_sum)
     if time > t_total:
         return t_step, True  # rare,  but sometimes long times may appear
-    # T[t_step] = time
+    comp.T[t_step] = time
 
     gillespie_step(t_step, comp, probs, shapes)
     return t_step, time

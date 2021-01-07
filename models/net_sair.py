@@ -21,12 +21,12 @@ from utils import utils, utils_net, config
 
 def main():
     args = parsing()
+    t_total, time_series, rates = parameters_init(args)
     # print(args)
-    t_total, infected_time_series, rates = parameters_init(args)
 
     # results per day and seed
     I_day, I_m = (
-        np.zeros([args.mc_nseed, t_total]),
+        np.zeros([args.mc_nseed, t_total]).astype(int),
         np.zeros(t_total),
     )
 
@@ -40,8 +40,9 @@ def main():
 
         G = utils_net.choose_network(args.n, args.network, args.network_param)
         t, S, A, I, R = fast_sair.fast_SAIR(
-            G, rates, args.A_0, args.I_0, args.R_0, tmax=t_total - 0.9
+            G, rates, args.A_0, args.I_0, args.R_0, tmax=t_total - 0.95
         )
+
         import matplotlib.pyplot as plt
 
         plt.plot(t, S)
@@ -50,21 +51,23 @@ def main():
         plt.plot(t, R)
 
         I_day[mc_step, 0] = args.I_0
-        day = 1
-        for t, time in enumerate(t):
-            day, day_max = utils.day_data(
-                time, t_total, day, day_max, I[t], I_day[mc_step]
-            )
-        day, day_max = utils.day_data(
-            time, t_total, day, day_max, I[-1], I_day[mc_step], True
-        )
+
+        if config.CUMULATIVE is True:
+            i_var = I + R
+        else:
+            i_var = I
+
+        day_max = utils.day_data(t, i_var, I_day[mc_step])
 
         mc_step += 1
     # =========================
 
     I_m, I_std = utils.mean_alive(I_day, t_total, day_max, args.mc_nseed)
 
-    utils.cost_func(infected_time_series, I_m, I_std)
+    if config.CUMULATIVE is True:
+        utils.cost_func(time_series[:, 3], I_m, I_std)
+    else:
+        utils.cost_func(time_series[:, 0], I_m, I_std)
 
     if args.save is not None:
         utils.saving(args, I_m, I_std, day_max)
@@ -154,7 +157,7 @@ def parsing():
 
 def parameters_init(args):
     """initial parameters from argparse"""
-    t_total, infected_time_series = utils.parameters_init_common(args)
+    t_total, time_series = utils.parameters_init_common(args)
 
     rates = {
         "beta_a": args.beta_a,
@@ -164,7 +167,7 @@ def parameters_init(args):
         "alpha": args.alpha,
     }
 
-    return t_total, infected_time_series, rates
+    return t_total, time_series, rates
 
 
 # -------------------------

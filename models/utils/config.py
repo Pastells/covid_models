@@ -10,15 +10,17 @@ E_0 = None
 A_0 = None
 I_0 = None
 R_0 = 0
+D_0 = 0
 
 # Parameters
-N = 81600
-BETA = 0.89  # BETA_I
-DELTA = 0.64  # DELTA_I
+N = 41300
+BETA = 7.9e-6 * N  # BETA_I
+DELTA = 0.0213 + 0.0163  # DELTA_I
 BETA_A = 0.01
 DELTA_A = 0.01
 ALPHA = 1
 EPSILON = 1
+THETA = 0.0163 / DELTA
 
 K_INF = 1
 K_REC = 1
@@ -49,9 +51,9 @@ SEED = 1
 TIMEOUT = 1200
 
 # Data
-DATA = "/home/pol/Documents/iiia_udl/programs/data/italy_i.csv"
-DAY_MIN = 33
-DAY_MAX = 83
+DATA = "/home/pol/Documents/iiia_udl/programs/data/italy.dat"
+DAY_MIN = 30
+DAY_MAX = 55
 UNDIAGNOSED = 0  # 89.4, from Alex Arenas 2020 paper (Physical Review X, 10(4), 041055.)
 
 # ---------------------------------------
@@ -59,4 +61,4 @@ UNDIAGNOSED = 0  # 89.4, from Alex Arenas 2020 paper (Physical Review X, 10(4), 
 # ---------------------------------------
 
 # Work with new daily cases (if False) or cumulative data (if True)
-CUMULATIVE = True
+CUMULATIVE = False

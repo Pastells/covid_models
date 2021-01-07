@@ -25,11 +25,11 @@ from utils import utils, config
 def main():
     args = parsing()
     # print(args)
-    t_total, infected_time_series, n_sections = parameters_init(args)
+    t_total, time_series, n_sections = parameters_init(args)
 
     # results per day and seed
     I_day, I_m = (
-        np.zeros([args.mc_nseed, t_total]),
+        np.zeros([args.mc_nseed, t_total]).astype(int),
         np.zeros(t_total),
     )
 
@@ -56,7 +56,7 @@ def main():
 
         comp = sir_erlang.Compartments(shapes, args)
 
-        t_step, time, day = 0, 0, 1
+        t_step, time = 0, 0
         I_day[mc_step, 0] = args.I_0
         index_n = 1  # just to avoid pylint complaining
 
@@ -64,7 +64,7 @@ def main():
         while section < n_sections:
             # print("section", section)
             # Time loop
-            while comp.I[t_step, :-1].sum() > 0 and day < section_day:
+            while comp.I[t_step, :-1].sum() > 0 and time < section_day:
                 # print(time, day, section_day)
 
                 # add individuals
@@ -75,14 +75,6 @@ def main():
                     else:
                         n_ind = None
 
-                day, day_max = utils.day_data(
-                    time,
-                    t_total,
-                    day,
-                    day_max,
-                    comp.I[t_step, :-1].sum(),
-                    I_day[mc_step],
-                )
                 t_step, time = gillespie(
                     t_step,
                     time,
@@ -107,19 +99,24 @@ def main():
                 if n_ind is not None:
                     comp.S[t_step, :-1] += n_ind[0, 0] / shapes["k_inf"]
                 index_n = 1
-
         # -------------------------
 
-        # plot all trajectories
-        # if plot:
-        # plt.plot(I_day[mc_step,:])
-        # plt.plot(T[:t_step],i[:t_step,:-1].sum(1),c='c')
+        if config.CUMULATIVE is True:
+            i_var = comp.I_cum
+        else:
+            i_var = comp.I[:, :-1].sum(axis=1)
+
+        day_max = utils.day_data(comp.T[:t_step], i_var[:t_step], I_day[mc_step])
+
         mc_step += 1
     # =========================
 
     I_m, I_std = utils.mean_alive(I_day, t_total, day_max, args.mc_nseed)
 
-    utils.cost_func(infected_time_series, I_m, I_std)
+    if config.CUMULATIVE is True:
+        utils.cost_func(time_series[:, 3], I_m, I_std)
+    else:
+        utils.cost_func(time_series[:, 0], I_m, I_std)
 
     if args.save is not None:
         utils.saving(args, I_m, I_std, day_max)
@@ -209,10 +206,10 @@ def parsing():
 
 def parameters_init(args):
     """Initial parameters from argparse"""
-    t_total, infected_time_series = utils.parameters_init_common(args)
+    t_total, time_series = utils.parameters_init_common(args)
 
     n_sections = len(args.section_days) - 1
-    return t_total, infected_time_series, n_sections
+    return t_total, time_series, n_sections
 
 
 # -------------------------
@@ -253,6 +250,7 @@ def gillespie(t_step, time, section_day_old, comp, rates, rates_old, shapes):
 
     t_step += 1
     time += utils.time_dist(lambda_sum)
+    comp.T[t_step] = time
 
     sir_erlang.gillespie_step(t_step, comp, probs, shapes)
     return t_step, time

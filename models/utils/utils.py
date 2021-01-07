@@ -121,46 +121,19 @@ def time_dist(lambd):
 # -------------------------
 
 
-def day_data(time, t_total, day, day_max, I, I_day, last_event=False):
-    """
-    Write number of infected per day instead of event
-    Also tracks day_max
+def day_data(times, values, values_day):
+    """ Values per day instead of event"""
 
-    I :  number of infected for the last event, i.e. I[t]
-    I_day : number of infected when time is a day multiple for the current seed,
-            i.e. I_day[mc_seed]
+    day_max = int(times.max()) + 1
 
-    :Returns:
+    for day in range(day_max):
+        values_day[day] = values[np.searchsorted(times, day)]
 
-    day : adds one, or one + days_jumped if an event was slow
-    day_max : updates if day is bigger than the resulting from previous seeds
+    for day in range(1, day_max - 1):
+        if values_day[day] == values_day[day + 1]:
+            values_day[day] = values_day[day - 1]
 
-    :Modifies:
-
-    I_day : adds the infected number for day (before updating), if several days have
-            elapsed they all get the same value as the previous
-
-    if last_event:
-        # final value for rest of time, otherwise contributes with zero when averaged
-        _days_jumped = int(time - day)
-        max_days = min(day + _days_jumped + 1, t_total)
-        I_day[day : max_days - 1] = I_day[day - 1]
-        I_day[max_days - 1] = I
-        day = max_days
-        day_max = max(day_max, day)
-        return day, day_max
-    """
-    if (time // day == 1) and (day < t_total):
-        _days_jumped = int(time - day)
-        max_days = min(day + _days_jumped + 1, t_total)
-        I_day[day : max_days - 1] = I_day[day - 1]
-        I_day[max_days - 1] = I
-        # print(time, day, _days_jumped, max_days, t_total)
-        # print(I_day, I)
-        day = max_days
-        day_max = max(day_max, day)
-        return day, day_max
-    return day, day_max
+    return day_max
 
 
 # -------------------------
@@ -169,9 +142,9 @@ def day_data(time, t_total, day, day_max, I, I_day, last_event=False):
 def mean_alive(I_day, t_total, day_max, nseed):
     """
     Given that we already have a pandemic to study,
-    we average only the alive realizations after an
-    (arbitrary) time equal to half the time of the longest
-    realization
+    we average only the alive realizations after:
+     a) an (arbitrary) time equal to half the time of the longest realization
+     b) the whole time (useful at the beginning of the pandemic)
     The running variance is computed according to:
         https://www.johndcook.com/blog/standard_deviation/
 
@@ -185,7 +158,9 @@ def mean_alive(I_day, t_total, day_max, nseed):
     I_day : adds the infected number for day (before updating), if several days have
             elapsed they all get the same value as the previous
     """
-    check_realization_alive = day_max // 2
+    # check_realization_alive = day_max // 2
+    check_realization_alive = day_max - 1
+    alive_realizations = 0
 
     # first seed alive
     for day in range(nseed):
@@ -255,20 +230,16 @@ def saving(args, I_m, I_std, day_max):
         filename += ".dat"
         print(filename)
 
-    I_cum = 0
-    I_cum_std = 0
     with open(filename, "w") as out_file:
         out_file.write("#")
         for key, value in vars(args).items():
             out_file.write(f"--{key} {value} ")
         out_file.write("\n")
-        out_file.write("# day        I_m        I_std        I_cum    I_cum_std\n")
+        out_file.write("# day        I_m        I_std\n")
 
-        form = "{:3.0f} {:12.2f} {:12.2f} {:12.2f} {:12.2f} \n"
+        form = "{:3.0f} {:12.2f} {:12.2f}\n"
         for day in range(day_max):
-            I_cum += I_m[day]
-            I_cum_std += I_std[day]
-            out_file.write(form.format(day, I_m[day], I_std[day], I_cum, I_cum_std))
+            out_file.write(form.format(day, I_m[day], I_std[day]))
 
 
 # ~~~~~~~~~~~~~~~~~~~
@@ -276,57 +247,51 @@ def saving(args, I_m, I_std, day_max):
 # ~~~~~~~~~~~~~~~~~~~
 
 
-def cost_func(infected_time_series, I_m, I_std):
+def cost_func(time_series, I_m, I_std):
     """compute cost function with a weighted mean squared error
     comparing with data from input
-    if config.CUMULATIVE is True us cumulative data
+    if config.CUMULATIVE is True uses cumulative data
+
+    Can also be used with R_m or D_m instead of I_m
 
     :Input:
 
-    I_m :  number of _new_ infected per day
-
-    :Generates:
-
-    I_cum :  number of _cumulative_ infected
+    I_m   : mean number infected per day
+    I_std : standard deviation for I_m
 
     """
 
     import sys
+    import warnings
 
-    pad = len(infected_time_series) - len(I_m)
+    warnings.filterwarnings("error")
+
+    pad = len(time_series) - len(I_m)
 
     if pad > 0:
         I_m = np.pad(I_m, (0, pad), "constant")
         I_std = np.pad(I_std, (0, pad), "constant")
 
     cost = 0
-    if config.CUMULATIVE is True:
-        I_cum = 0
-        I_cum_std = 0
-        for day, _ in enumerate(infected_time_series):
-            I_cum += I_m[day]
-            I_cum_std += I_std[day]
-            cost += abs(I_cum - infected_time_series[day]) / infected_time_series[day]
+    for day, _ in enumerate(time_series):
+        # catch division by zero
+        try:
+            cost += abs(I_m[day] - time_series[day]) / time_series[day]
+        except RuntimeWarning:
+            cost += abs(I_m[day])
 
-            """print(
-                day,
-                "{:12.2f}".format(I_cum),
-                "{:10.2f}".format(infected_time_series[day]),
-                "{:12.2f}".format(abs(I_cum - infected_time_series[day])),
-                "{:5.2f}".format(
-                    abs(I_cum - infected_time_series[day]) / infected_time_series[day]
-                ),
-                "{:12.2f}".format(cost),
-            )"""
-
-        sys.stdout.write(f"GGA SUCCESS {cost}\n")
-        return
-
-    for day, _ in enumerate(infected_time_series):
-        cost += abs(I_m[day] - infected_time_series[day]) / infected_time_series[day]
+        """print(
+            day,
+            "{:10.2f}".format(time_series[day]),
+            "{:12.2f}".format(abs(I_m[day] - time_series[day])),
+            "{:5.2f}".format(
+                abs(I_m[day] - time_series[day]) / time_series[day]
+            ),
+            "{:12.2f}".format(cost),
+        )"""
 
     # Normalize with number of days
-    cost = cost / day
+    cost = cost / len(time_series) * 100
 
     sys.stdout.write(f"GGA SUCCESS {cost}\n")
 
@@ -334,7 +299,7 @@ def cost_func(infected_time_series, I_m, I_std):
 # -------------------------
 
 
-def parser_common(parser, A_0=False, E_0=False):
+def parser_common(parser, A_0=False, E_0=False, D_0=False):
     """ create init, configuraten, data and actions groups for the parser"""
 
     parser_init = parser.add_argument_group("initial conditions")
@@ -350,7 +315,6 @@ def parser_common(parser, A_0=False, E_0=False):
             help="initial number of asymptomatic individuals \
                 if None is specified is set to first day of input data",
         )
-
     if E_0 is True:
         parser_init.add_argument(
             "--E_0",
@@ -359,7 +323,6 @@ def parser_common(parser, A_0=False, E_0=False):
             help="initial number of latent individuals \
                 if None is specified is set to first day of input data",
         )
-
     parser_init.add_argument(
         "--I_0",
         type=int,
@@ -373,6 +336,13 @@ def parser_common(parser, A_0=False, E_0=False):
         default=config.R_0,
         help="initial number of inmune individuals",
     )
+    if D_0 is True:
+        parser_init.add_argument(
+            "--D_0",
+            type=int,
+            default=config.D_0,
+            help="initial number of dead individuals",
+        )
 
     parser_config.add_argument(
         "--seed",
@@ -441,28 +411,26 @@ def parser_common(parser, A_0=False, E_0=False):
 
 def parameters_init_common(args):
     """initial parameters from argparse"""
-    from numpy import genfromtxt
 
     t_total = args.day_max - args.day_min  # max simulated days
-    infected_time_series = (
-        genfromtxt(args.data, delimiter=",")[args.day_min : args.day_max]
-        * 100
-        / (100 - args.undiagnosed)
-    )
+    time_series = np.loadtxt(args.data, delimiter=",").astype(int)[
+        args.day_min : args.day_max
+    ]
 
-    if config.CUMULATIVE is False:
-        for day in range(len(infected_time_series) - 1, 0, -1):
-            infected_time_series[day] = (
-                infected_time_series[day] - infected_time_series[day - 1]
-            )
+    # Scale for undiagnosed cases
+    if args.undiagnosed != 0:
+        time_series[:, 0] = (time_series[:, 0] * 100 / (100 - args.undiagnosed)).astype(
+            int
+        )
+        time_series[:, 3] = time_series[:, 0:3].sum(axis=1)
 
     if args.I_0 is None:
-        args.I_0 = int(infected_time_series[0])
+        args.I_0 = int(time_series[0, 0])
 
-    if (hasattr(args, "E_0")) and (args.A_0 is None):
-        args.E_0 = int(infected_time_series[0])
+    if (hasattr(args, "E_0")) and (args.E_0 is None):
+        args.E_0 = int(time_series[0, 0])
 
     if (hasattr(args, "A_0")) and (args.A_0 is None):
-        args.A_0 = int(infected_time_series[0])
+        args.A_0 = int(time_series[0, 0])
 
-    return t_total, infected_time_series
+    return t_total, time_series
