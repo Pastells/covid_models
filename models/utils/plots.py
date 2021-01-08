@@ -2,24 +2,41 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
-from . import config
+from . import config, utils
+
+
+def error_plot(var_m, day_max, label):
+    """Generate errorbar plot for given variable"""
+    plt.errorbar(
+        np.arange(day_max),
+        var_m[:day_max, 0],
+        yerr=var_m[:day_max, 1],
+        marker="o",
+        ls="",
+        label=label,
+    )
+
+
+def show_save(save=None, name=None):
+    """Add legend, save if wanted and show"""
+    plt.legend()
+    if save is not None:
+        plt.savefig(save + name)
+    plt.show()
 
 
 def plotting(
     args,
-    I_day,
     day_max,
     I_m,
-    I_std,
     R_m=None,
-    R_std=None,
     D_m=None,
-    D_std=None,
     comp=None,
     t_step=None,
 ):
     """ If --plot is added makes some plots"""
-    from numpy import genfromtxt
+
+    time_series = utils.get_time_series(args)
 
     if comp is not None:
         plt.plot(comp.T[:t_step], comp.S[:t_step], label="S single realization")
@@ -32,39 +49,18 @@ def plotting(
         plt.plot(comp.T[:t_step], suma[:t_step], label="total")
 
     if R_m is not None:
-        plt.errorbar(
-            np.arange(day_max),
-            R_m[:day_max],
-            yerr=R_std[:day_max],
-            marker="o",
-            ls="",
-            label="Recovered cases",
-        )
+        error_plot(R_m, day_max, "Recoverd cases")
+
+    if D_m is not None:
+        error_plot(D_m, day_max, "Death cases")
 
     if config.CUMULATIVE is True:
         i_label = "Cumulative infected cases"
     else:
         i_label = "Daily infected cases"
 
-    plt.errorbar(
-        np.arange(day_max),
-        I_m[:day_max],
-        yerr=I_std[:day_max],
-        marker="o",
-        ls="",
-        label=i_label,
-    )
-    plt.legend()
-    plt.show()
-
-    time_series = np.loadtxt(args.data, delimiter=",").astype(int)[
-        args.day_min : args.day_max
-    ]
-    if args.undiagnosed != 0:
-        time_series[:, 0] = (time_series[:, 0] * 100 / (100 - args.undiagnosed)).astype(
-            int
-        )
-        time_series[:, 3] = time_series[:, 0:3].sum(axis=1)
+    error_plot(I_m, day_max, i_label)
+    show_save()
 
     if config.CUMULATIVE is True:
         I_daily_m = np.copy(I_m)
@@ -79,41 +75,23 @@ def plotting(
             label="Daily infected cases",
         )
     else:
-        plt.errorbar(
-            np.arange(day_max),
-            I_m[:day_max],
-            yerr=I_std[:day_max],
-            marker="o",
-            ls="",
-            label="Daily infected cases",
-        )
+        error_plot(I_m, day_max, "Daily infected cases")
 
     plt.plot(time_series[:, 0], "o", label="data")
-    plt.legend()
-    if args.save is not None:
-        plt.savefig(args.save + "_daily.png")
-    plt.show()
+
+    show_save(args.save, "_daily.png")
 
     if config.CUMULATIVE is True:
+        error_plot(I_m, day_max, "Cumulative infected cases")
 
-        plt.errorbar(
-            np.arange(day_max),
-            I_m[:day_max],
-            yerr=I_std[:day_max],
-            marker="o",
-            ls="",
-            label="Cumulative infected cases",
-        )
     elif comp is not None:
         plt.plot(
             comp.T[:t_step], comp.I_cum[:t_step], label="Cumulative infected cases"
         )
 
     plt.plot(time_series[:, 3], "o", label="data")
-    plt.legend()
-    if args.save is not None:
-        plt.savefig(args.save + "_cumulative.png")
-    plt.show()
+
+    show_save(args.save, "_cumulative.png")
 
     # S_m = S_day.mean(0)
     # I_m = I_day.mean(0)

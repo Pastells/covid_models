@@ -25,14 +25,11 @@ from utils import utils, config
 # %%%%%%%%%%%%%%%%%%%%%%%%%
 def main():
     args = parsing()
-    # print(args)
     t_total, time_series, n_sections = parameters_init(args)
+    # print(args)
 
     # results per day and seed
-    I_day, I_m = (
-        np.zeros([args.mc_nseed, t_total]).astype(int),
-        np.zeros(t_total),
-    )
+    I_day = np.zeros([args.mc_nseed, t_total], dtype=int)
 
     mc_step, day_max = 0, 0
     # =========================
@@ -110,20 +107,20 @@ def main():
         mc_step += 1
     # =========================
 
-    I_m, I_std = utils.mean_alive(I_day, t_total, day_max, args.mc_nseed)
+    I_m = utils.mean_alive(I_day, t_total, day_max, args.mc_nseed)
 
     if config.CUMULATIVE is True:
-        utils.cost_func(time_series[:, 3], I_m, I_std)
+        utils.cost_func(time_series[:, 3], I_m)
     else:
-        utils.cost_func(time_series[:, 0], I_m, I_std)
+        utils.cost_func(time_series[:, 0], I_m)
 
     if args.save is not None:
-        utils.saving(args, I_m, I_std, day_max)
+        utils.saving(args, I_m, day_max)
 
     if args.plot:
         from utils import plots
 
-        plots.plotting(args, I_day, day_max, I_m, I_std)
+        plots.plotting(args, day_max, I_m)  # , comp=comp, t_step=t_step)
 
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%

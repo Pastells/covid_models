@@ -28,10 +28,7 @@ def main():
     t_total, time_series, rates, shapes = parameters_init(args)
 
     # results per day and seed
-    I_day, I_m = (
-        np.zeros([args.mc_nseed, t_total]).astype(int),
-        np.zeros(t_total),
-    )
+    I_day = np.zeros([args.mc_nseed, t_total], dtype=int)
 
     mc_step, day_max = 0, 0
     # =========================
@@ -63,20 +60,20 @@ def main():
         mc_step += 1
     # =========================
 
-    I_m, I_std = utils.mean_alive(I_day, t_total, day_max, args.mc_nseed)
+    I_m = utils.mean_alive(I_day, t_total, day_max, args.mc_nseed)
 
     if config.CUMULATIVE is True:
-        utils.cost_func(time_series[:, 3], I_m, I_std)
+        utils.cost_func(time_series[:, 3], I_m)
     else:
-        utils.cost_func(time_series[:, 0], I_m, I_std)
+        utils.cost_func(time_series[:, 0], I_m)
 
     if args.save is not None:
-        utils.saving(args, I_m, I_std, day_max)
+        utils.saving(args, I_m, day_max)
 
     if args.plot:
         from utils import plots
 
-        plots.plotting(args, I_day, day_max, I_m, I_std)
+        plots.plotting(args, day_max, I_m)  # , comp=comp, t_step=t_step)
 
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%
@@ -153,9 +150,9 @@ class Compartments:
 
     def __init__(self, shapes, args):
         """Initialization"""
-        self.S = np.zeros([args.n_t_steps, shapes["k_inf"] + 1]).astype(int)
-        self.I = np.zeros([args.n_t_steps, shapes["k_rec"] + 1]).astype(int)
-        self.R = np.zeros(args.n_t_steps).astype(int)
+        self.S = np.zeros([args.n_t_steps, shapes["k_inf"] + 1], dtype=int)
+        self.I = np.zeros([args.n_t_steps, shapes["k_rec"] + 1], dtype=int)
+        self.R = np.zeros(args.n_t_steps, dtype=int)
         self.T = np.zeros(args.n_t_steps)
 
         # Used for both sir_erlang and sir_erlang sections, where args.n is a vector
@@ -167,7 +164,7 @@ class Compartments:
         self.S[0, -1] = self.I[0, :-1] = args.I_0 / shapes["k_rec"]
         self.I[0, -1] = self.R[0] = args.R_0
         self.T[0] = 0
-        self.I_cum = np.zeros(args.n_t_steps).astype(int)
+        self.I_cum = np.zeros(args.n_t_steps, dtype=int)
         self.I_cum[0] = args.I_0
 
     def infect_adv_s(self, t_step, k):

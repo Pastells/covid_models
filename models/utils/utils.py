@@ -121,17 +121,17 @@ def time_dist(lambd):
 # -------------------------
 
 
-def day_data(times, values, values_day):
+def day_data(times, var, var_day):
     """ Values per day instead of event"""
 
     day_max = int(times.max()) + 1
 
     for day in range(day_max):
-        values_day[day] = values[np.searchsorted(times, day)]
+        var_day[day] = var[np.searchsorted(times, day)]
 
     for day in range(1, day_max - 1):
-        if values_day[day] == values_day[day + 1]:
-            values_day[day] = values_day[day - 1]
+        if var_day[day] == var_day[day + 1]:
+            var_day[day] = var_day[day - 1]
 
     return day_max
 
@@ -139,7 +139,7 @@ def day_data(times, values, values_day):
 # -------------------------
 
 
-def mean_alive(I_day, t_total, day_max, nseed):
+def mean_alive(var_day, t_total, day_max, nseed):
     """
     Given that we already have a pandemic to study,
     we average only the alive realizations after:
@@ -150,12 +150,11 @@ def mean_alive(I_day, t_total, day_max, nseed):
 
     :Returns:
 
-    I_m :mean
-    I_std : standard deviation
+    var_m : array with mean and standard deviation
 
     :Modifies:
 
-    I_day : adds the infected number for day (before updating), if several days have
+    var_day : adds the infected number for day (before updating), if several days have
             elapsed they all get the same value as the previous
     """
     # check_realization_alive = day_max // 2
@@ -164,28 +163,28 @@ def mean_alive(I_day, t_total, day_max, nseed):
 
     # first seed alive
     for day in range(nseed):
-        if I_day[day, check_realization_alive] != 0:
-            _x_var = I_day[day]
+        if var_day[day, check_realization_alive] != 0:
+            _x_var = var_day[day]
             alive_realizations = 1
             _s_var = np.zeros(t_total)
-            I_m = _x_var
+            var_m = _x_var
             break
 
     for j in range(day + 1, nseed):
-        if I_day[j, check_realization_alive] != 0:
+        if var_day[j, check_realization_alive] != 0:
             alive_realizations += 1
-            _x_var = I_day[j]
-            _I_m_1 = I_m
-            I_m = _I_m_1 + (_x_var - _I_m_1) / alive_realizations
-            _s_var = _s_var + (_x_var - _I_m_1) * (_x_var - I_m)
+            _x_var = var_day[j]
+            var_m_1 = var_m
+            var_m = var_m_1 + (_x_var - var_m_1) / alive_realizations
+            _s_var = _s_var + (_x_var - var_m_1) * (_x_var - var_m)
 
     if alive_realizations < 1:
         raise ValueError("Not enough alive realizations")
     if alive_realizations == 1:
         # raise ValueError("Not enough alive realizations")
-        I_std = I_m * 0.0
+        var_std = var_m * 0.0
     else:
-        I_std = np.sqrt(_s_var / (alive_realizations - 1))
+        var_std = np.sqrt(_s_var / (alive_realizations - 1))
 
     if nseed - alive_realizations > nseed * 0.1:
         sys.stderr.write("The initial number of infected may be too low\n")
@@ -193,13 +192,14 @@ def mean_alive(I_day, t_total, day_max, nseed):
             f"Alive realizations after {check_realization_alive} days = {alive_realizations},\
               out of {nseed}\n"
         )
-    return I_m, I_std
+    # return var_m, var_std
+    return np.column_stack([var_m, var_std])
 
 
 # -------------------------
 
 
-def saving(args, I_m, I_std, day_max):
+def saving(args, var_m, day_max):
     """If --save is added creates a file with the daily results to config.SAVE_FOLDER
     Uses the name of the program that generated it and the given name to args.save
         e.g. sir.py --save test will generate sir_test.dat
@@ -239,7 +239,7 @@ def saving(args, I_m, I_std, day_max):
 
         form = "{:3.0f} {:12.2f} {:12.2f}\n"
         for day in range(day_max):
-            out_file.write(form.format(day, I_m[day], I_std[day]))
+            out_file.write(form.format(day, var_m[day, 0], var_m[day, 1]))
 
 
 # ~~~~~~~~~~~~~~~~~~~
@@ -247,17 +247,15 @@ def saving(args, I_m, I_std, day_max):
 # ~~~~~~~~~~~~~~~~~~~
 
 
-def cost_func(time_series, I_m, I_std):
+def cost_func(time_series, var_m):
     """compute cost function with a weighted mean squared error
     comparing with data from input
     if config.CUMULATIVE is True uses cumulative data
 
-    Can also be used with R_m or D_m instead of I_m
 
     :Input:
 
-    I_m   : mean number infected per day
-    I_std : standard deviation for I_m
+    var_m : array with mean and standard deviation
 
     """
 
@@ -266,26 +264,27 @@ def cost_func(time_series, I_m, I_std):
 
     warnings.filterwarnings("error")
 
-    pad = len(time_series) - len(I_m)
-
+    """
+    pad = len(time_series) - len(var_m)
     if pad > 0:
-        I_m = np.pad(I_m, (0, pad), "constant")
-        I_std = np.pad(I_std, (0, pad), "constant")
+        var_m = np.pad(var_m, (0, pad), "constant")
+        var_std = np.pad(var_std, (0, pad), "constant")
+    """
 
     cost = 0
     for day, _ in enumerate(time_series):
         # catch division by zero
         try:
-            cost += abs(I_m[day] - time_series[day]) / time_series[day]
+            cost += abs(var_m[day, 0] - time_series[day]) / time_series[day]
         except RuntimeWarning:
-            cost += abs(I_m[day])
+            cost += abs(var_m[day, 0])
 
         """print(
             day,
             "{:10.2f}".format(time_series[day]),
-            "{:12.2f}".format(abs(I_m[day] - time_series[day])),
+            "{:12.2f}".format(abs(var_m[day, 0] - time_series[day])),
             "{:5.2f}".format(
-                abs(I_m[day] - time_series[day]) / time_series[day]
+                abs(var_m[day, 0] - time_series[day]) / time_series[day]
             ),
             "{:12.2f}".format(cost),
         )"""
@@ -409,11 +408,9 @@ def parser_common(parser, A_0=False, E_0=False, D_0=False):
 # -------------------------
 
 
-def parameters_init_common(args):
-    """initial parameters from argparse"""
-
-    t_total = args.day_max - args.day_min  # max simulated days
-    time_series = np.loadtxt(args.data, delimiter=",").astype(int)[
+def get_time_series(args):
+    """Time_series from input file"""
+    time_series = np.loadtxt(args.data, delimiter=",", dtype=int, usecols=(0, 1, 2, 3))[
         args.day_min : args.day_max
     ]
 
@@ -423,6 +420,20 @@ def parameters_init_common(args):
             int
         )
         time_series[:, 3] = time_series[:, 0:3].sum(axis=1)
+    return time_series
+
+
+# -------------------------
+
+
+def parameters_init_common(args):
+    """initial parameters from argparse"""
+
+    t_total = args.day_max - args.day_min  # max simulated days
+
+    time_series = get_time_series(args)
+    print(time_series[0])
+    print(time_series[-1])
 
     if args.I_0 is None:
         args.I_0 = int(time_series[0, 0])

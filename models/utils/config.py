@@ -12,15 +12,37 @@ I_0 = None
 R_0 = 0
 D_0 = 0
 
-# Parameters
+"""
+# Italy Parameters
 N = 41300
 BETA = 7.9e-6 * N  # BETA_I
 DELTA = 0.0213 + 0.0163  # DELTA_I
+THETA = 0.0163 / DELTA
+
+# China* Parameters
+N = 79200
+I_0 = 999
+R_0 = 10
+D_0 = 17
+BETA = 3.33e-6 * N
+DELTA = 0.018 + 0.003
+THETA = 0.003 / DELTA
+"""
+# China Parameters
+N = 83300
+I_0 = 430
+R_0 = 10
+D_0 = 15
+BETA = 3.95e-6 * N
+DELTA = 0.0353 + 0.0031
+THETA = 0.0031 / DELTA
+
+
+# Defaults
 BETA_A = 0.01
 DELTA_A = 0.01
 ALPHA = 1
 EPSILON = 1
-THETA = 0.0163 / DELTA
 
 K_INF = 1
 K_REC = 1
@@ -53,7 +75,7 @@ TIMEOUT = 1200
 # Data
 DATA = "/home/pol/Documents/iiia_udl/programs/data/italy.dat"
 DAY_MIN = 30
-DAY_MAX = 55
+DAY_MAX = 54
 UNDIAGNOSED = 0  # 89.4, from Alex Arenas 2020 paper (Physical Review X, 10(4), 041055.)
 
 # ---------------------------------------
