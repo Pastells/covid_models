@@ -27,9 +27,10 @@ D_0 = 17
 BETA = 3.33e-6 * N
 DELTA = 0.018 + 0.003
 THETA = 0.003 / DELTA
+
 """
 # China Parameters
-N = 83300
+N = 83000
 I_0 = 430
 R_0 = 10
 D_0 = 15
@@ -39,7 +40,7 @@ THETA = 0.0031 / DELTA
 
 
 # Defaults
-BETA_A = 0.01
+BETA_A = BETA / 2
 DELTA_A = 0.01
 ALPHA = 1
 EPSILON = 1
@@ -77,6 +78,14 @@ DATA = "/home/pol/Documents/iiia_udl/programs/data/italy.dat"
 DAY_MIN = 30
 DAY_MAX = 54
 UNDIAGNOSED = 0  # 89.4, from Alex Arenas 2020 paper (Physical Review X, 10(4), 041055.)
+METRICS = [
+    "sq_diff",
+    "sq_diff_weight",
+    "sq_diff_scaled",
+    "abs_diff",
+    "abs_diff_scaled",
+]
+METRIC = "sq_diff_weight"
 
 # ---------------------------------------
 # can't be changed via parser, only here

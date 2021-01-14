@@ -39,14 +39,25 @@ def plotting(
     time_series = utils.get_time_series(args)
 
     if comp is not None:
-        plt.plot(comp.T[:t_step], comp.S[:t_step], label="S single realization")
-        # plt.plot(comp.T[:t_step], comp.E[:t_step], label="E single realization")
-        # plt.plot(comp.T[:t_step], comp.A[:t_step], label="A single realization")
-        plt.plot(comp.T[:t_step], comp.I[:t_step], label="I single realization")
-        plt.plot(comp.T[:t_step], comp.I_cum[:t_step], label="C single realization")
-        plt.plot(comp.T[:t_step], comp.R[:t_step], label="R single realization")
+        every = 100
+        plt.plot(
+            comp.T[:t_step:every], comp.S[:t_step:every], label="S single realization"
+        )
+        # plt.plot(comp.T[:t_step:every], comp.E[:t_step:every], label="E single realization")
+        # plt.plot(comp.T[:t_step:every], comp.A[:t_step:every], label="A single realization")
+        plt.plot(
+            comp.T[:t_step:every], comp.I[:t_step:every], label="I single realization"
+        )
+        plt.plot(
+            comp.T[:t_step:every],
+            comp.I_cum[:t_step:every],
+            label="C single realization",
+        )
+        plt.plot(
+            comp.T[:t_step:every], comp.R[:t_step:every], label="R single realization"
+        )
         suma = comp.I + comp.R  # + comp.E + comp.A
-        plt.plot(comp.T[:t_step], suma[:t_step], label="total")
+        plt.plot(comp.T[:t_step:every], suma[:t_step:every], label="total")
 
     if R_m is not None:
         error_plot(R_m, day_max, "Recoverd cases")
@@ -77,7 +88,15 @@ def plotting(
     else:
         error_plot(I_m, day_max, "Daily infected cases")
 
-    plt.plot(time_series[:, 0], "o", label="data")
+    plt.plot(time_series[:, 0], "o", label="data I")
+
+    if R_m is not None:
+        error_plot(R_m, day_max, "Recoverd cases")
+        plt.plot(time_series[:, 1], "o", label="data R")
+
+    if D_m is not None:
+        error_plot(D_m, day_max, "Death cases")
+        plt.plot(time_series[:, 2], "o", label="data D")
 
     show_save(args.save, "_daily.png")
 

@@ -17,6 +17,8 @@ import traceback
 import numpy as np
 from utils import utils, config
 
+import matplotlib.pyplot as plt
+
 # %%%%%%%%%%%%%%%%%%%%%%%%%
 # %%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -60,24 +62,33 @@ def main():
         else:
             i_var = comp.I
 
-        day_max = utils.day_data(comp.T[:t_step], i_var[:t_step], I_day[mc_step])
-        day_max = utils.day_data(comp.T[:t_step], comp.R[:t_step], R_day[mc_step])
-        day_max = utils.day_data(comp.T[:t_step], comp.D[:t_step], D_day[mc_step])
+        day_max = utils.day_data(
+            comp.T[:t_step], i_var[:t_step], I_day[mc_step], day_max
+        )
+        day_max = utils.day_data(
+            comp.T[:t_step], comp.R[:t_step], R_day[mc_step], day_max
+        )
+        day_max = utils.day_data(
+            comp.T[:t_step], comp.D[:t_step], D_day[mc_step], day_max
+        )
 
+        plt.plot(I_day[mc_step], "orange", alpha=0.3)
         mc_step += 1
     # =========================
 
-    I_m = utils.mean_alive(I_day, t_total, day_max, args.mc_nseed)
-    R_m = utils.mean_alive(R_day, t_total, day_max, args.mc_nseed)
-    D_m = utils.mean_alive(D_day, t_total, day_max, args.mc_nseed)
+    I_m, R_m, D_m = utils.mean_alive_rd(
+        I_day, t_total, day_max, args.mc_nseed, R_day, D_day
+    )
 
     if config.CUMULATIVE is True:
-        utils.cost_func(time_series[:, 3], I_m)
+        utils.cost_func(time_series[:, 3], I_m, args.metric)
     else:
-        utils.cost_func(time_series[:, 0], I_m)
+        # utils.cost_func(time_series[:, 0], I_m)
+        cost = utils.cost_return(time_series[:, 0], I_m, args.metric)
 
-    utils.cost_func(time_series[:, 1], R_m)
-    utils.cost_func(time_series[:, 2], D_m)
+    cost += utils.cost_return(time_series[:, 1], R_m, args.metric)
+    cost += utils.cost_return(time_series[:, 2], D_m, args.metric)
+    sys.stdout.write(f"GGA SUCCESS {cost}\n")
 
     if args.save is not None:
         utils.saving(args, I_m, day_max)

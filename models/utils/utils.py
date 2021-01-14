@@ -1,4 +1,4 @@
-""" Common functions for all models """
+"""Common functions for all models"""
 
 import sys
 import random
@@ -9,16 +9,16 @@ from . import config
 
 
 def n_individuals(
-    n,
+    number,
     n_old,
     t_0=0,
     transition_days=config.TRANSITION_DAYS,
     points_per_day=config.POINTS_PER_DAY,
 ):
-    """returns a vector n_ind with n increment as a function of time:
+    """returns a vector n_ind with number increment as a function of time:
     interpolates between the two given values using a tanh"""
 
-    if (n_old is None) or (n == n_old):
+    if (n_old is None) or (number == n_old):
         return None
 
     def weight(time):
@@ -29,9 +29,9 @@ def n_individuals(
     points = points_per_day * transition_days
     n_ind = np.zeros([points + 1, 2])
     for time in range(points):
-        n_ind[time, 0] = int((n - n_old) * weight(time / 4))
+        n_ind[time, 0] = int((number - n_old) * weight(time / 4))
         n_ind[time, 1] = t_0 + time / 4
-    n_ind[-1, 0] = n - n_old
+    n_ind[-1, 0] = number - n_old
     n_ind[-1, 1] = t_0 + 4
     return n_ind
 
@@ -114,37 +114,37 @@ def monotonically_increasing(array):
 
 
 def time_dist(lambd):
-    """ Time intervals of a Poisson process follow an exponential distribution"""
+    """Time intervals of a Poisson process follow an exponential distribution"""
     return random.expovariate(lambd)
 
 
 # -------------------------
 
 
-def day_data(times, var, var_day):
-    """ Values per day instead of event"""
+def day_data(times, var, var_day, day_max):
+    """Values per day instead of event"""
 
-    day_max = int(times.max()) + 1
+    _day_max = int(times.max()) + 1
 
-    for day in range(day_max):
+    for day in range(_day_max):
         var_day[day] = var[np.searchsorted(times, day)]
 
-    for day in range(1, day_max - 1):
+    for day in range(1, _day_max - 1):
         if var_day[day] == var_day[day + 1]:
             var_day[day] = var_day[day - 1]
 
-    return day_max
+    return max(day_max, _day_max)
 
 
 # -------------------------
 
 
-def mean_alive(var_day, t_total, day_max, nseed):
+def mean_alive(var_day, t_total, day_max, mc_nseed):
     """
     Given that we already have a pandemic to study,
     we average only the alive realizations after:
-     a) an (arbitrary) time equal to half the time of the longest realization
-     b) the whole time (useful at the beginning of the pandemic)
+     a) the whole time (useful at the beginning of the pandemic)
+     b) an (arbitrary) time equal to half the time of the longest realization
     The running variance is computed according to:
         https://www.johndcook.com/blog/standard_deviation/
 
@@ -158,19 +158,19 @@ def mean_alive(var_day, t_total, day_max, nseed):
             elapsed they all get the same value as the previous
     """
     # check_realization_alive = day_max // 2
-    check_realization_alive = day_max - 1
+    check_realization_alive = t_total - 1
     alive_realizations = 0
 
-    # first seed alive
-    for day in range(nseed):
-        if var_day[day, check_realization_alive] != 0:
-            _x_var = var_day[day]
+    # first mc_nseed alive
+    for mc_seed in range(mc_nseed):
+        if var_day[mc_seed, check_realization_alive] != 0:
+            _x_var = var_day[mc_seed]
             alive_realizations = 1
             _s_var = np.zeros(t_total)
             var_m = _x_var
             break
 
-    for j in range(day + 1, nseed):
+    for j in range(mc_seed + 1, mc_nseed):
         if var_day[j, check_realization_alive] != 0:
             alive_realizations += 1
             _x_var = var_day[j]
@@ -186,14 +186,64 @@ def mean_alive(var_day, t_total, day_max, nseed):
     else:
         var_std = np.sqrt(_s_var / (alive_realizations - 1))
 
-    if nseed - alive_realizations > nseed * 0.1:
+    if mc_nseed - alive_realizations > mc_nseed * 0.1:
         sys.stderr.write("The initial number of infected may be too low\n")
         sys.stderr.write(
             f"Alive realizations after {check_realization_alive} days = {alive_realizations},\
-              out of {nseed}\n"
+              out of {mc_nseed}\n"
         )
     # return var_m, var_std
     return np.column_stack([var_m, var_std])
+
+
+# -------------------------
+
+
+def mean_alive_rd(var_day, t_total, day_max, mc_nseed, var2_day=False, var3_day=False):
+    """Same as above, except it computes means for two other variables,
+    usually R and D"""
+
+    # check_realization_alive = day_max // 2
+    check_realization_alive = day_max - 1
+    alive_realizations = 0
+
+    # first mc_nseed alive
+    for mc_seed in range(mc_nseed):
+        if var_day[mc_seed, check_realization_alive] != 0:
+            _x_var = np.array([var_day[mc_seed], var2_day[mc_seed], var3_day[mc_seed]])
+            alive_realizations = 1
+            _s_var = np.zeros([3, t_total])
+            var_m = _x_var
+            break
+
+    for j in range(mc_seed + 1, mc_nseed):
+        if var_day[j, check_realization_alive] != 0:
+            alive_realizations += 1
+            _x_var = np.array([var_day[j], var2_day[j], var3_day[j]])
+            var_m_1 = var_m
+            var_m = var_m_1 + (_x_var - var_m_1) / alive_realizations
+            _s_var = _s_var + (_x_var - var_m_1) * (_x_var - var_m)
+
+    if alive_realizations < 1:
+        raise ValueError("Not enough alive realizations")
+    if alive_realizations == 1:
+        # raise ValueError("Not enough alive realizations")
+        var_std = var_m * 0.0
+    else:
+        var_std = np.sqrt(_s_var / (alive_realizations - 1))
+
+    if mc_nseed - alive_realizations > mc_nseed * 0.1:
+        sys.stderr.write("The initial number of infected may be too low\n")
+        sys.stderr.write(
+            f"Alive realizations after {check_realization_alive} days: "
+            f"{alive_realizations} out of {mc_nseed}\n"
+        )
+
+    return (
+        np.column_stack([var_m[0], var_std[0]]),
+        np.column_stack([var_m[1], var_std[1]]),
+        np.column_stack([var_m[2], var_std[2]]),
+    )
 
 
 # -------------------------
@@ -242,21 +292,76 @@ def saving(args, var_m, day_max):
             out_file.write(form.format(day, var_m[day, 0], var_m[day, 1]))
 
 
-# ~~~~~~~~~~~~~~~~~~~
-# Output
-# ~~~~~~~~~~~~~~~~~~~
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Cost function based on different metrics to choose from
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
-def cost_func(time_series, var_m):
-    """compute cost function with a weighted mean squared error
-    comparing with data from input
+class StrCallable(object):
+    """Call a function given its name as module.function"""
+
+    def __init__(self, name):
+        self.n, self.f = name, None
+        if self.f is None:
+            modn, funcn = self.n.rsplit(".", 1)
+            self.f = getattr(sys.modules[modn], funcn)
+
+    def call(self, *a, **k):
+        output = self.f(*a, **k)
+        return output
+
+
+# -------------------------
+
+
+def sq_diff(var_m, time_series, *day):
+    """Sum of absolute differences"""
+    return (var_m - time_series) ** 2 / 1e6
+
+
+def sq_diff_weight(var_m, time_series, day):
+    """Sum of absolute differences"""
+    return (day + 1) * (var_m - time_series) ** 2 / 1e8
+
+
+def sq_diff_scaled(var_m, time_series, *day):
+    """Sum of squared differences, scaled"""
+
+    # catch division by zero
+    try:
+        cost = (var_m - time_series) ** 2 / time_series ** 2
+    except RuntimeWarning:
+        cost = var_m ** 2
+    return cost
+
+
+def abs_diff(var_m, time_series, *day):
+    """Sum of squared differences"""
+    return abs(var_m - time_series) / 1e2
+
+
+def abs_diff_scaled(var_m, time_series, *day):
+    """Sum of absolute differences, scaled"""
+
+    # catch division by zero
+    try:
+        cost = abs(var_m - time_series) / time_series
+    except RuntimeWarning:
+        cost = abs(var_m)
+    return cost * 10
+
+
+# -------------------------
+
+
+def cost_func(time_series, var_m, metric=abs_diff):
+    """compute cost function with a selected metric
+    comparing with data from input file
     if config.CUMULATIVE is True uses cumulative data
 
-
     :Input:
-
     var_m : array with mean and standard deviation
-
+    time_series : ndarray with daily data
     """
 
     import sys
@@ -271,23 +376,10 @@ def cost_func(time_series, var_m):
         var_std = np.pad(var_std, (0, pad), "constant")
     """
 
+    metric_func = StrCallable(metric)
     cost = 0
     for day, _ in enumerate(time_series):
-        # catch division by zero
-        try:
-            cost += abs(var_m[day, 0] - time_series[day]) / time_series[day]
-        except RuntimeWarning:
-            cost += abs(var_m[day, 0])
-
-        """print(
-            day,
-            "{:10.2f}".format(time_series[day]),
-            "{:12.2f}".format(abs(var_m[day, 0] - time_series[day])),
-            "{:5.2f}".format(
-                abs(var_m[day, 0] - time_series[day]) / time_series[day]
-            ),
-            "{:12.2f}".format(cost),
-        )"""
+        cost += metric_func.call(var_m[day, 0], time_series[day], day)
 
     # Normalize with number of days
     cost = cost / len(time_series) * 100
@@ -298,8 +390,25 @@ def cost_func(time_series, var_m):
 # -------------------------
 
 
+def cost_return(time_series, var_m, metric=sq_diff_weight):
+    """Same as above, but returns cost instead of
+    printing GGA success, useful for adding multiple costs"""
+    import warnings
+
+    warnings.filterwarnings("error")
+    metric_func = StrCallable(metric)
+    cost = 0
+    for day, _ in enumerate(time_series):
+        cost += metric_func.call(var_m[day, 0], time_series[day], day)
+
+    return cost / len(time_series) * 100
+
+
+# -------------------------
+
+
 def parser_common(parser, A_0=False, E_0=False, D_0=False):
-    """ create init, configuraten, data and actions groups for the parser"""
+    """create init, configuraten, data and actions groups for the parser"""
 
     parser_init = parser.add_argument_group("initial conditions")
     parser_config = parser.add_argument_group("configuraten")
@@ -398,6 +507,15 @@ def parser_common(parser, A_0=False, E_0=False, D_0=False):
         default=config.UNDIAGNOSED,
         help="percentage of undiagnosed cases, used to rescale the data",
     )
+    parser_data.add_argument(
+        "--metric",
+        type=str,
+        default=config.METRIC,
+        choices=config.METRICS,
+        help=f"Metric to use to compute the cost function, choose from \
+              {config.METRICS}",
+        metavar="",
+    )
 
     parser_act.add_argument("--plot", action="store_true", help="specify for plots")
     parser_act.add_argument(
@@ -430,10 +548,8 @@ def parameters_init_common(args):
     """initial parameters from argparse"""
 
     t_total = args.day_max - args.day_min  # max simulated days
-
     time_series = get_time_series(args)
-    print(time_series[0])
-    print(time_series[-1])
+    args.metric = __name__ + "." + args.metric
 
     if args.I_0 is None:
         args.I_0 = int(time_series[0, 0])

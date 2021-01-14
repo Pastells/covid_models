@@ -46,7 +46,7 @@ def main():
         else:
             i_var = I
 
-        day_max = utils.day_data(t, i_var, I_day[mc_step])
+        day_max = utils.day_data(t, i_var, I_day[mc_step], day_max)
 
         mc_step += 1
     # =========================
@@ -54,9 +54,9 @@ def main():
     I_m = utils.mean_alive(I_day, t_total, day_max, args.mc_nseed)
 
     if config.CUMULATIVE is True:
-        utils.cost_func(time_series[:, 3], I_m)
+        utils.cost_func(time_series[:, 3], I_m, args.metric)
     else:
-        utils.cost_func(time_series[:, 0], I_m)
+        utils.cost_func(time_series[:, 0], I_m, args.metric)
 
     if args.save is not None:
         utils.saving(args, I_m, day_max)

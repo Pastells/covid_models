@@ -8,5 +8,6 @@ models/*.sh
 models/*.tar.gz
 results/*
 !results/.gitkeep
-**/__pycache__
 data/ine/
+**/__pycache__
+**.swp
