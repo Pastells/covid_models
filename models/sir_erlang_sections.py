@@ -103,7 +103,9 @@ def main():
         else:
             i_var = comp.I[:, :-1].sum(axis=1)
 
-        day_max = utils.day_data(comp.T[:t_step], i_var[:t_step], I_day[mc_step], day_max)
+        day_max = utils.day_data(
+            comp.T[:t_step], i_var[:t_step], I_day[mc_step], day_max
+        )
 
         mc_step += 1
     # =========================

@@ -55,7 +55,9 @@ def main():
         else:
             i_var = comp.I[:, :-1].sum(axis=1)
 
-        day_max = utils.day_data(comp.T[:t_step], i_var[:t_step], I_day[mc_step], day_max)
+        day_max = utils.day_data(
+            comp.T[:t_step], i_var[:t_step], I_day[mc_step], day_max
+        )
 
         mc_step += 1
     # =========================
@@ -150,9 +152,9 @@ class Compartments:
 
     def __init__(self, shapes, args):
         """Initialization"""
-        self.S = np.zeros([args.n_t_steps, shapes["k_inf"] + 1], dtype=int)
-        self.I = np.zeros([args.n_t_steps, shapes["k_rec"] + 1], dtype=int)
-        self.R = np.zeros(args.n_t_steps, dtype=int)
+        self.S = np.zeros([args.n_t_steps, shapes["k_inf"] + 1])
+        self.I = np.zeros([args.n_t_steps, shapes["k_rec"] + 1])
+        self.R = np.zeros(args.n_t_steps)
         self.T = np.zeros(args.n_t_steps)
 
         # Used for both sir_erlang and sir_erlang sections, where args.n is a vector
@@ -160,6 +162,9 @@ class Compartments:
             self.S[0, :-1] = (args.n - args.I_0 - args.R_0) / shapes["k_inf"]
         except TypeError:
             self.S[0, :-1] = (args.n[0] - args.I_0 - args.R_0) / shapes["k_inf"]
+
+        if self.S[0, 0] < 0:
+            raise ValueError("S cannot be negative, check initial conditions")
 
         self.S[0, -1] = self.I[0, :-1] = args.I_0 / shapes["k_rec"]
         self.I[0, -1] = self.R[0] = args.R_0

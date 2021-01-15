@@ -4,9 +4,11 @@
 %PARAMS
 --n integer [10000,1000000]
 --beta real [0.1,1.0]
---delta real [0.1,1.0]
---network_type categorical {er,ba}
---network_param int [1,50]
+--delta real [0.02,0.3]
+--theta real [0.001,0.5]
+
+%INITIAL-CONFIGURATIONS
+--n 41300 --beta 0.326 --delta 0.0376 --theta 0.4335
 
 %MODULES
 python/3.6.5
@@ -17,13 +19,14 @@ python/3.6.5
 
 %ENVIRONMENT-SETUP
 python3 -m venv ./venv
-./venv/bin/pip install numpy matplotlib networkx
+./venv/bin/pip install numpy
 
 %EXECUTION
-./venv/bin/python -u ./models/net_sir.py \
+./venv/bin/python -u ./models/sird.py \
 --data ${instance} \
 --seed ${seed} \
 --timeout ${timeout} \
---day_max 45 \
---mc_nseed 5 \
+--day_min 20 \
+--day_max 54 \
+--mc_nseed 100 \
 ${@}

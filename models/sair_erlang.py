@@ -64,7 +64,9 @@ def main():
         else:
             i_var = comp.I[:, :-1].sum(axis=1)
 
-        day_max = utils.day_data(comp.T[:t_step], i_var[:t_step], I_day[mc_step], day_max)
+        day_max = utils.day_data(
+            comp.T[:t_step], i_var[:t_step], I_day[mc_step], day_max
+        )
 
         mc_step += 1
     # =========================
@@ -185,10 +187,10 @@ class Compartments:
 
     def __init__(self, shapes, args):
         """Initialization"""
-        self.S = np.zeros([args.n_t_steps, shapes["k_inf"] + 1], dtype=int)
-        self.A = np.zeros([args.n_t_steps, shapes["k_lat"] + 1, 2], dtype=int)
-        self.I = np.zeros([args.n_t_steps, shapes["k_rec"] + 1], dtype=int)
-        self.R = np.zeros(args.n_t_steps, dtype=int)
+        self.S = np.zeros([args.n_t_steps, shapes["k_inf"] + 1])
+        self.A = np.zeros([args.n_t_steps, shapes["k_lat"] + 1, 2])
+        self.I = np.zeros([args.n_t_steps, shapes["k_rec"] + 1])
+        self.R = np.zeros(args.n_t_steps)
         self.T = np.zeros(args.n_t_steps)
 
         # Used for both sair_erlang and sair_erlang sections, where args.n is a vector
@@ -201,7 +203,7 @@ class Compartments:
         self.A[0, -1] = self.I[0, :-1] = args.I_0 / shapes["k_rec"]
         self.I[0, -1] = self.R[0] = args.R_0
         self.T[0] = 0
-        self.I_cum = np.zeros(args.n_t_steps, dtype=int)
+        self.I_cum = np.zeros(args.n_t_steps)
         self.I_cum[0] = args.I_0
 
     def asymptomatic_adv_s(self, t_step, k):

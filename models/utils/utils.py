@@ -124,7 +124,7 @@ def time_dist(lambd):
 def day_data(times, var, var_day, day_max):
     """Values per day instead of event"""
 
-    _day_max = int(times.max()) + 1
+    _day_max = int(times[-1]) + 1
 
     for day in range(_day_max):
         var_day[day] = var[np.searchsorted(times, day)]
@@ -547,7 +547,12 @@ def get_time_series(args):
 def parameters_init_common(args):
     """initial parameters from argparse"""
 
-    t_total = args.day_max - args.day_min  # max simulated days
+    # max simulated days
+    if hasattr(args, "section_days"):
+        t_total = args.section_days[-1]
+    else:
+        t_total = args.day_max - args.day_min
+
     time_series = get_time_series(args)
     args.metric = __name__ + "." + args.metric
 

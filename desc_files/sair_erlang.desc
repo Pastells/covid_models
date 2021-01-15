@@ -1,5 +1,5 @@
 %DATA
-./italy_i.dat
+./data/italy.dat
 
 %PARAMS
 --n integer [10000,1000000]
@@ -24,7 +24,7 @@ python3 -m venv ./venv
 ./venv/bin/pip install numpy
 
 %EXECUTION
-./venv/bin/python -u ./sair_erlang.py \
+./venv/bin/python -u ./models/sair_erlang.py \
 --data ${instance} \
 --seed ${seed} \
 --timeout ${timeout} \
