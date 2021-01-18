@@ -97,16 +97,6 @@ def main():
         mc_step += 1
     # =========================
 
-    I_m = utils.mean_alive(I_day, t_total, day_max, args.mc_nseed)
-
-    if config.CUMULATIVE is True:
-        utils.cost_func(time_series[:, 3], I_m, args.metric)
-    else:
-        utils.cost_func(time_series[:, 0], I_m, args.metric)
-
-    if args.save is not None:
-        utils.saving(args, I_m, day_max)
-
     import matplotlib.pyplot as plt
 
     sum_all = S_all + I_all + R_all
@@ -117,10 +107,7 @@ def main():
     plt.legend()
     plt.show()
 
-    if args.plot:
-        from utils import plots
-
-        plots.plotting(args, day_max, I_m)  # , comp=comp, t_step=t_step)
+    utils.cost_save_plot(I_day, t_total, day_max, args, time_series)
 
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%
@@ -129,65 +116,17 @@ def main():
 
 def parsing():
     """input parameters"""
-    import argparse
 
-    parser = argparse.ArgumentParser(
-        description="Stochastic SIR model with a social network using the event-driven algorithm \
-            It allows for different sections with different n, delta and beta: \
-            same number of arguments must be specified for all three, \
-            and one more for section_days. \
-                Dependencies: config.py, utils.py, utils_net.py, fast_sir_sections.py",
-        # formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        formatter_class=argparse.MetavarTypeHelpFormatter,
-    )
+    description = "Stochastic SIR model with a social network using the event-driven algorithm \
+        It allows for different sections with different n, delta and beta: \
+        same number of arguments must be specified for all three, \
+        and one more for section_days. \
+            Dependencies: config.py, utils.py, utils_net.py, fast_sir_sections.py"
 
-    parser_params = parser.add_argument_group("parameters")
-
-    parser_params.add_argument(
-        "--network",
-        type=str,
-        default=config.NETWORK,
-        choices=["er", "ba"],
-        help="Erdos-Renyi or Barabasi Albert {er,ba}",
-    )
-    parser_params.add_argument(
-        "--network_param",
-        type=int,
-        default=config.NETWORK_PARAM,
-        help="mean number of edges [1,50]",
-    )
-
-    parser_params.add_argument(
-        "--n",
-        type=int,
-        default=[config.N],
-        nargs="*",
-        help="fixed number of (effecitve) people, initial and increments [1000,1000000]",
-    )
-    parser_params.add_argument(
-        "--delta",
-        type=float,
-        default=[config.DELTA],
-        nargs="*",
-        help="mean rate of recovery [0.05,1]",
-    )
-    parser_params.add_argument(
-        "--beta",
-        type=float,
-        default=[config.BETA],
-        nargs="*",
-        help="infectivity [0.05,1]",
-    )
-    parser_params.add_argument(
-        "--section_days",
-        type=int,
-        default=config.SECTIONS_DAYS,
-        nargs="*",
-        help="starting day for each section, first one must be 0,\
-                        and final day for last one",
-    )
-
-    utils.parser_common(parser)
+    parser = utils.parser_common(description)
+    parser.n_sections()
+    parser.sir_sections()
+    parser.network()
 
     return parser.parse_args()
 

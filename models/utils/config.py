@@ -15,8 +15,8 @@ D_0 = 0
 """
 # Italy Parameters
 N = 41300
-BETA = 7.9e-6 * N  # BETA_I
-DELTA = 0.0213 + 0.0163  # DELTA_I
+BETA = 7.9e-6 * N  # beta
+DELTA = 0.0213 + 0.0163  # delta
 THETA = 0.0163 / DELTA
 
 # China* Parameters
@@ -49,7 +49,6 @@ K_INF = 1
 K_REC = 1
 K_LAT = 1
 
-SECTIONS_DAYS = [0, 24]
 
 NETWORK = "ba"
 NETWORK_PARAM = 5
@@ -77,6 +76,7 @@ TIMEOUT = 1200
 DATA = "/home/pol/Documents/iiia_udl/programs/data/italy.dat"
 DAY_MIN = 30
 DAY_MAX = 54
+SECTIONS_DAYS = [0, DAY_MAX - DAY_MIN]
 UNDIAGNOSED = 0  # 89.4, from Alex Arenas 2020 paper (Physical Review X, 10(4), 041055.)
 METRICS = [
     "sq_diff",

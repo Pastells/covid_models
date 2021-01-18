@@ -5,11 +5,11 @@ Pol Pastells, 2020
 
 Equations of the deterministic system:
 
-dS(t)/dt = - beta_a/N*A(t)*S(t) - beta_i/N*I(t)*S(t) \n
-dE(t)/dt =   beta_a/N*A(t)*S(t) + beta_i/N*I(t)*S(t) - epsilon*E(t)\n
+dS(t)/dt = - beta_a/N*A(t)*S(t) - beta/N*I(t)*S(t) \n
+dE(t)/dt =   beta_a/N*A(t)*S(t) + beta/N*I(t)*S(t) - epsilon*E(t)\n
 dA(t)/dt =   epsilon * E(t)   -(alpha+delta_a)*A(t)\n
-dI(t)/dt = - delta_i * I(t)  + alpha*A(t)\n
-dR(t)/dt =   delta_i * I(t)  + delta_a * A(t)
+dI(t)/dt = - delta * I(t)  + alpha*A(t)\n
+dR(t)/dt =   delta * I(t)  + delta_a * A(t)
 """
 
 import random
@@ -63,20 +63,7 @@ def main():
         mc_step += 1
     # =========================
 
-    I_m = utils.mean_alive(I_day, t_total, day_max, args.mc_nseed)
-
-    if config.CUMULATIVE is True:
-        utils.cost_func(time_series[:, 3], I_m, args.metric)
-    else:
-        utils.cost_func(time_series[:, 0], I_m, args.metric)
-
-    if args.save is not None:
-        utils.saving(args, I_m, day_max)
-
-    if args.plot:
-        from utils import plots
-
-        plots.plotting(args, day_max, I_m)  # , comp=comp, t_step=t_step)
+    utils.cost_save_plot(I_day, t_total, day_max, args, time_series)
 
 
 # -------------------------
@@ -84,60 +71,14 @@ def main():
 
 def parsing():
     """input parameters"""
-    import argparse
+    description = "stochastic mean-field SAIR model using the Gillespie algorithm. \
+        Dependencies: config.py, utils.py"
 
-    parser = argparse.ArgumentParser(
-        description="stochastic mean-field SAIR model using the Gillespie algorithm. \
-            Dependencies: config.py, utils.py",
-        formatter_class=argparse.MetavarTypeHelpFormatter,
-    )
-
-    parser_params = parser.add_argument_group("parameters")
-
-    parser_params.add_argument(
-        "--n",
-        type=int,
-        default=config.N,
-        help="fixed number of (effecitve) people [1000,1000000]",
-    )
-    parser_params.add_argument(
-        "--delta_a",
-        type=float,
-        default=config.DELTA_A,
-        help="rate of recovery from asymptomatic phase (a->r) [0.05,1]",
-    )
-    parser_params.add_argument(
-        "--delta_i",
-        type=float,
-        default=config.DELTA,
-        help="rate of recovery from infected phase (i->r) [0.05,1]",
-    )
-    parser_params.add_argument(
-        "--beta_a",
-        type=float,
-        default=config.BETA_A,
-        help="infectivity due to asymptomatic [0.05,1]",
-    )
-    parser_params.add_argument(
-        "--beta_i",
-        type=float,
-        default=config.BETA,
-        help="infectivity due to infected [0.05,1]",
-    )
-    parser_params.add_argument(
-        "--alpha",
-        type=float,
-        default=config.ALPHA,
-        help="asymptomatic rate (a->i) [0.05,2]",
-    )
-    parser_params.add_argument(
-        "--epsilon",
-        type=float,
-        default=config.EPSILON,
-        help="latency rate (e->a) [0.2,1]",
-    )
-
-    utils.parser_common(parser, True, True)
+    parser = utils.parser_common(description)
+    parser.n()
+    parser.sir()
+    parser.exposed()
+    parser.asymptomatic()
 
     return parser.parse_args()
 
@@ -152,9 +93,9 @@ def parameters_init(args):
 
     rates = {
         "beta_a": args.beta_a / args.n,
-        "beta_i": args.beta_i / args.n,
+        "beta": args.beta / args.n,
         "delta_a": args.delta_a,
-        "delta_i": args.delta_i,
+        "delta": args.delta,
         "alpha": args.alpha,
         "epsilon": args.epsilon,
     }
@@ -242,14 +183,14 @@ def gillespie(t_total, t_step, time, comp, rates):
     lambda_sum = (
         (rates["alpha"] + rates["delta_a"]) * comp.A[t_step]
         + rates["epsilon"] * comp.E[t_step]
-        + rates["delta_i"] * comp.I[t_step]
-        + (rates["beta_a"] * comp.A[t_step] + rates["beta_i"] * comp.I[t_step])
+        + rates["delta"] * comp.I[t_step]
+        + (rates["beta_a"] * comp.A[t_step] + rates["beta"] * comp.I[t_step])
         * comp.S[t_step]
     )
 
     probs = {}
     probs["heal_a"] = rates["delta_a"] * comp.A[t_step] / lambda_sum
-    probs["heal_i"] = rates["delta_i"] * comp.I[t_step] / lambda_sum
+    probs["heal_i"] = rates["delta"] * comp.I[t_step] / lambda_sum
     probs["asymptomatic"] = rates["alpha"] * comp.A[t_step] / lambda_sum
     probs["exposed"] = rates["epsilon"] * comp.E[t_step] / lambda_sum
 

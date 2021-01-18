@@ -6,10 +6,10 @@ Pol Pastells, 2020
 
 Equations of the deterministic system:
 
-dS(t)/dt = - beta_a/N*A(t)*S(t) - beta_i/N*I(t)*S(t) \n
-dA(t)/dt =   beta_a/N*A(t)*S(t) + beta_i/N*I(t)*S(t) -(alpha+delta_a)*A(t)\n
-dI(t)/dt = - delta_i * I(t)                          + alpha*A(t)\n
-dR(t)/dt =   delta_i * I(t)                          + delta_a * A(t)
+dS(t)/dt = - beta_a/N*A(t)*S(t) - beta/N*I(t)*S(t) \n
+dA(t)/dt =   beta_a/N*A(t)*S(t) + beta/N*I(t)*S(t) -(alpha+delta_a)*A(t)\n
+dI(t)/dt = - delta * I(t)                          + alpha*A(t)\n
+dR(t)/dt =   delta * I(t)                          + delta_a * A(t)
 """
 
 import random
@@ -40,8 +40,6 @@ def main():
         comp = Compartments(shapes, args)
 
         I_day[mc_step, 0] = args.I_0
-        # T = np.zeros(n_t_steps)
-        # T[0]=0
         t_step, time = 0, 0
 
         # Time loop
@@ -71,92 +69,22 @@ def main():
         mc_step += 1
     # =========================
 
-    I_m = utils.mean_alive(I_day, t_total, day_max, args.mc_nseed)
-
-    if config.CUMULATIVE is True:
-        utils.cost_func(time_series[:, 3], I_m, args.metric)
-    else:
-        utils.cost_func(time_series[:, 0], I_m, args.metric)
-
-    if args.save is not None:
-        utils.saving(args, I_m, day_max)
-
-    if args.plot:
-        from utils import plots
-
-        plots.plotting(args, day_max, I_m)  # , comp=comp, t_step=t_step)
+    utils.cost_save_plot(I_day, t_total, day_max, args, time_series)
 
 
 # -------------------------
 def parsing():
     """input parameters"""
-    import argparse
 
-    parser = argparse.ArgumentParser(
-        description="Stochastic mean-field SAIR model using the Gillespie algorithm and Erlang \
-            distribution transition times. \
-            Dependencies: config.py, utils.py",
-        formatter_class=argparse.MetavarTypeHelpFormatter,
-    )
+    description = "Stochastic mean-field SAIR model using the Gillespie algorithm and Erlang \
+        distribution transition times. Dependencies: config.py, utils.py"
 
-    parser_params = parser.add_argument_group("parameters")
+    parser = utils.parser_common(description)
+    parser.n()
+    parser.sir()
+    parser.asymptomatic()
+    parser.erlang(True)
 
-    parser_params.add_argument(
-        "--n",
-        type=int,
-        default=config.N,
-        help="fixed number of (effecitve) people [1000,1000000]",
-    )
-    parser_params.add_argument(
-        "--delta_a",
-        type=float,
-        default=config.DELTA_A,
-        help="rate of recovery from asymptomatic phase (a->r) [0.05,1]",
-    )
-    parser_params.add_argument(
-        "--delta_i",
-        type=float,
-        default=config.DELTA,
-        help="rate of recovery from infected phase (i->r) [0.05,1]",
-    )
-    parser_params.add_argument(
-        "--k_rec",
-        type=int,
-        default=config.K_REC,
-        help="k for the recovery time erlang distribution [1,5]",
-    )
-    parser_params.add_argument(
-        "--beta_a",
-        type=float,
-        default=config.BETA_A,
-        help="infectivity due to asymptomatic [0.05,1]",
-    )
-    parser_params.add_argument(
-        "--beta_i",
-        type=float,
-        default=config.BETA,
-        help="infectivity due to infected [0.05,1]",
-    )
-    parser_params.add_argument(
-        "--k_inf",
-        type=int,
-        default=config.K_INF,
-        help="k for the infection time erlang distribution [1,5]",
-    )
-    parser_params.add_argument(
-        "--alpha",
-        type=float,
-        default=config.ALPHA,
-        help="asymptomatic rate (a->i) [0.05,2]",
-    )
-    parser_params.add_argument(
-        "--k_lat",
-        type=int,
-        default=config.K_LAT,
-        help="k for the asymptomatic time erlang distribution [1,5]",
-    )
-
-    utils.parser_common(parser, True)
     return parser.parse_args()
 
 
@@ -171,9 +99,9 @@ def parameters_init(args):
     shapes = {"k_inf": args.k_inf, "k_rec": args.k_rec, "k_lat": args.k_lat}
     rates = {
         "beta_a": args.beta_a / args.n * args.k_inf,
-        "beta_i": args.beta_i / args.n * args.k_inf,
+        "beta": args.beta / args.n * args.k_inf,
         "delta_a": args.delta_a * args.k_rec,
-        "delta_i": args.delta_i * args.k_rec,
+        "delta": args.delta * args.k_rec,
         "alpha": args.alpha * args.k_lat,
     }
     return t_total, time_series, rates, shapes
@@ -280,16 +208,16 @@ def gillespie(
     lambda_sum = (
         rates["alpha"] * etot_inf
         + rates["delta_a"] * etot_rec
-        + rates["delta_i"] * itot
-        + (rates["beta_a"] * etot + rates["beta_i"] * itot) * stot
+        + rates["delta"] * itot
+        + (rates["beta_a"] * etot + rates["beta"] * itot) * stot
     )
 
     probs = {}
     probs["heal_a"] = rates["delta_a"] * comp.A[t_step, :-1, 0] / lambda_sum
-    probs["heal_i"] = rates["delta_i"] * comp.I[t_step, :-1] / lambda_sum
+    probs["heal_i"] = rates["delta"] * comp.I[t_step, :-1] / lambda_sum
     probs["asymptomatic"] = rates["alpha"] * comp.A[t_step, :-1, 1] / lambda_sum
     probs["infect"] = (
-        (rates["beta_a"] * etot + rates["beta_i"] * itot)
+        (rates["beta_a"] * etot + rates["beta"] * itot)
         * comp.S[t_step, :-1]
         / lambda_sum
     )

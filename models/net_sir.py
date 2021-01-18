@@ -51,20 +51,7 @@ def main():
         mc_step += 1
     # =========================
 
-    I_m = utils.mean_alive(I_day, t_total, day_max, args.mc_nseed)
-
-    if config.CUMULATIVE is True:
-        utils.cost_func(time_series[:, 3], I_m, args.metric)
-    else:
-        utils.cost_func(time_series[:, 0], I_m, args.metric)
-
-    if args.save is not None:
-        utils.saving(args, I_m, day_max)
-
-    if args.plot:
-        from utils import plots
-
-        plots.plotting(args, day_max, I_m)  # , comp=comp, t_step=t_step)
+    utils.cost_save_plot(I_day, t_total, day_max, args, time_series)
 
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%
@@ -73,46 +60,13 @@ def main():
 
 def parsing():
     """input parameters"""
-    import argparse
+    description = "stochastic SIR model with a social network using the event-driven algorithm. \
+            Dependencies: config.py, utils.py, utils_net.py, fast_sir.py"
 
-    parser = argparse.ArgumentParser(
-        description="stochastic SIR model with a social network using the event-driven algorithm. \
-                Dependencies: config.py, utils.py, utils_net.py, fast_sir.py",
-        # formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        formatter_class=argparse.MetavarTypeHelpFormatter,
-    )
-
-    parser_params = parser.add_argument_group("parameters")
-
-    parser_params.add_argument(
-        "--network",
-        type=str,
-        default=config.NETWORK,
-        choices=["er", "ba"],
-        help="Erdos-Renyi or Barabasi Albert {er,ba}",
-    )
-    parser_params.add_argument(
-        "--network_param",
-        type=int,
-        default=config.NETWORK_PARAM,
-        help="mean number of edges [1,50]",
-    )
-
-    parser_params.add_argument(
-        "--n",
-        type=int,
-        default=config.N,
-        help="fixed number of (effecitve) people [1000,1000000]",
-    )
-
-    parser_params.add_argument(
-        "--delta", type=float, default=config.DELTA, help="rate of recovery [0.05,1]"
-    )
-    parser_params.add_argument(
-        "--beta", type=float, default=config.BETA, help="infectivity [0.05,1]"
-    )
-
-    utils.parser_common(parser)
+    parser = utils.parser_common(description)
+    parser.n()
+    parser.sir()
+    parser.network()
 
     return parser.parse_args()
 

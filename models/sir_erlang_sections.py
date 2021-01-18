@@ -59,7 +59,7 @@ def main():
 
         # Sections
         while section < n_sections:
-            # print("section", section)
+            # print("section", section, time, section_day)
             # Time loop
             while comp.I[t_step, :-1].sum() > 0 and time < section_day:
                 # print(time, day, section_day)
@@ -110,20 +110,7 @@ def main():
         mc_step += 1
     # =========================
 
-    I_m = utils.mean_alive(I_day, t_total, day_max, args.mc_nseed)
-
-    if config.CUMULATIVE is True:
-        utils.cost_func(time_series[:, 3], I_m, args.metric)
-    else:
-        utils.cost_func(time_series[:, 0], I_m, args.metric)
-
-    if args.save is not None:
-        utils.saving(args, I_m, day_max)
-
-    if args.plot:
-        from utils import plots
-
-        plots.plotting(args, day_max, I_m)  # , comp=comp, t_step=t_step)
+    utils.cost_save_plot(I_day, t_total, day_max, args, time_series)
 
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%
@@ -133,68 +120,16 @@ def main():
 # -------------------------
 def parsing():
     """input parameters"""
-    import argparse
 
-    parser = argparse.ArgumentParser(
-        description="Stochastic mean-field SIR model using the Gillespie algorithm and Erlang \
-            distribution transition times. It allows for different sections with different \
-            n, delta and beta: same number of arguments must be specified for all three, \
-            and one more for section_days. \
-            Dependencies: config.py, utils.py, sir_erlang.py",
-        formatter_class=argparse.MetavarTypeHelpFormatter,
-    )
+    description = "Stochastic mean-field SIR model using the Gillespie algorithm and Erlang \
+        distribution transition times. It allows for different sections with different \
+        n, delta and beta: same number of arguments must be specified for all three, \
+        and one more for section_days. Dependencies: config.py, utils.py, sir_erlang.py"
 
-    parser_params = parser.add_argument_group("parameters")
-
-    parser_params.add_argument(
-        "--n",
-        type=int,
-        default=[config.N],
-        nargs="*",
-        help="fixed number of (effecitve) people, initial and increments [1000,1000000]",
-    )
-    parser_params.add_argument(
-        "--delta",
-        type=float,
-        default=[config.DELTA],
-        nargs="*",
-        help="rate of recovery [0.05,1]",
-    )
-    parser_params.add_argument(
-        "--k_rec",
-        type=int,
-        default=config.K_REC,
-        help="k for the recovery time erlang distribution [1,5]",
-    )
-    parser_params.add_argument(
-        "--beta",
-        type=float,
-        default=[config.BETA],
-        nargs="*",
-        help="infectivity [0.05,1]",
-    )
-    parser_params.add_argument(
-        "--k_inf",
-        type=int,
-        default=config.K_INF,
-        help="k for the infection time erlang distribution [1,5]",
-    )
-    parser_params.add_argument(
-        "--section_days",
-        type=int,
-        default=config.SECTIONS_DAYS,
-        nargs="*",
-        help="starting day for each section, first one must be 0,\
-                        and final day for last one",
-    )
-    parser_params.add_argument(
-        "--transition_days",
-        type=int,
-        default=config.TRANSITION_DAYS,
-        help="days it takes to transition from one number of individuals to the next [1,10]",
-    )
-
-    utils.parser_common(parser)
+    parser = utils.parser_common(description)
+    parser.n_sections()
+    parser.sir_sections()
+    parser.erlang()
 
     return parser.parse_args()
 

@@ -105,43 +105,14 @@ def main():
 
 def parsing():
     """input parameters"""
-    import argparse
 
-    parser = argparse.ArgumentParser(
-        description="stochastic mean-field SIRD model using the Gillespie algorithm. \
-            Dependencies: config.py, utils.py",
-        # formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        formatter_class=argparse.MetavarTypeHelpFormatter,
-    )
+    description = "stochastic mean-field SIRD model using the Gillespie algorithm. \
+        Dependencies: config.py, utils.py"
 
-    parser_params = parser.add_argument_group("parameters")
-
-    parser_params.add_argument(
-        "--n",
-        type=int,
-        default=config.N,
-        help="fixed number of (effecitve) people [1000,1000000]",
-    )
-    parser_params.add_argument(
-        "--delta",
-        type=float,
-        default=config.DELTA,
-        help="rate of recovery [0.05,1]",
-    )
-    parser_params.add_argument(
-        "--theta",
-        type=float,
-        default=config.THETA,
-        help="death probability [0.001,0.1]",
-    )
-    parser_params.add_argument(
-        "--beta",
-        type=float,
-        default=config.BETA,
-        help="infectivity [0.05,1]",
-    )
-
-    utils.parser_common(parser, D_0=True)
+    parser = utils.parser_common(description)
+    parser.n()
+    parser.sir()
+    parser.dead()
 
     return parser.parse_args()
 

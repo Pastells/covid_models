@@ -6,10 +6,10 @@ Pol Pastells, 2020
 
 Equations of the deterministic system:
 
-dS(t)/dt = - beta_a/N*A(t)*S(t) - beta_i/N*I(t)*S(t) \n
-dA(t)/dt =   beta_a/N*A(t)*S(t) + beta_i/N*I(t)*S(t) -(alpha+delta_a)*A(t)\n
-dI(t)/dt = - delta_i * I(t)                          + alpha*A(t)\n
-dR(t)/dt =   delta_i * I(t)                          + delta_a * A(t)
+dS(t)/dt = - beta_a/N*A(t)*S(t) - beta/N*I(t)*S(t) \n
+dA(t)/dt =   beta_a/N*A(t)*S(t) + beta/N*I(t)*S(t) -(alpha+delta_a)*A(t)\n
+dI(t)/dt = - delta * I(t)                          + alpha*A(t)\n
+dR(t)/dt =   delta * I(t)                          + delta_a * A(t)
 """
 
 import random
@@ -102,16 +102,6 @@ def main():
         mc_step += 1
     # =========================
 
-    I_m = utils.mean_alive(I_day, t_total, day_max, args.mc_nseed)
-
-    if config.CUMULATIVE is True:
-        utils.cost_func(time_series[:, 3], I_m, args.metric)
-    else:
-        utils.cost_func(time_series[:, 0], I_m, args.metric)
-
-    if args.save is not None:
-        utils.saving(args, I_m, day_max)
-
     import matplotlib.pyplot as plt
 
     sum_all = S_all + A_all + I_all + R_all
@@ -123,10 +113,7 @@ def main():
     plt.legend()
     plt.show()
 
-    if args.plot:
-        from utils import plots
-
-        plots.plotting(args, day_max, I_m)  # , comp=comp, t_step=t_step)
+    utils.cost_save_plot(I_day, t_total, day_max, args, time_series)
 
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%
@@ -135,83 +122,15 @@ def main():
 
 def parsing():
     """input parameters"""
-    import argparse
 
-    parser = argparse.ArgumentParser(
-        description="stochastic SAIR model using the Gillespie algorithm. \
-                Dependencies: config.py, utils.py, utils_net.py, fast_sair_sections.py",
-        # formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        formatter_class=argparse.MetavarTypeHelpFormatter,
-    )
+    description = "stochastic SAIR model using the Gillespie algorithm. \
+            Dependencies: config.py, utils.py, utils_net.py, fast_sair_sections.py"
 
-    parser_params = parser.add_argument_group("parameters")
-
-    parser_params.add_argument(
-        "--network",
-        type=str,
-        choices=["er", "ba"],
-        default=config.NETWORK,
-        help="Erdos-Renyi or Barabasi Albert {er,ba}",
-    )
-    parser_params.add_argument(
-        "--network_param",
-        type=int,
-        default=config.NETWORK_PARAM,
-        help="mean number of edges [1,50]",
-    )
-
-    parser_params.add_argument(
-        "--n",
-        type=int,
-        default=[config.N],
-        nargs="*",
-        help="fixed number of (effecitve) people, initial and increments [1000,1000000]",
-    )
-    parser_params.add_argument(
-        "--delta_a",
-        type=float,
-        default=[config.DELTA_A],
-        nargs="*",
-        help="rate of recovery from asymptomatic phase (a->r) [0.05,1]",
-    )
-    parser_params.add_argument(
-        "--delta_i",
-        type=float,
-        default=[config.DELTA],
-        nargs="*",
-        help="rate of recovery from infected phase (i->r) [0.05,1]",
-    )
-    parser_params.add_argument(
-        "--beta_a",
-        type=float,
-        default=[config.BETA_A],
-        nargs="*",
-        help="infectivity due to asymptomatic [0.05,1]",
-    )
-    parser_params.add_argument(
-        "--beta_i",
-        type=float,
-        default=[config.BETA],
-        nargs="*",
-        help="infectivity due to infected [0.05,1]",
-    )
-    parser_params.add_argument(
-        "--alpha",
-        type=float,
-        default=[config.ALPHA],
-        nargs="*",
-        help="asymptomatic rate (a->i) [0.05,2]",
-    )
-    parser_params.add_argument(
-        "--section_days",
-        type=int,
-        default=config.SECTIONS_DAYS,
-        nargs="*",
-        help="starting day for each section, first one must be 0,\
-                        and final day for last one",
-    )
-
-    utils.parser_common(parser, True)
+    parser = utils.parser_common(description)
+    parser.n_sections()
+    parser.sir_sections()
+    parser.asymptomatic_sections()
+    parser.network()
 
     return parser.parse_args()
 
@@ -239,9 +158,9 @@ def parameters_section(args, section, rates_old=None, section_day_old=0):
     n = sum(args.n[: section + 1])
     rates = {
         "beta_a": args.beta_a[section],
-        "beta_i": args.beta_i[section],
+        "beta": args.beta[section],
         "delta_a": args.delta_a[section],
-        "delta_i": args.delta_i[section],
+        "delta": args.delta[section],
         "alpha": args.alpha[section],
     }
     section_day = args.section_days[section + 1]

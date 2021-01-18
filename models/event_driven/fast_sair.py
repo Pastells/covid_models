@@ -92,8 +92,8 @@ def _process_trans_SAIR_(
             trans_delay, rec_delay = utils_net.Markovian_times(
                 target,
                 suscep_neighbors,
-                rates["beta_i"],
-                rates["delta_i"],
+                rates["beta"],
+                rates["delta"],
             )
             recover_or_infect = "recover"
 

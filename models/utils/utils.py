@@ -82,14 +82,14 @@ def rates_sair(
     rates_eval["delta_a"] = (
         rates_old["delta_a"] + (rates["delta_a"] - rates_old["delta_a"]) * weight
     )
-    rates_eval["delta_i"] = (
-        rates_old["delta_i"] + (rates["delta_i"] - rates_old["delta_i"]) * weight
+    rates_eval["delta"] = (
+        rates_old["delta"] + (rates["delta"] - rates_old["delta"]) * weight
     )
     rates_eval["beta_a"] = (
         rates_old["beta_a"] + (rates["beta_a"] - rates_old["beta_a"]) * weight
     )
-    rates_eval["beta_i"] = (
-        rates_old["beta_i"] + (rates["beta_i"] - rates_old["beta_i"]) * weight
+    rates_eval["beta"] = (
+        rates_old["beta"] + (rates["beta"] - rates_old["beta"]) * weight
     )
     rates_eval["alpha"] = (
         rates_old["alpha"] + (rates["alpha"] - rates_old["alpha"]) * weight
@@ -407,123 +407,358 @@ def cost_return(time_series, var_m, metric=sq_diff_weight):
 # -------------------------
 
 
-def parser_common(parser, A_0=False, E_0=False, D_0=False):
-    """create init, configuraten, data and actions groups for the parser"""
+def cost_save_plot(I_day, t_total, day_max, args, time_series):
+    """Compute mean and std, cost function and save/plot if needed
+    I had the same code in all files so I put it here"""
 
-    parser_init = parser.add_argument_group("initial conditions")
-    parser_config = parser.add_argument_group("configuraten")
-    parser_data = parser.add_argument_group("data")
-    parser_act = parser.add_argument_group("actions")
+    I_m = mean_alive(I_day, t_total, day_max, args.mc_nseed)
 
-    if A_0 is True:
-        parser_init.add_argument(
+    if config.CUMULATIVE is True:
+        cost_func(time_series[:, 3], I_m, args.metric)
+    else:
+        cost_func(time_series[:, 0], I_m, args.metric)
+
+    if args.save is not None:
+        saving(args, I_m, day_max)
+
+    if args.plot:
+        from . import plots
+
+        plots.plotting(args, day_max, I_m)  # , comp=comp, t_step=t_step)
+
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+class parser_common(object):
+    """Handle all different parsers in an incremental fashion, in order
+    to avoid repetitions"""
+
+    def __init__(self, description):
+        """create parser with init, configuration, data and actions groups
+        with a given description"""
+        import argparse
+
+        self.parser = argparse.ArgumentParser(
+            description=description,
+            # formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+            formatter_class=argparse.MetavarTypeHelpFormatter,
+        )
+
+        self.parser_params = self.parser.add_argument_group("parameters")
+        self.parser_init = self.parser.add_argument_group("initial conditions")
+        parser_config = self.parser.add_argument_group("configuraten")
+        parser_data = self.parser.add_argument_group("data")
+        parser_act = self.parser.add_argument_group("actions")
+
+        self.parser_init.add_argument(
+            "--I_0",
+            type=int,
+            default=config.I_0,
+            help="initial number of infected individuals,\
+                    if None is specified is set to first day of input data",
+        )
+        self.parser_init.add_argument(
+            "--R_0",
+            type=int,
+            default=config.R_0,
+            help="initial number of inmune individuals",
+        )
+
+        parser_config.add_argument(
+            "--seed",
+            type=int,
+            default=config.SEED,
+            help="seed for the automatic configuraten",
+        )
+        parser_config.add_argument(
+            "--timeout",
+            type=int,
+            default=config.TIMEOUT,
+            help="timeout for the automatic configuraten",
+        )
+        parser_config.add_argument(
+            "--mc_nseed",
+            type=int,
+            default=config.MC_NSEED,
+            help="number of mc realizations to average over",
+        )
+        parser_config.add_argument(
+            "--mc_seed0",
+            type=int,
+            default=config.MC_SEED0,
+            help="initial mc seed",
+        )
+        parser_config.add_argument(
+            "--n_t_steps",
+            type=int,
+            default=config.N_T_STEPS,
+            help="maximum number of simulation steps, dimension for the arrays",
+        )
+
+        parser_data.add_argument(
+            "--data",
+            type=str,
+            default=config.DATA,
+            help="file with time series",
+        )
+        parser_data.add_argument(
+            "--day_min",
+            type=int,
+            default=config.DAY_MIN,
+            help="first day to consider of the data series",
+        )
+        parser_data.add_argument(
+            "--day_max",
+            type=int,
+            default=config.DAY_MAX,
+            help="last day to consider of the data series",
+        )
+        parser_data.add_argument(
+            "--undiagnosed",
+            type=float,
+            default=config.UNDIAGNOSED,
+            help="percentage of undiagnosed cases, used to rescale the data",
+        )
+        parser_data.add_argument(
+            "--metric",
+            type=str,
+            default=config.METRIC,
+            choices=config.METRICS,
+            help=f"Metric to use to compute the cost function, choose from \
+                  {config.METRICS}",
+            metavar="",
+        )
+
+        parser_act.add_argument("--plot", action="store_true", help="specify for plots")
+        parser_act.add_argument(
+            "--save", type=str, default=None, help="specify a name for outputfile"
+        )
+
+    # -------------------------
+
+    def parse_args(self):
+        """Return parsed args object"""
+        return self.parser.parse_args()
+
+    # -------------------------
+
+    def n(self):
+        """Number of individuals"""
+        self.parser_params.add_argument(
+            "--n",
+            type=int,
+            default=config.N,
+            help="fixed number of (effecitve) people [1000,1000000]",
+        )
+
+    # -------------------------
+
+    def n_sections(self):
+        """Number of individuals and days for different sections"""
+        self.parser_params.add_argument(
+            "--n",
+            type=int,
+            default=[config.N],
+            nargs="*",
+            help="fixed number of (effecitve) people, \
+                    initial and increments [1000,1000000]",
+        )
+        self.parser_params.add_argument(
+            "--section_days",
+            type=int,
+            default=config.SECTIONS_DAYS,
+            nargs="*",
+            help="starting day for each section, first one must be 0,\
+                            and final day for last one",
+        )
+        self.parser_params.add_argument(
+            "--transition_days",
+            type=int,
+            default=config.TRANSITION_DAYS,
+            help="days it takes to transition from one number of individuals \
+                    to the next [1,10]",
+        )
+
+    # -------------------------
+
+    def sir(self):
+        """Arguments for SIR model"""
+        self.parser_params.add_argument(
+            "--delta",
+            type=float,
+            default=config.DELTA,
+            help="rate of recovery from infected phase (i->r) [0.05,1]",
+        )
+        self.parser_params.add_argument(
+            "--beta",
+            type=float,
+            default=config.BETA,
+            help="infectivity due to infected [0.05,1]",
+        )
+
+    # -------------------------
+
+    def sir_sections(self):
+        """Arguments for SIR model with sections"""
+        self.parser_params.add_argument(
+            "--delta",
+            type=float,
+            default=[config.DELTA],
+            nargs="*",
+            help="rate of recovery from infected phase (i->r) [0.05,1]",
+        )
+        self.parser_params.add_argument(
+            "--beta",
+            type=float,
+            default=[config.BETA],
+            nargs="*",
+            help="infectivity due to infected [0.05,1]",
+        )
+
+    # -------------------------
+
+    def asymptomatic(self):
+        """Add asymptomatic compartment: initial and all transition rates"""
+        self.parser_init.add_argument(
             "--A_0",
             type=int,
             default=config.A_0,
             help="initial number of asymptomatic individuals \
                 if None is specified is set to first day of input data",
         )
-    if E_0 is True:
-        parser_init.add_argument(
+        self.parser_params.add_argument(
+            "--delta_a",
+            type=float,
+            default=config.DELTA_A,
+            help="rate of recovery from asymptomatic phase (a->r) [0.05,1]",
+        )
+        self.parser_params.add_argument(
+            "--beta_a",
+            type=float,
+            default=config.BETA_A,
+            help="infectivity due to asymptomatic [0.05,1]",
+        )
+        self.parser_params.add_argument(
+            "--alpha",
+            type=float,
+            default=config.ALPHA,
+            help="asymptomatic rate (a->i) [0.05,2]",
+        )
+
+    # -------------------------
+
+    def asymptomatic_sections(self):
+        """Add asymptomatic compartment for model with sections: \
+                initial and all transition rates"""
+        self.parser_init.add_argument(
+            "--A_0",
+            type=int,
+            default=config.A_0,
+            help="initial number of asymptomatic individuals \
+                if None is specified is set to first day of input data",
+        )
+        self.parser_params.add_argument(
+            "--delta_a",
+            type=float,
+            default=[config.DELTA_A],
+            nargs="*",
+            help="rate of recovery from asymptomatic phase (a->r) [0.05,1]",
+        )
+        self.parser_params.add_argument(
+            "--beta_a",
+            type=float,
+            default=[config.BETA_A],
+            nargs="*",
+            help="infectivity due to asymptomatic [0.05,1]",
+        )
+        self.parser_params.add_argument(
+            "--alpha",
+            type=float,
+            default=[config.ALPHA],
+            nargs="*",
+            help="asymptomatic rate (a->i) [0.05,1]",
+        )
+
+    # -------------------------
+
+    def erlang(self, k_lat=False):
+        """Arguments for Erlang model"""
+
+        self.parser_params.add_argument(
+            "--k_rec",
+            type=int,
+            default=config.K_REC,
+            help="k for the recovery time erlang distribution [1,5]",
+        )
+        self.parser_params.add_argument(
+            "--k_inf",
+            type=int,
+            default=config.K_INF,
+            help="k for the infection time erlang distribution [1,5]",
+        )
+        if k_lat is True:
+            self.parser_params.add_argument(
+                "--k_lat",
+                type=int,
+                default=config.K_LAT,
+                help="k for the asymptomatic time erlang distribution [1,5]",
+            )
+
+    # -------------------------
+
+    def exposed(self):
+        """Add exposed compartment: initial and transition rate"""
+        self.parser_init.add_argument(
             "--E_0",
             type=int,
             default=config.E_0,
             help="initial number of latent individuals \
                 if None is specified is set to first day of input data",
         )
-    parser_init.add_argument(
-        "--I_0",
-        type=int,
-        default=config.I_0,
-        help="initial number of infected individuals,\
-                if None is specified is set to first day of input data",
-    )
-    parser_init.add_argument(
-        "--R_0",
-        type=int,
-        default=config.R_0,
-        help="initial number of inmune individuals",
-    )
-    if D_0 is True:
-        parser_init.add_argument(
+        self.parser_params.add_argument(
+            "--epsilon",
+            type=float,
+            default=config.EPSILON,
+            help="latency rate (e->a) [0.2,1]",
+        )
+
+    # -------------------------
+
+    def dead(self):
+        """Add dead compartment: initial and transition rate"""
+        self.parser_init.add_argument(
             "--D_0",
             type=int,
             default=config.D_0,
             help="initial number of dead individuals",
         )
+        self.parser_params.add_argument(
+            "--theta",
+            type=float,
+            default=config.THETA,
+            help="death probability [0.001,0.1]",
+        )
 
-    parser_config.add_argument(
-        "--seed",
-        type=int,
-        default=config.SEED,
-        help="seed for the automatic configuraten",
-    )
-    parser_config.add_argument(
-        "--timeout",
-        type=int,
-        default=config.TIMEOUT,
-        help="timeout for the automatic configuraten",
-    )
-    parser_config.add_argument(
-        "--mc_nseed",
-        type=int,
-        default=config.MC_NSEED,
-        help="number of mc realizations to average over",
-    )
-    parser_config.add_argument(
-        "--mc_seed0",
-        type=int,
-        default=config.MC_SEED0,
-        help="initial mc seed",
-    )
-    parser_config.add_argument(
-        "--n_t_steps",
-        type=int,
-        default=config.N_T_STEPS,
-        help="maximum number of simulation steps, dimension for the arrays",
-    )
+    # -------------------------
 
-    parser_data.add_argument(
-        "--data",
-        type=str,
-        default=config.DATA,
-        help="file with time series",
-    )
-    parser_data.add_argument(
-        "--day_min",
-        type=int,
-        default=config.DAY_MIN,
-        help="first day to consider of the data series",
-    )
-    parser_data.add_argument(
-        "--day_max",
-        type=int,
-        default=config.DAY_MAX,
-        help="last day to consider of the data series",
-    )
-    parser_data.add_argument(
-        "--undiagnosed",
-        type=float,
-        default=config.UNDIAGNOSED,
-        help="percentage of undiagnosed cases, used to rescale the data",
-    )
-    parser_data.add_argument(
-        "--metric",
-        type=str,
-        default=config.METRIC,
-        choices=config.METRICS,
-        help=f"Metric to use to compute the cost function, choose from \
-              {config.METRICS}",
-        metavar="",
-    )
-
-    parser_act.add_argument("--plot", action="store_true", help="specify for plots")
-    parser_act.add_argument(
-        "--save", type=str, default=None, help="specify a name for outputfile"
-    )
+    def network(self):
+        self.parser_params.add_argument(
+            "--network",
+            type=str,
+            choices=["er", "ba"],
+            default=config.NETWORK,
+            help="Erdos-Renyi or Barabasi Albert {er,ba}",
+        )
+        self.parser_params.add_argument(
+            "--network_param",
+            type=int,
+            default=config.NETWORK_PARAM,
+            help="mean number of edges [1,50]",
+        )
 
 
-# -------------------------
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
 def get_time_series(args):
