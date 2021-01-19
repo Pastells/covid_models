@@ -74,7 +74,7 @@ def parsing():
     description = "stochastic mean-field SAIR model using the Gillespie algorithm. \
         Dependencies: config.py, utils.py"
 
-    parser = utils.parser_common(description)
+    parser = utils.ParserCommon(description)
     parser.n()
     parser.sir()
     parser.exposed()

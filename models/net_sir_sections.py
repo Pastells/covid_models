@@ -123,7 +123,7 @@ def parsing():
         and one more for section_days. \
             Dependencies: config.py, utils.py, utils_net.py, fast_sir_sections.py"
 
-    parser = utils.parser_common(description)
+    parser = utils.ParserCommon(description)
     parser.n_sections()
     parser.sir_sections()
     parser.network()

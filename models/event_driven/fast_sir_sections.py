@@ -35,7 +35,7 @@ def _process_trans_SIR_(
             list of times at which events have happened
         S, I, R : lists
             lists of numbers of nodes of each status at each time
-        Q : myQueue
+        Q : MyQueue
             the queue of events
         status : dict
             dictionary giving status of each node
@@ -74,8 +74,8 @@ def _process_trans_SIR_(
 
         rates_eval = utils.rates_sir(time, rates, rates_old, section_day_old)
 
-        trans_delay, rec_delay = utils_net.Markovian_times(
-            target, suscep_neighbors, rates_eval["beta"], rates_eval["delta"]
+        trans_delay, rec_delay = utils_net.markovian_times(
+            suscep_neighbors, rates_eval["beta"], rates_eval["delta"]
         )
 
         rec_time[target] = time + rec_delay
@@ -219,7 +219,7 @@ def fast_SIR(
     # infection time defaults to \infty  --- this could be set to tmax,
     # probably with a slight improvement to performance.
 
-    Q = utils_net.myQueue(tmax)
+    Q = utils_net.MyQueue(tmax)
 
     """
     if I_0 is None:  # create initial infecteds list if not given

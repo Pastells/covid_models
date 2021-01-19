@@ -1,4 +1,5 @@
 """
+
 Stochastic SAIR model with a social network using the event-driven algorithm
 
 Pol Pastells, 2020
@@ -71,7 +72,7 @@ def parsing():
     description = "stochastic SAIR model using the Gillespie algorithm. \
             Dependencies: config.py, utils.py, utils_net.py, fast_sair.py"
 
-    parser = utils.parser_common(description)
+    parser = utils.ParserCommon(description)
     parser.n()
     parser.sir()
     parser.asymptomatic()

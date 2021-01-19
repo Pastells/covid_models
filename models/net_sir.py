@@ -63,7 +63,7 @@ def parsing():
     description = "stochastic SIR model with a social network using the event-driven algorithm. \
             Dependencies: config.py, utils.py, utils_net.py, fast_sir.py"
 
-    parser = utils.parser_common(description)
+    parser = utils.ParserCommon(description)
     parser.n()
     parser.sir()
     parser.network()

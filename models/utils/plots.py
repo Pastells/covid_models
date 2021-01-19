@@ -2,7 +2,8 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
-from . import config, utils
+from . import config
+from .utils import get_time_series
 
 
 def error_plot(var_m, day_max, label):
@@ -36,7 +37,7 @@ def plotting(
 ):
     """ If --plot is added makes some plots"""
 
-    time_series = utils.get_time_series(args)
+    time_series = get_time_series(args)
 
     if comp is not None:
         every = 100
@@ -74,13 +75,13 @@ def plotting(
     show_save()
 
     if config.CUMULATIVE is True:
-        I_daily_m = np.copy(I_m)
-        for day in range(len(I_daily_m) - 1, 0, -1):
-            I_daily_m[day] = I_daily_m[day] - I_daily_m[day - 1]
+        daily_m = np.copy(I_m)
+        for day in range(len(daily_m) - 1, 0, -1):
+            daily_m[day] = daily_m[day] - daily_m[day - 1]
 
         plt.plot(
             np.arange(day_max),
-            I_daily_m[:day_max],
+            daily_m[:day_max],
             marker="o",
             ls="",
             label="Daily infected cases",

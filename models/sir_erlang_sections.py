@@ -126,7 +126,7 @@ def parsing():
         n, delta and beta: same number of arguments must be specified for all three, \
         and one more for section_days. Dependencies: config.py, utils.py, sir_erlang.py"
 
-    parser = utils.parser_common(description)
+    parser = utils.ParserCommon(description)
     parser.n_sections()
     parser.sir_sections()
     parser.erlang()

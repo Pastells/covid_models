@@ -8,9 +8,9 @@ import networkx as nx
 def _truncated_exponential_(lambd, T):
     """returns a number between 0 and T from an
     exponential distribution conditional on the outcome being between 0 and T"""
-    t = random.expovariate(lambd)
-    L = int(t / T)
-    return t - L * T
+    time = random.expovariate(lambd)
+    L = int(time / T)
+    return time - L * T
 
 
 # -------------------------
@@ -30,7 +30,7 @@ def choose_network(n, network_type, network_param, seed=None):
 # -------------------------
 
 
-class myQueue(object):
+class MyQueue:
     r"""
     This class is used to store and act on a priority queue of events for
     event-driven simulations.  It is based on heapq.
@@ -39,17 +39,17 @@ class myQueue(object):
     time is ignored.
 
     This is a priority queue of 4-tuples of the form
-        ``(t, counter, function, function_arguments)``
+        ``(time, counter, function, function_arguments)``
 
     The ``counter`` is present just to break ties, which generally only occur when
     multiple events are put in place for the initial condition, but could also
     occur in cases where events tend to happen at discrete times.
 
-    note that the function is understood to have its first argument be t, and
-    the tuple ``function_arguments`` does not include this first t.
+    note that the function is understood to have its first argument be time, and
+    the tuple ``function_arguments`` does not include this first time.
 
     So function is called as
-        ``function(t, *function_arguments)``
+        ``function(time, *function_arguments)``
     """
 
     def __init__(self, tmax=float("Inf")):
@@ -66,8 +66,8 @@ class myQueue(object):
 
     def pop_and_run(self):
         r"""Pops the next event off the queue and performs the function"""
-        t, counter, function, args = heapq.heappop(self._Q_)
-        function(t, *args)
+        time, counter, function, args = heapq.heappop(self._Q_)
+        function(time, *args)
 
     def __len__(self):
         r"""this will allow us to use commands like ``while Q:`` """
@@ -77,7 +77,7 @@ class myQueue(object):
 # -------------------------
 
 
-def Markovian_times(node, sus_neighbors, beta, delta, alpha=None):
+def markovian_times(sus_neighbors, beta, delta, alpha=None):
     """Cycle through, find infection times and check it it is less than recovery time"""
 
     duraten = random.expovariate(delta)
@@ -94,13 +94,11 @@ def Markovian_times(node, sus_neighbors, beta, delta, alpha=None):
     # print(len(suscep_neighbors),number_to_infect,trans_prob, beta, duraten)
     transmission_recipients = random.sample(sus_neighbors, number_to_infect)
     trans_delay = {}
-    for v in transmission_recipients:
-        trans_delay[v] = _truncated_exponential_(beta, duraten)
+    for recipient in transmission_recipients:
+        trans_delay[recipient] = _truncated_exponential_(beta, duraten)
 
     if alpha is not None:
         if duraten < duraten2:
             return (trans_delay, duraten, "recover")
-        else:
-            return (trans_delay, duraten, "infect")
-    else:
-        return trans_delay, duraten
+        return (trans_delay, duraten, "infect")
+    return trans_delay, duraten

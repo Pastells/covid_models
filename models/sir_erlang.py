@@ -75,7 +75,7 @@ def parsing():
     description = "stochastic mean-field SIR model using the Gillespie algorithm and Erlang \
         distribution transition times. Dependencies: config.py, utils.py"
 
-    parser = utils.parser_common(description)
+    parser = utils.ParserCommon(description)
     parser.n()
     parser.sir()
     parser.erlang()

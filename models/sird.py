@@ -109,7 +109,7 @@ def parsing():
     description = "stochastic mean-field SIRD model using the Gillespie algorithm. \
         Dependencies: config.py, utils.py"
 
-    parser = utils.parser_common(description)
+    parser = utils.ParserCommon(description)
     parser.n()
     parser.sir()
     parser.dead()

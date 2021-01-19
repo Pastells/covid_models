@@ -297,17 +297,18 @@ def saving(args, var_m, day_max):
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
-class StrCallable(object):
+class StrCallable:
     """Call a function given its name as module.function"""
 
     def __init__(self, name):
-        self.n, self.f = name, None
-        if self.f is None:
-            modn, funcn = self.n.rsplit(".", 1)
-            self.f = getattr(sys.modules[modn], funcn)
+        self.name, self.function = name, None
+        if self.function is None:
+            modn, funcn = self.name.rsplit(".", 1)
+            self.function = getattr(sys.modules[modn], funcn)
 
     def call(self, *a, **k):
-        output = self.f(*a, **k)
+        """Call function"""
+        output = self.function(*a, **k)
         return output
 
 
@@ -364,17 +365,9 @@ def cost_func(time_series, var_m, metric=abs_diff):
     time_series : ndarray with daily data
     """
 
-    import sys
     import warnings
 
     warnings.filterwarnings("error")
-
-    """
-    pad = len(time_series) - len(var_m)
-    if pad > 0:
-        var_m = np.pad(var_m, (0, pad), "constant")
-        var_std = np.pad(var_std, (0, pad), "constant")
-    """
 
     metric_func = StrCallable(metric)
     cost = 0
@@ -407,30 +400,30 @@ def cost_return(time_series, var_m, metric=sq_diff_weight):
 # -------------------------
 
 
-def cost_save_plot(I_day, t_total, day_max, args, time_series):
+def cost_save_plot(var_day, t_total, day_max, args, time_series):
     """Compute mean and std, cost function and save/plot if needed
     I had the same code in all files so I put it here"""
 
-    I_m = mean_alive(I_day, t_total, day_max, args.mc_nseed)
+    var_m = mean_alive(var_day, t_total, day_max, args.mc_nseed)
 
     if config.CUMULATIVE is True:
-        cost_func(time_series[:, 3], I_m, args.metric)
+        cost_func(time_series[:, 3], var_m, args.metric)
     else:
-        cost_func(time_series[:, 0], I_m, args.metric)
+        cost_func(time_series[:, 0], var_m, args.metric)
 
     if args.save is not None:
-        saving(args, I_m, day_max)
+        saving(args, var_m, day_max)
 
     if args.plot:
         from . import plots
 
-        plots.plotting(args, day_max, I_m)  # , comp=comp, t_step=t_step)
+        plots.plotting(args, day_max, var_m)  # , comp=comp, t_step=t_step)
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
-class parser_common(object):
+class ParserCommon:
     """Handle all different parsers in an incremental fashion, in order
     to avoid repetitions"""
 
@@ -549,7 +542,7 @@ class parser_common(object):
             "--n",
             type=int,
             default=config.N,
-            help="fixed number of (effecitve) people [1000,1000000]",
+            help="fixed number of (effecitve) individuals [1000,1000000]",
         )
 
     # -------------------------
@@ -561,7 +554,7 @@ class parser_common(object):
             type=int,
             default=[config.N],
             nargs="*",
-            help="fixed number of (effecitve) people, \
+            help="fixed number of (effecitve) individuals, \
                     initial and increments [1000,1000000]",
         )
         self.parser_params.add_argument(
@@ -624,7 +617,7 @@ class parser_common(object):
             "--A_0",
             type=int,
             default=config.A_0,
-            help="initial number of asymptomatic individuals \
+            help="initial number of asymptomatic individuals, \
                 if None is specified is set to first day of input data",
         )
         self.parser_params.add_argument(
@@ -743,6 +736,7 @@ class parser_common(object):
     # -------------------------
 
     def network(self):
+        """Network type and parameter"""
         self.parser_params.add_argument(
             "--network",
             type=str,

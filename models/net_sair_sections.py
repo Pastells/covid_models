@@ -126,7 +126,7 @@ def parsing():
     description = "stochastic SAIR model using the Gillespie algorithm. \
             Dependencies: config.py, utils.py, utils_net.py, fast_sair_sections.py"
 
-    parser = utils.parser_common(description)
+    parser = utils.ParserCommon(description)
     parser.n_sections()
     parser.sir_sections()
     parser.asymptomatic_sections()

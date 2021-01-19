@@ -37,7 +37,7 @@ def _process_trans_SAIR_(
             list of times at which events have happened
         S, A, I, R : lists
             lists of numbers of nodes of each status at each time
-        Q : myQueue
+        Q : MyQueue
             the queue of events
         status : dict
             dictionary giving status of each node
@@ -81,8 +81,7 @@ def _process_trans_SAIR_(
             S.append(S[-1] - 1)
             A.append(A[-1] + 1)
             I.append(I[-1])
-            trans_delay, rec_delay, recover_or_infect = utils_net.Markovian_times(
-                target,
+            trans_delay, rec_delay, recover_or_infect = utils_net.markovian_times(
                 suscep_neighbors,
                 rates_eval["beta_a"],
                 rates_eval["delta_a"],
@@ -93,8 +92,7 @@ def _process_trans_SAIR_(
             S.append(S[-1])
             A.append(A[-1] - 1)
             I.append(I[-1] + 1)
-            trans_delay, rec_delay = utils_net.Markovian_times(
-                target,
+            trans_delay, rec_delay = utils_net.markovian_times(
                 suscep_neighbors,
                 rates_eval["beta"],
                 rates_eval["delta"],
@@ -322,7 +320,7 @@ def fast_SAIR(
     # infection time defaults to \infty  --- this could be set to tmax,
     # probably with a slight improvement to performance.
 
-    Q = utils_net.myQueue(tmax)
+    Q = utils_net.MyQueue(tmax)
 
     """
     if I_0 is None:  # create initial infecteds list if not given
