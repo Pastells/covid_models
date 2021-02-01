@@ -96,13 +96,13 @@ def parameters_init(args):
     """Initial parameters from argparse"""
     t_total, time_series = utils.parameters_init_common(args)
 
-    shapes = {"k_inf": args.k_inf, "k_rec": args.k_rec, "k_lat": args.k_lat}
+    shapes = {"k_inf": args.k_inf, "k_rec": args.k_rec, "k_asym": args.k_asym}
     rates = {
         "beta_a": args.beta_a / args.n * args.k_inf,
         "beta": args.beta / args.n * args.k_inf,
         "delta_a": args.delta_a * args.k_rec,
         "delta": args.delta * args.k_rec,
-        "alpha": args.alpha * args.k_lat,
+        "alpha": args.alpha * args.k_asym,
     }
     return t_total, time_series, rates, shapes
 
@@ -116,7 +116,7 @@ class Compartments:
     def __init__(self, shapes, args):
         """Initialization"""
         self.S = np.zeros([args.n_t_steps, shapes["k_inf"] + 1])
-        self.A = np.zeros([args.n_t_steps, shapes["k_lat"] + 1, 2])
+        self.A = np.zeros([args.n_t_steps, shapes["k_asym"] + 1, 2])
         self.I = np.zeros([args.n_t_steps, shapes["k_rec"] + 1])
         self.R = np.zeros(args.n_t_steps)
         self.T = np.zeros(args.n_t_steps)
@@ -127,7 +127,7 @@ class Compartments:
         except TypeError:
             self.S[0, :-1] = (args.n[0] - args.I_0 - args.R_0) / shapes["k_inf"]
 
-        self.S[0, -1] = self.A[0, :-1] = args.A_0 / shapes["k_lat"]
+        self.S[0, -1] = self.A[0, :-1] = args.A_0 / shapes["k_asym"]
         self.A[0, -1] = self.I[0, :-1] = args.I_0 / shapes["k_rec"]
         self.I[0, -1] = self.R[0] = args.R_0
         self.T[0] = 0
@@ -248,7 +248,7 @@ def gillespie_step(t_step, comp, probs, shapes):
 
     # A(k)-> A(k+1)/R
     if random < prob_heal_a_tot:
-        for k in range(shapes["k_lat"]):
+        for k in range(shapes["k_asym"]):
             if random < probs["heal_a"][: k + 1].sum():
                 comp.recover_adv_a(t_step, k)
                 return
@@ -264,7 +264,7 @@ def gillespie_step(t_step, comp, probs, shapes):
     # A(k)-> A(k+1)/I(0)
     if random < (prob_heal_a_tot + prob_heal_i_tot + prob_asymptomatic_tot):
         random -= prob_heal_a_tot + prob_heal_i_tot
-        for k in range(shapes["k_lat"]):
+        for k in range(shapes["k_asym"]):
             if random < probs["asymptomatic"][: k + 1].sum():
                 comp.infect_adv_a(t_step, k)
                 return

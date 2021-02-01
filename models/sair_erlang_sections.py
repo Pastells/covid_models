@@ -155,13 +155,13 @@ def parameters_section(args, section, rates_old=None, section_day_old=0, n_old=N
     """
     n = sum(args.n[: section + 1])
     n_ind = utils.n_individuals(n, n_old, section_day_old, args.transition_days)
-    shapes = {"k_inf": args.k_inf, "k_rec": args.k_rec, "k_lat": args.k_lat}
+    shapes = {"k_inf": args.k_inf, "k_rec": args.k_rec, "k_asym": args.k_asym}
     rates = {
         "beta_a": args.beta_a[section] / n * args.k_inf,
         "beta": args.beta[section] / n * args.k_inf,
         "delta_a": args.delta_a[section] * args.k_rec,
         "delta": args.delta[section] * args.k_rec,
-        "alpha": args.alpha[section] * args.k_lat,
+        "alpha": args.alpha[section] * args.k_asym,
     }
     section_day = args.section_days[section + 1]
 

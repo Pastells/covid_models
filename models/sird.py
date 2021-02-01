@@ -17,7 +17,7 @@ import traceback
 import numpy as np
 from utils import utils, config
 
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%
 # %%%%%%%%%%%%%%%%%%%%%%%%%
@@ -72,7 +72,7 @@ def main():
             comp.T[:t_step], comp.D[:t_step], D_day[mc_step], day_max
         )
 
-        plt.plot(I_day[mc_step], "orange", alpha=0.3)
+        # plt.plot(I_day[mc_step], "orange", alpha=0.3)
         mc_step += 1
     # =========================
 

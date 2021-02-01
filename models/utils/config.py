@@ -47,7 +47,7 @@ EPSILON = 1
 
 K_INF = 1
 K_REC = 1
-K_LAT = 1
+K_ASYM = 1
 
 
 NETWORK = "ba"
@@ -78,6 +78,8 @@ DAY_MIN = 30
 DAY_MAX = 54
 SECTIONS_DAYS = [0, DAY_MAX - DAY_MIN]
 UNDIAGNOSED = 0  # 89.4, from Alex Arenas 2020 paper (Physical Review X, 10(4), 041055.)
+
+# Metrics
 METRICS = [
     "sq_diff",
     "sq_diff_weight",
@@ -85,6 +87,8 @@ METRICS = [
     "abs_diff",
     "abs_diff_scaled",
 ]
+METRICS_STR = "{" + ",".join(METRICS) + "}"
+
 METRIC = "sq_diff_weight"
 
 # ---------------------------------------

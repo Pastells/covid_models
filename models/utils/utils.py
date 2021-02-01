@@ -440,7 +440,7 @@ class ParserCommon:
 
         self.parser_params = self.parser.add_argument_group("parameters")
         self.parser_init = self.parser.add_argument_group("initial conditions")
-        parser_config = self.parser.add_argument_group("configuraten")
+        parser_config = self.parser.add_argument_group("configuration")
         parser_data = self.parser.add_argument_group("data")
         parser_act = self.parser.add_argument_group("actions")
 
@@ -518,9 +518,8 @@ class ParserCommon:
             type=str,
             default=config.METRIC,
             choices=config.METRICS,
-            help=f"Metric to use to compute the cost function, choose from \
-                  {config.METRICS}",
-            metavar="",
+            help=f"Metric to use to compute the cost function {config.METRICS_STR}",
+            metavar="str",
         )
 
         parser_act.add_argument("--plot", action="store_true", help="specify for plots")
@@ -581,13 +580,13 @@ class ParserCommon:
             "--delta",
             type=float,
             default=config.DELTA,
-            help="rate of recovery from infected phase (i->r) [0.05,1]",
+            help="rate of recovery from infected phase (i->r) [0.05,1.0]",
         )
         self.parser_params.add_argument(
             "--beta",
             type=float,
             default=config.BETA,
-            help="infectivity due to infected [0.05,1]",
+            help="infectivity due to infected [0.05,1.0]",
         )
 
     # -------------------------
@@ -599,14 +598,14 @@ class ParserCommon:
             type=float,
             default=[config.DELTA],
             nargs="*",
-            help="rate of recovery from infected phase (i->r) [0.05,1]",
+            help="rate of recovery from infected phase (i->r) [0.05,1.0]",
         )
         self.parser_params.add_argument(
             "--beta",
             type=float,
             default=[config.BETA],
             nargs="*",
-            help="infectivity due to infected [0.05,1]",
+            help="infectivity due to infected [0.05,1.0]",
         )
 
     # -------------------------
@@ -624,19 +623,19 @@ class ParserCommon:
             "--delta_a",
             type=float,
             default=config.DELTA_A,
-            help="rate of recovery from asymptomatic phase (a->r) [0.05,1]",
+            help="rate of recovery from asymptomatic phase (a->r) [0.05,1.0]",
         )
         self.parser_params.add_argument(
             "--beta_a",
             type=float,
             default=config.BETA_A,
-            help="infectivity due to asymptomatic [0.05,1]",
+            help="infectivity due to asymptomatic [0.05,1.0]",
         )
         self.parser_params.add_argument(
             "--alpha",
             type=float,
             default=config.ALPHA,
-            help="asymptomatic rate (a->i) [0.05,2]",
+            help="asymptomatic rate (a->i) [0.05,2.0]",
         )
 
     # -------------------------
@@ -656,14 +655,14 @@ class ParserCommon:
             type=float,
             default=[config.DELTA_A],
             nargs="*",
-            help="rate of recovery from asymptomatic phase (a->r) [0.05,1]",
+            help="rate of recovery from asymptomatic phase (a->r) [0.05,1.0]",
         )
         self.parser_params.add_argument(
             "--beta_a",
             type=float,
             default=[config.BETA_A],
             nargs="*",
-            help="infectivity due to asymptomatic [0.05,1]",
+            help="infectivity due to asymptomatic [0.05,1.0]",
         )
         self.parser_params.add_argument(
             "--alpha",
@@ -675,7 +674,7 @@ class ParserCommon:
 
     # -------------------------
 
-    def erlang(self, k_lat=False):
+    def erlang(self, k_asym=False):
         """Arguments for Erlang model"""
 
         self.parser_params.add_argument(
@@ -690,11 +689,11 @@ class ParserCommon:
             default=config.K_INF,
             help="k for the infection time erlang distribution [1,5]",
         )
-        if k_lat is True:
+        if k_asym is True:
             self.parser_params.add_argument(
-                "--k_lat",
+                "--k_asym",
                 type=int,
-                default=config.K_LAT,
+                default=config.K_ASYM,
                 help="k for the asymptomatic time erlang distribution [1,5]",
             )
 
@@ -713,7 +712,7 @@ class ParserCommon:
             "--epsilon",
             type=float,
             default=config.EPSILON,
-            help="latency rate (e->a) [0.2,1]",
+            help="latency rate (e->a) [0.2,1.0]",
         )
 
     # -------------------------
@@ -742,7 +741,7 @@ class ParserCommon:
             type=str,
             choices=["er", "ba"],
             default=config.NETWORK,
-            help="Erdos-Renyi or Barabasi Albert {er,ba}",
+            help="Erdos-Renyi or Barabasi-Albert {er,ba}",
         )
         self.parser_params.add_argument(
             "--network_param",
