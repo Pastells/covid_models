@@ -1,4 +1,4 @@
-# date, infected, recovered, dead, cumulative
+#infected,recovered,dead,cumulative,date
        0,        0,        0,        0, 01/22/20
        0,        0,        0,        0, 01/23/20
        0,        0,        0,        0, 01/24/20

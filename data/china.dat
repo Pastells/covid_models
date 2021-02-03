@@ -1,4 +1,4 @@
-# date, infected, recovered, dead, cumulative
+#infected,recovered,dead,cumulative,date
      503,       28,       17,      548, 01/22/20
      595,       30,       18,      643, 01/23/20
      858,       36,       26,      920, 01/24/20

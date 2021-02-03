@@ -108,8 +108,8 @@ nᵢᵍ[2, :] = df1.Total
 # Save to file
 using JLD
 dict = Dict("n" => nᵢᵍ, "edgelist" => edgelist, "R" => Rᵢⱼ, "s" => sᵢ)
-save("input.jld", dict)
-nᵢᵍ = load("input.jld", "n")
-edgelist = load("input.jld", "edgelist")
-Rᵢⱼ = load("input.jld", "R")
-sᵢ = load("input.jld", "s")
+save("data.jld", dict)
+nᵢᵍ = load("data.jld", "n")
+edgelist = load("data.jld", "edgelist")
+Rᵢⱼ = load("data.jld", "R")
+sᵢ = load("data.jld", "s")

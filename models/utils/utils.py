@@ -315,47 +315,48 @@ class StrCallable:
 # -------------------------
 
 
-def sq_diff(var_m, time_series, *day):
-    """Sum of absolute differences"""
-    return (var_m - time_series) ** 2 / 1e6
-
-
-def sq_diff_weight(var_m, time_series, day):
-    """Sum of absolute differences"""
-    return (day + 1) * (var_m - time_series) ** 2 / 1e8
-
-
-def sq_diff_scaled(var_m, time_series, *day):
-    """Sum of squared differences, scaled"""
-
-    # catch division by zero
-    try:
-        cost = (var_m - time_series) ** 2 / time_series ** 2
-    except RuntimeWarning:
-        cost = var_m ** 2
+def sum_sq(var_m, time_series):
+    """Sum of squared differences"""
+    cost = 0
+    for day, _ in enumerate(time_series):
+        cost += (var_m[day, 0] - time_series[day]) ** 2 / 1e6
     return cost
 
 
-def abs_diff(var_m, time_series, *day):
-    """Sum of squared differences"""
-    return abs(var_m - time_series) / 1e2
+def max_sq(var_m, time_series):
+    """Max of squared differences"""
+    cost = 0
+    for day, _ in enumerate(time_series):
+        _cost = (var_m[day, 0] - time_series[day]) ** 2 / 1e6
+        cost = max(cost, _cost)
+    return cost
 
 
-def abs_diff_scaled(var_m, time_series, *day):
-    """Sum of absolute differences, scaled"""
+def sum_sq_weight(var_m, time_series, day):
+    """Sum of weighted quared differences"""
+    cost = 0
+    for day, _ in enumerate(time_series):
+        cost += (day + 1) * (var_m[day, 0] - time_series[day]) ** 2 / 1e8
+    return cost
 
-    # catch division by zero
-    try:
-        cost = abs(var_m - time_series) / time_series
-    except RuntimeWarning:
-        cost = abs(var_m)
-    return cost * 10
+
+def sum_sq_scaled(var_m, time_series, *day):
+    """Sum of scaled squared differences"""
+
+    cost = 0
+    for day, _ in enumerate(time_series):
+        # catch division by zero
+        try:
+            cost += (var_m[day, 0] - time_series[day]) ** 2 / time_series[day] ** 2
+        except RuntimeWarning:
+            cost += var_m ** 2
+    return cost
 
 
 # -------------------------
 
 
-def cost_func(time_series, var_m, metric=abs_diff):
+def cost_func(time_series, var_m, metric=sum_sq):
     """compute cost function with a selected metric
     comparing with data from input file
     if config.CUMULATIVE is True uses cumulative data
@@ -370,9 +371,8 @@ def cost_func(time_series, var_m, metric=abs_diff):
     warnings.filterwarnings("error")
 
     metric_func = StrCallable(metric)
-    cost = 0
-    for day, _ in enumerate(time_series):
-        cost += metric_func.call(var_m[day, 0], time_series[day], day)
+
+    cost = metric_func.call(var_m, time_series)
 
     # Normalize with number of days
     cost = cost / len(time_series) * 100
@@ -383,17 +383,14 @@ def cost_func(time_series, var_m, metric=abs_diff):
 # -------------------------
 
 
-def cost_return(time_series, var_m, metric=sq_diff_weight):
+def cost_return(time_series, var_m, metric=sum_sq):
     """Same as above, but returns cost instead of
     printing GGA success, useful for adding multiple costs"""
     import warnings
 
     warnings.filterwarnings("error")
     metric_func = StrCallable(metric)
-    cost = 0
-    for day, _ in enumerate(time_series):
-        cost += metric_func.call(var_m[day, 0], time_series[day], day)
-
+    cost = metric_func.call(var_m, time_series)
     return cost / len(time_series) * 100
 
 

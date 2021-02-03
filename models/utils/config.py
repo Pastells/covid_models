@@ -81,15 +81,16 @@ UNDIAGNOSED = 0  # 89.4, from Alex Arenas 2020 paper (Physical Review X, 10(4), 
 
 # Metrics
 METRICS = [
-    "sq_diff",
-    "sq_diff_weight",
-    "sq_diff_scaled",
-    "abs_diff",
-    "abs_diff_scaled",
+    "sum_sq",
+    "max_sq",
+    "sum_sq_weight",
+    "sum_sq_scaled",
 ]
 METRICS_STR = "{" + ",".join(METRICS) + "}"
 
-METRIC = "sq_diff_weight"
+# Default metric
+
+METRIC = "sum_sq"
 
 # ---------------------------------------
 # can't be changed via parser, only here

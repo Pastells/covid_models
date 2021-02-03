@@ -27,7 +27,7 @@ day_0 = datetime.datetime.strptime("1/22/20", "%m/%d/%y")
 dates = [day_0 + datetime.timedelta(days=day) for day, _ in enumerate(data_i)]
 
 with open(country + ".dat", "w") as out_file:
-    out_file.write("# date, infected, recovered, dead, cumulative\n")
+    out_file.write("#infected,recovered,dead,cumulative,date\n")
     for day, value in enumerate(data_i):
         out_file.write(
             f"{value:8.0f}, {data_r[day]:8.0f}, {data_d[day]:8.0f}, {data_c[day]:8.0f}, {dates[day]:%m/%d/%y}\n"

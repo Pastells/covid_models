@@ -1,13 +1,8 @@
+using ArgParse, JLD, CSV, DataFrames
+push!(LOAD_PATH, "./src/")
 using MMCAcovid19
-using ArgParse
-using JLD
 
-# Load inputs generated with data.jl
-nᵢᵍ = load("input.jld", "n")
-edgelist = load("input.jld", "edgelist")
-Rᵢⱼ = load("input.jld", "R")
-sᵢ = load("input.jld", "s")
-M = length(sᵢ)
+
 
 ## -----------------------------------------------------------------------------
 ## Parsing
@@ -45,12 +40,34 @@ function parsing()
             arg_type = Real
             default = 0.207
             help = "social distancing"
+        "--data"
+            arg_type = String
+            default = "/home/pol/Documents/iiia_udl/programs/data/spain.dat"
+            help = "file with time series"
+        "--day_min"
+            arg_type = Int
+            default = 1
+            help="first day to consider of the data series"
+        "--day_max"
+            arg_type = Int
+            default = 50
+            help="last day to consider of the data series"
+        "--save"
+            action = :store_true
+            help = "specify to save data"
     end
 
     return parse_args(s)
 end
 
-args = parsing()
+try
+    global args
+    args = parsing()
+catch e
+    println("Error parsing arguments:\n$e")
+    println("GGA CRASHED ", 1e20)
+    exit()
+end
 
 ## -----------------------------------------------------------------------------
 ## Population parameters
@@ -62,6 +79,20 @@ G = 3
 ## .............................................................................
 ## from INE
 ## .............................................................................
+
+# Load inputs generated with data.jl
+try
+    global nᵢᵍ, edgelist, Rᵢⱼ,sᵢ, M
+    nᵢᵍ = load("data.jld", "n")
+    edgelist = load("data.jld", "edgelist")
+    Rᵢⱼ = load("data.jld", "R")
+    sᵢ = load("data.jld", "s")
+    M = length(sᵢ)
+catch e
+    println("Error reading data.jld:\n$e")
+    println("GGA CRASHED ", 1e20)
+    exit()
+end
 
 # number of regions (municipalities)
 
@@ -146,7 +177,7 @@ population = Population_Params(G, M, nᵢᵍ, kᵍ, kᵍ_h, kᵍ_w, C, pᵍ, edg
 χᵍ = ones(3) / 21.0
 
 # days to compute
-T = 200
+T = args["day_max"]-args["day_min"] + 1
 
 epi_params = Epidemic_Params(βᴵ, βᴬ, ηᵍ, αᵍ, μᵍ, θᵍ, γᵍ,
                              ζᵍ, λᵍ, ωᵍ, ψᵍ, χᵍ, G, M, T)
@@ -181,32 +212,60 @@ tᶜs = [30, 60, 90, 120]
 # social distancing
 δs = [0.207, 0.207, 0.207, 0.207]
 
-reset_params!(epi_params, population)
-set_initial_infected!(epi_params, population, E₀, A₀, I₀)
-run_epidemic_spreading_mmca!(epi_params, population, tᶜs, κ₀s, ϕs, δs; verbose = true)
 
-# Output path and suffix for results files
-# output_path = "/home/pol/Documents/iiia_udl/MMCAcovid19.jl/output"
-output_path = "/home/pol/Documents/iiia_udl/programs/models/arenas/output"
-suffix = "run01"
+## -----------------------------------------------------------------------------
+## Run model
+## -----------------------------------------------------------------------------
+try
+    # add verbose = true for prints during execution
+    run_epidemic_spreading_mmca!(epi_params, population, tᶜs, κ₀s, ϕs, δs)
+catch e
+    println("Error while running the model:\n$e")
+    println("GGA CRASHED ", 1e20)
+    exit()
+end
 
-# Store compartments
-store_compartment(epi_params, population, "S", suffix, output_path)
-store_compartment(epi_params, population, "E", suffix, output_path)
-store_compartment(epi_params, population, "A", suffix, output_path)
-store_compartment(epi_params, population, "I", suffix, output_path)
-store_compartment(epi_params, population, "PH", suffix, output_path)
-store_compartment(epi_params, population, "PD", suffix, output_path)
-store_compartment(epi_params, population, "HR", suffix, output_path)
-store_compartment(epi_params, population, "HD", suffix, output_path)
-store_compartment(epi_params, population, "R", suffix, output_path)
-store_compartment(epi_params, population, "D", suffix, output_path)
+
+## -----------------------------------------------------------------------------
+## Cost and save
+## -----------------------------------------------------------------------------
+
+# Cost function
+try
+    data = CSV.read(args["data"], DataFrame)
+    data = data[setdiff(args["day_min"]:args["day_max"]), :]
+    cost_function(epi_params, population, "IRD", data)
+catch e
+    println("Error reading data file:\n$e")
+    println("GGA CRASHED ", 1e20)
+    exit()
+end
+
+# save results
+if args["save"]
+    # Output path and suffix for results files
+    output_path = "/home/pol/Documents/iiia_udl/programs/models/arenas/output"
+    suffix = "run01"
+
+    # Store compartments
+    store_compartment(epi_params, population, "S", suffix, output_path)
+    store_compartment(epi_params, population, "E", suffix, output_path)
+    store_compartment(epi_params, population, "A", suffix, output_path)
+    store_compartment(epi_params, population, "I", suffix, output_path)
+    store_compartment(epi_params, population, "PH", suffix, output_path)
+    store_compartment(epi_params, population, "PD", suffix, output_path)
+    store_compartment(epi_params, population, "HR", suffix, output_path)
+    store_compartment(epi_params, population, "HD", suffix, output_path)
+    store_compartment(epi_params, population, "R", suffix, output_path)
+    store_compartment(epi_params, population, "D", suffix, output_path)
+end
+
 
 # Optional kernel length
-τ = 21
+# τ = 21
 
 # Calculate effective reproduction number R
-Rᵢᵍ_eff, R_eff = compute_R_eff(epi_params, population, τ)
+# Rᵢᵍ_eff, R_eff = compute_R_eff(epi_params, population, τ)
 
 # Calculate and store effective reproduction number R
-store_R_eff(epi_params, population, suffix, output_path; τ=τ)
+# store_R_eff(epi_params, population, suffix, output_path; τ=τ)
