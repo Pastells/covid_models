@@ -1,12 +1,8 @@
-using ArgParse, JLD, CSV, DataFrames
-push!(LOAD_PATH, "./src/")
-using MMCAcovid19
-
-
-
 ## -----------------------------------------------------------------------------
 ## Parsing
 ## -----------------------------------------------------------------------------
+using ArgParse
+# more imports below to have faster --help
 
 function parsing()
     s = ArgParseSettings()
@@ -32,25 +28,25 @@ function parsing()
             arg_type = Real
             default = 3.915
             help ="infectious days (mid and old)"
-        "--phi"
-            arg_type = Real
-            default = 0.174
-            help = "household permeability"
         "--delta"
             arg_type = Real
             default = 0.207
             help = "social distancing"
+        "--phi"
+            arg_type = Real
+            default = 0.174
+            help= "household permeability"
         "--data"
             arg_type = String
             default = "/home/pol/Documents/iiia_udl/programs/data/spain.dat"
             help = "file with time series"
         "--day_min"
             arg_type = Int
-            default = 1
+            default = 41
             help="first day to consider of the data series"
         "--day_max"
             arg_type = Int
-            default = 50
+            default = 116
             help="last day to consider of the data series"
         "--save"
             action = :store_true
@@ -72,6 +68,9 @@ end
 ## -----------------------------------------------------------------------------
 ## Population parameters
 ## -----------------------------------------------------------------------------
+using JLD, CSV, DataFrames
+push!(LOAD_PATH, "./src/")
+using MMCAcovid19
 
 # number of strata
 G = 3
@@ -81,6 +80,7 @@ G = 3
 ## .............................................................................
 
 # Load inputs generated with data.jl
+#
 try
     global nᵢᵍ, edgelist, Rᵢⱼ,sᵢ, M
     nᵢᵍ = load("data.jld", "n")
@@ -93,6 +93,7 @@ catch e
     println("GGA CRASHED ", 1e20)
     exit()
 end
+#
 
 # number of regions (municipalities)
 
@@ -137,7 +138,7 @@ C = [0.5980 0.3849 0.0171
 kᵍ = [11.8, 13.3, 6.6]
 # average number of contacts at home
 kᵍ_h = [3.15, 3.17, 3.28]
-# average number of contacts at wor
+# average number of contacts at work
 kᵍ_w = [1.72, 5.18, 0.0]
 
 # mobility factor
@@ -202,15 +203,15 @@ set_initial_infected!(epi_params, population, E₀, A₀, I₀)
 ## -----------------------------------------------------------------------------
 
 # application of containment days
-tᶜs = [30, 60, 90, 120]
+tᶜs = [16, 30, 44, 58, 72]
 
 # mobility reduction from INE
-κ₀s = [0.65, 0.75, 0.65, 0.55]
+κ₀s = [0.40, 0.29, 0.27, 0.32, 0.43]
 
-ϕs = [0.174, 0.174, 0.174, 0.174]
+ϕs = ones(4) * args["phi"]
 
 # social distancing
-δs = [0.207, 0.207, 0.207, 0.207]
+δs = ones(4) * args["delta"]
 
 
 ## -----------------------------------------------------------------------------

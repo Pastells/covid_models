@@ -12,7 +12,7 @@ using CSV, DataFrames, PyCall
 # Removed million . for total beforehand
 # Changes 1rst column name to Areas and 2nd to Tipo
 
-df1 = CSV.read("poblacion_areas_movilidad.csv", DataFrame)
+df1 = CSV.read("input/poblacion_areas_movilidad.csv", DataFrame)
 select!(df1, Not([:Tipo, :Periodo]))
 
 # Here I turn into integer
@@ -32,8 +32,8 @@ end
 # Mobility between areas
 # --------------------------------
 
-# Removed spaces before ; beforehand
-df2 = CSV.read("flujos_unicode.csv", DataFrame)
+# Turned into utf-8 and removed spaces before ; beforehand
+df2 = CSV.read("input/flujos0.csv", DataFrame)
 select!(df2, Not([:CELDA_ORIGEN, :CELDA_DESTINO, :Column6]))
 
 # Left join
@@ -56,14 +56,14 @@ df2[:FLUJO] = Float64.(df2[:FLUJO])
 # Generate needed arrays
 # --------------------------------
 
-orig = 1833
+orig = df1.orig[1]
 sum = 0
 Rᵢⱼ = Float64[]
 edgelist = []
 for i in 1:length(df2[1])
     global sum, orig
-    # Divide flux by origin population
-    flux = df2[i, :].FLUJO /= df2[i, :].Total
+    # Divide flux by origin population (M, Y and O don't move assumption)
+    flux = df2[i, :].FLUJO /= (df2[i, :].Total * .562)
 
     if orig != df2[i, :].orig
         push!(edgelist, [orig, orig])
@@ -103,7 +103,15 @@ sᵢ = df1.Surface
 
 # Population number
 nᵢᵍ = ones(3, 3215) # can't be set to zero -> NaNs
-nᵢᵍ[2, :] = df1.Total
+
+# approximate % taken from INE
+# Y ∈ [0, 24]
+# M ∈ [25, 64]
+# O ∈ [65, ∞)
+
+nᵢᵍ[1, :] = df1.Total * .244
+nᵢᵍ[2, :] = df1.Total * .562
+nᵢᵍ[3, :] = df1.Total * .194
 
 # Save to file
 using JLD
