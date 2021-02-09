@@ -860,7 +860,7 @@ Compute the cost function comparing to real data
   and the epidemic spreading information.
 - `population::Population_Params`: Structure that contains all the parameters
   related with the population.
-- `compartment::String`: String indicating the compartment, one of: `"I"`, `"IRD"`
+- `compartment::String`: String indicating the compartment, one of: `"I"`, `"D"`, `"IRD"`
 - `data::DataFrame`: Contains real data
 """
 function cost_function(epi_params::Epidemic_Params,
@@ -879,29 +879,63 @@ function cost_function(epi_params::Epidemic_Params,
     df.time = repeat(1:T, inner = G * M)
 
     # Store number of cases
-    df.cases_I = reshape(epi_params.ρᴵᵍ .* population.nᵢᵍ, G * M * T)
 
-    if compartment != "I"
-        df.cases_R = reshape(epi_params.ρᴿᵍ .* population.nᵢᵍ, G * M * T)
-        df.cases_D = reshape(epi_params.ρᴰᵍ .* population.nᵢᵍ, G * M * T)
-    end
+    df.cases_I = reshape(epi_params.ρᴵᵍ .* population.nᵢᵍ, G * M * T)
+    df.cases_R = reshape(epi_params.ρᴿᵍ .* population.nᵢᵍ, G * M * T)
+    df.cases_D = reshape(epi_params.ρᴰᵍ .* population.nᵢᵍ, G * M * T)
 
     # Group by day (sum of all patches and strata)
     select!(df, Not([:strata, :patch]))
     df = aggregate(df, ["time"], sum)
 
-    # Compute cost per day
-    if compartment == "I"
-        df.cost = (df.cases_I_sum-data."#infected").^2
-    else
-        df.cost = (df.cases_I_sum-data."#infected").^2 + (df.cases_I_sum-data."recovered").^2 +
-                  (df.cases_D_sum-data."dead").^2
+    # Dismiss initial transient,
+    # start at first day with more than 100 total infected
+    index = findfirst(df.cases_I_sum.>100)
+    # if non exist don't split data
+    index == nothing ? index = 1 : nothing
+    CSV.write("output_pre.csv", df)
+    println("Index = ", index)
+
+    df = df[setdiff(index:end), :]
+    select!(df, Not([:time]))
+
+
+    # Add data:
+    # Scale infected for underreporting
+    df.data_inf = data."#infected"[1 : end - index + 1] * 100/(100-89.4)
+    df.data_rec = data.recovered[1 : end - index + 1]
+    df.data_dead = data.dead[1 : end - index + 1]
+    # date after time column
+    insertcols!(df, 1, :date => data.date[1 : end - index + 1])
+
+
+    # Turn recovered and dead from cumulative to daily
+    for row in length(df.data_dead):-1:2
+        df.data_rec[row] -= df.data_rec[row-1]
+        df.data_dead[row] -= df.data_dead[row-1]
     end
 
-    # Add all or take maximum
-    cost = sum(df.cost)
-    # cost = maximum(df.cost)
+
+    # Compute different costs per day
+
+    df.cost_I = (df.cases_I_sum-df.data_inf).^2
+    df.cost_D = (df.cases_D_sum-df.data_dead).^2
+    df.cost_IRD = (df.cases_I_sum-df.data_inf).^2 + (df.cases_R_sum-df.data_rec).^2 +
+    (df.cases_D_sum-df.data_dead).^2
+
+    # Add all days or take maximum for chosen cost
+    if compartment == "I"
+        cost = sum(df.cost_I)
+        # cost = maximum(df.cost_I)
+    elseif compartment == "D"
+        cost = sum(df.cost_D)
+    elseif compartment == "IRD"
+        cost = sum(df.cost_IRD)
+    else
+        error("compartment option in cost_function not correct")
+    end
+
 
     @printf("GGA SUCCESS %.2f\n", cost)
-    # CSV.write("output.csv", df)
+    CSV.write("output.csv", df)
 end

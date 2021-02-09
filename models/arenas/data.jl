@@ -56,7 +56,7 @@ df2[:FLUJO] = Float64.(df2[:FLUJO])
 # Generate needed arrays
 # --------------------------------
 
-orig = df1.orig[1]
+orig = df2.orig[1]
 sum = 0
 Rᵢⱼ = Float64[]
 edgelist = []
@@ -102,7 +102,7 @@ df1.Surface = replace(df1.Surface, missing => 1)
 sᵢ = df1.Surface
 
 # Population number
-nᵢᵍ = ones(3, 3215) # can't be set to zero -> NaNs
+nᵢᵍ = ones(3, 3214) # can't be set to zero -> NaNs
 
 # approximate % taken from INE
 # Y ∈ [0, 24]

@@ -9,31 +9,31 @@ function parsing()
 
     @add_arg_table! s begin
         "--beta_i"
-            arg_type = Real
+            arg_type = Float64
             default = 0.075
             help = "infectivity of symptomatic"
         "--eta"
-            arg_type = Real
+            arg_type = Float64
             default = 2.444
             help = "exposed days"
         "--alpha_y"
-            arg_type = Real
+            arg_type = Float64
             default = 5.671
             help = "asymptomatic days (young)"
         "--alpha_mo"
-            arg_type = Real
+            arg_type = Float64
             default = 2.756
             help = "asymptomatic days (mid and old)"
         "--mu_mo"
-            arg_type = Real
+            arg_type = Float64
             default = 3.915
             help ="infectious days (mid and old)"
         "--delta"
-            arg_type = Real
+            arg_type = Float64
             default = 0.207
             help = "social distancing"
         "--phi"
-            arg_type = Real
+            arg_type = Float64
             default = 0.174
             help= "household permeability"
         "--data"
@@ -42,7 +42,7 @@ function parsing()
             help = "file with time series"
         "--day_min"
             arg_type = Int
-            default = 41
+            default = 36
             help="first day to consider of the data series"
         "--day_max"
             arg_type = Int
@@ -62,7 +62,7 @@ try
 catch e
     println("Error parsing arguments:\n$e")
     println("GGA CRASHED ", 1e20)
-    exit()
+    rethrow()
 end
 
 ## -----------------------------------------------------------------------------
@@ -80,7 +80,6 @@ G = 3
 ## .............................................................................
 
 # Load inputs generated with data.jl
-#
 try
     global nᵢᵍ, edgelist, Rᵢⱼ,sᵢ, M
     nᵢᵍ = load("data.jld", "n")
@@ -91,9 +90,8 @@ try
 catch e
     println("Error reading data.jld:\n$e")
     println("GGA CRASHED ", 1e20)
-    exit()
+    rethrow()
 end
-#
 
 # number of regions (municipalities)
 
@@ -188,13 +186,22 @@ epi_params = Epidemic_Params(βᴵ, βᴬ, ηᵍ, αᵍ, μᵍ, θᵍ, γᵍ,
 ## -----------------------------------------------------------------------------
 
 E₀ = zeros(G, M)
-
 A₀ = zeros(G, M)
-A₀[2, 5] = 2.0
-A₀[3, 3] = 1.0
-
 I₀ = zeros(G, M)
-I₀[2, 5] = 1.0
+
+# A₀[2, 5] = 2.0
+# A₀[3, 3] = 1.0
+# I₀[2, 5] = 1.0
+
+# Madrid
+A₀[2, 1515] = 50.0
+I₀[2, 1515] = 10.0
+A₀[3, 1516] = 50.0
+
+# Barcelona
+A₀[2, 445] = 20.0
+I₀[2, 445] = 50.0
+A₀[3, 446] = 50.0
 
 set_initial_infected!(epi_params, population, E₀, A₀, I₀)
 
@@ -203,7 +210,9 @@ set_initial_infected!(epi_params, population, E₀, A₀, I₀)
 ## -----------------------------------------------------------------------------
 
 # application of containment days
-tᶜs = [16, 30, 44, 58, 72]
+# starting at day 36
+tᶜs = [21, 35, 49, 63, 77] + 0*ones(Int, 5)
+
 
 # mobility reduction from INE
 κ₀s = [0.40, 0.29, 0.27, 0.32, 0.43]
@@ -223,7 +232,7 @@ try
 catch e
     println("Error while running the model:\n$e")
     println("GGA CRASHED ", 1e20)
-    exit()
+    rethrow()
 end
 
 
@@ -235,11 +244,11 @@ end
 try
     data = CSV.read(args["data"], DataFrame)
     data = data[setdiff(args["day_min"]:args["day_max"]), :]
-    cost_function(epi_params, population, "IRD", data)
+    cost_function(epi_params, population, "D", data)
 catch e
-    println("Error reading data file:\n$e")
+    println("Error reading data file or computing cost:\n$e")
     println("GGA CRASHED ", 1e20)
-    exit()
+    rethrow()
 end
 
 # save results

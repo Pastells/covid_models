@@ -508,7 +508,8 @@ class ParserCommon:
             "--undiagnosed",
             type=float,
             default=config.UNDIAGNOSED,
-            help="percentage of undiagnosed cases, used to rescale the data",
+            help="percentage of undiagnosed cases, \
+                    used to rescale the data to account for underreporting",
         )
         parser_data.add_argument(
             "--metric",
