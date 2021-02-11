@@ -71,6 +71,8 @@ end
 using JLD, CSV, DataFrames
 push!(LOAD_PATH, "./src/")
 using MMCAcovid19
+import Random
+Random.seed!(1)
 
 # number of strata
 G = 3
@@ -189,9 +191,10 @@ E₀ = zeros(G, M)
 A₀ = zeros(G, M)
 I₀ = zeros(G, M)
 
-# A₀[2, 5] = 2.0
-# A₀[3, 3] = 1.0
-# I₀[2, 5] = 1.0
+# Random seeds
+mov_areas = rand(1:M, 50)
+I₀[2, mov_areas] .= 1.0
+A₀[2, mov_areas] .= 5.0
 
 # Madrid
 A₀[2, 1515] = 50.0
@@ -199,9 +202,10 @@ I₀[2, 1515] = 10.0
 A₀[3, 1516] = 50.0
 
 # Barcelona
-A₀[2, 445] = 20.0
-I₀[2, 445] = 50.0
+A₀[2, 445] = 50.0
+I₀[2, 445] = 10.0
 A₀[3, 446] = 50.0
+
 
 set_initial_infected!(epi_params, population, E₀, A₀, I₀)
 
@@ -217,10 +221,10 @@ tᶜs = [21, 35, 49, 63, 77] + 0*ones(Int, 5)
 # mobility reduction from INE
 κ₀s = [0.40, 0.29, 0.27, 0.32, 0.43]
 
-ϕs = ones(4) * args["phi"]
+ϕs = ones(5) * args["phi"]
 
 # social distancing
-δs = ones(4) * args["delta"]
+δs = ones(5) * args["delta"]
 
 
 ## -----------------------------------------------------------------------------

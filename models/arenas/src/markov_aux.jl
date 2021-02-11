@@ -476,7 +476,7 @@ function compute_effective_population!(nᵢᵍ_eff::Array{Float64, 2},
         end
     end
 
-    # Compute the aggerated effective populatoin
+    # Compute the aggregated effective population
     for i in 1:M
         for g in 1:G
             nᵢ_eff[i] += nᵢᵍ_eff[g, i]
@@ -880,20 +880,27 @@ function cost_function(epi_params::Epidemic_Params,
 
     # Store number of cases
 
-    df.cases_I = reshape(epi_params.ρᴵᵍ .* population.nᵢᵍ, G * M * T)
-    df.cases_R = reshape(epi_params.ρᴿᵍ .* population.nᵢᵍ, G * M * T)
-    df.cases_D = reshape(epi_params.ρᴰᵍ .* population.nᵢᵍ, G * M * T)
+    df.S = reshape(epi_params.ρˢᵍ .* population.nᵢᵍ, G * M * T)
+    df.E = reshape(epi_params.ρᴱᵍ .* population.nᵢᵍ, G * M * T)
+    df.A = reshape(epi_params.ρᴬᵍ .* population.nᵢᵍ, G * M * T)
+    df.I = reshape(epi_params.ρᴵᵍ .* population.nᵢᵍ, G * M * T)
+    df.PD = reshape(epi_params.ρᴾᴰᵍ .* population.nᵢᵍ, G * M * T)
+    df.PH = reshape(epi_params.ρᴾᴴᵍ .* population.nᵢᵍ, G * M * T)
+    df.HR = reshape(epi_params.ρᴴᴿᵍ .* population.nᵢᵍ, G * M * T)
+    df.HD = reshape(epi_params.ρᴴᴰᵍ .* population.nᵢᵍ, G * M * T)
+    df.R = reshape(epi_params.ρᴿᵍ .* population.nᵢᵍ, G * M * T)
+    df.D = reshape(epi_params.ρᴰᵍ .* population.nᵢᵍ, G * M * T)
 
+    # CSV.write("output_pre.csv", df)
     # Group by day (sum of all patches and strata)
     select!(df, Not([:strata, :patch]))
     df = aggregate(df, ["time"], sum)
 
     # Dismiss initial transient,
     # start at first day with more than 100 total infected
-    index = findfirst(df.cases_I_sum.>100)
+    index = findfirst(df.I_sum.>100)
     # if non exist don't split data
     index == nothing ? index = 1 : nothing
-    CSV.write("output_pre.csv", df)
     println("Index = ", index)
 
     df = df[setdiff(index:end), :]
@@ -918,10 +925,10 @@ function cost_function(epi_params::Epidemic_Params,
 
     # Compute different costs per day
 
-    df.cost_I = (df.cases_I_sum-df.data_inf).^2
-    df.cost_D = (df.cases_D_sum-df.data_dead).^2
-    df.cost_IRD = (df.cases_I_sum-df.data_inf).^2 + (df.cases_R_sum-df.data_rec).^2 +
-    (df.cases_D_sum-df.data_dead).^2
+    df.cost_I = (df.I_sum-df.data_inf).^2
+    df.cost_D = (df.D_sum-df.data_dead).^2
+    df.cost_IRD = (df.I_sum-df.data_inf).^2 + (df.R_sum-df.data_rec).^2 +
+    (df.D_sum-df.data_dead).^2
 
     # Add all days or take maximum for chosen cost
     if compartment == "I"

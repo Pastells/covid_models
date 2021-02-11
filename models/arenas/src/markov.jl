@@ -139,6 +139,7 @@ function update_prob!(Pᵢᵍ::Array{Float64, 2},
             ρᴰᵍ[g, i, t + 1] = ρᴰᵍ[g, i, t] + ζᵍ[g] * ρᴾᴰᵍ[g, i, t] +
                 ψᵍ[g] * ρᴴᴰᵍ[g, i, t]
 
+
             # Reset values
             τᵢᵍ[g, i] = 0.
             Pᵢᵍ[g, i] = 0.
