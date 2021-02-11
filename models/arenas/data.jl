@@ -2,7 +2,7 @@
 Create nᵢᵍ, edgelist, Rᵢⱼ and sᵢ
 """
 
-using CSV, DataFrames, PyCall
+using CSV, DataFrames, PyCall, Printf
 @pyimport shapefile
 
 
@@ -48,8 +48,10 @@ select!(df2, Not([:NOMBRE_CELDA_ORIGEN, :NOMBRE_CELDA_DESTINO]))
 # Remove mobility between areas not in df1
 df2 = dropmissing(df2)
 
-# Turn flux into float
+# Turn flux into float and normalize with origin population
 df2[:FLUJO] = Float64.(df2[:FLUJO])
+df2.FLUJO ./= df2.Total
+# * .562 # (M, Y and O don't move assumption) -> But problem, suma > 1 below
 
 
 # --------------------------------
@@ -57,27 +59,29 @@ df2[:FLUJO] = Float64.(df2[:FLUJO])
 # --------------------------------
 
 orig = df2.orig[1]
-sum = 0
+suma = 0
 Rᵢⱼ = Float64[]
 edgelist = []
 for i in 1:length(df2[1])
-    global sum, orig
-    # Divide flux by origin population (M, Y and O don't move assumption)
-    flux = df2[i, :].FLUJO /= (df2[i, :].Total * .562)
+    global suma, orig
+    flux = df2[i, :].FLUJO
 
     if orig != df2[i, :].orig
         push!(edgelist, [orig, orig])
-        push!(Rᵢⱼ, 1-sum)
+        if suma > 1
+            @printf("%d, %d, %f\n", i, orig, suma)
+        end
+        push!(Rᵢⱼ, 1 - suma)
         orig = df2[i, :].orig
-        sum = flux
+        suma = flux
     else
-        sum += flux
+        suma += flux
         push!(edgelist, [orig, df2[i, :].dest])
         push!(Rᵢⱼ, flux)
     end
 end
 push!(edgelist, [orig, orig])
-push!(Rᵢⱼ, 1-sum)
+push!(Rᵢⱼ, 1 - suma)
 
 # Reshape edgelist from array of arrays into 2d array
 _edgelist = hcat(edgelist...)'
@@ -94,12 +98,15 @@ df = DataFrame(Areas = String[], Surface = Float64[])
 for i in 0:3213
     push!(df, [sf.record(i)[5], sf.record(i)[7]/1e6])
 end
+# Join repeated areas
+df = aggregate(df, ["Areas"], sum)
+
 
 # Add surface to df1
 df1 = leftjoin(df1, df, on = :Areas)
 # Deal with missing surfaces
-df1.Surface = replace(df1.Surface, missing => 1)
-sᵢ = df1.Surface
+df1.Surface_sum = replace(df1.Surface_sum, missing => 1)
+sᵢ = df1.Surface_sum
 
 # Population number
 nᵢᵍ = ones(3, 3214) # can't be set to zero -> NaNs
