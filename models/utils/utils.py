@@ -459,13 +459,13 @@ class ParserCommon:
             "--seed",
             type=int,
             default=config.SEED,
-            help="seed for the automatic configuraten",
+            help="seed metaparameter for the automatic configuration",
         )
         parser_config.add_argument(
             "--timeout",
             type=int,
             default=config.TIMEOUT,
-            help="timeout for the automatic configuraten",
+            help="timeout metaparameter for the automatic configuration",
         )
         parser_config.add_argument(
             "--mc_nseed",

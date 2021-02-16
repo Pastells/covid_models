@@ -68,7 +68,7 @@ N_T_STEPS = int(1e7)
 # Save
 SAVE_FOLDER = "/home/pol/Documents/iiia_udl/programs/results/"
 
-# Automatic configurator
+# Metaparameters for the automatic configurator
 SEED = 1
 TIMEOUT = 1200
 
