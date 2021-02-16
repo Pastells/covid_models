@@ -894,7 +894,10 @@ function cost_function(epi_params::Epidemic_Params,
     # CSV.write("output_pre.csv", df)
     # Group by day (sum of all patches and strata)
     select!(df, Not([:strata, :patch]))
-    df = aggregate(df, ["time"], sum)
+    gd = groupby(df, :time)
+    list = names(df)
+    filter!(e->e≠"time",list)
+    df = combine(gd, list .=> sum)
 
     # Dismiss initial transient,
     # start at first day with more than 100 total infected
@@ -944,5 +947,5 @@ function cost_function(epi_params::Epidemic_Params,
 
 
     @printf("GGA SUCCESS %.2f\n", cost)
-    CSV.write("output.csv", df)
+    # CSV.write("output.csv", df)
 end

@@ -36,6 +36,10 @@ function parsing()
             arg_type = Float64
             default = 0.174
             help= "household permeability"
+        "--mobility_data"
+            arg_type = String
+            default = "/home/pol/Documents/iiia_udl/programs/models/arenas/data.jld"
+            help = "file with julia variables from ine data"
         "--data"
             arg_type = String
             default = "/home/pol/Documents/iiia_udl/programs/data/spain.dat"
@@ -51,6 +55,14 @@ function parsing()
         "--save"
             action = :store_true
             help = "specify to save data"
+        "--seed"
+            arg_type = Int
+            default = 1
+            help="seed for the automatic configuration"
+        "--timeout"
+            arg_type = Int
+            default = 1200
+            help="timeout for the automatic configuration"
     end
 
     return parse_args(s)
@@ -69,7 +81,7 @@ end
 ## Population parameters
 ## -----------------------------------------------------------------------------
 using JLD, CSV, DataFrames
-push!(LOAD_PATH, "./src/")
+push!(LOAD_PATH, "./models/arenas/src/")
 using MMCAcovid19
 import Random
 Random.seed!(1)
@@ -84,10 +96,10 @@ G = 3
 # Load inputs generated with data.jl
 try
     global nᵢᵍ, edgelist, Rᵢⱼ,sᵢ, M
-    nᵢᵍ = load("data.jld", "n")
-    edgelist = load("data.jld", "edgelist")
-    Rᵢⱼ = load("data.jld", "R")
-    sᵢ = load("data.jld", "s")
+    nᵢᵍ = load(args["mobility_data"], "n")
+    edgelist = load(args["mobility_data"], "edgelist")
+    Rᵢⱼ = load(args["mobility_data"], "R")
+    sᵢ = load(args["mobility_data"], "s")
     M = length(sᵢ)
 catch e
     println("Error reading data.jld:\n$e")
@@ -215,7 +227,7 @@ set_initial_infected!(epi_params, population, E₀, A₀, I₀)
 
 # application of containment days
 # starting at day 36
-tᶜs = [21, 35, 49, 63, 77] + 0*ones(Int, 5)
+tᶜs = [21, 35, 49, 63, 77] + 1*ones(Int, 5)
 
 
 # mobility reduction from INE
