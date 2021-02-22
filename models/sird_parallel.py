@@ -1,5 +1,6 @@
 """
 Stochastic mean-field SIRD model using the Gillespie algorithm
+runs in parallel using joblib
 
 Pol Pastells, 2020
 
@@ -15,9 +16,9 @@ import random
 import sys
 import traceback
 import numpy as np
+from joblib import Parallel, delayed
 from utils import utils, config
 
-# import matplotlib.pyplot as plt
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%
 # %%%%%%%%%%%%%%%%%%%%%%%%%
@@ -25,6 +26,7 @@ from utils import utils, config
 
 def main():
     args = parsing()
+    NUM_CORES = 8
     t_total, time_series, rates = parameters_init(args)
     # print(args)
     sys.stdout.write(f"r = {rates['beta']}\n")
@@ -40,49 +42,26 @@ def main():
     # =========================
     # MC loop
     # =========================
-    for mc_seed in range(args.mc_seed0, args.mc_seed0 + args.mc_nseed):
-        random.seed(mc_seed)
-        np.random.seed(mc_seed)
-        mc_step = mc_seed - args.mc_seed0
+    results = Parallel(n_jobs=NUM_CORES)(
+        delayed(main_loop)(args, mc_seed, t_total, rates, day_max)
+        for mc_seed in range(args.mc_seed0, args.mc_seed0 + args.mc_nseed)
+    )
 
-        # -------------------------
-        # initialization
-
-        comp = Compartments(args)
-
-        I_day[mc_step, 0] = args.I_0
-        R_day[mc_step, 0] = args.R_0
-        D_day[mc_step, 0] = args.D_0
-        # S_day[mc_step,0]=s[0]
-        t_step, time = 0, 0
-
-        # Time loop
-        while comp.I[t_step] > 0 and time < t_total:
-            t_step, time = gillespie(t_step, time, comp, rates)
-        # -------------------------
-
-        if config.CUMULATIVE is True:
-            i_var = comp.I_cum
-        else:
-            i_var = comp.I
-
-        day_max = utils.day_data(
-            comp.T[:t_step], i_var[:t_step], I_day[mc_step], day_max
-        )
-        day_max = utils.day_data(
-            comp.T[:t_step], comp.R[:t_step], R_day[mc_step], day_max
-        )
-        day_max = utils.day_data(
-            comp.T[:t_step], comp.D[:t_step], D_day[mc_step], day_max
-        )
-
-        # plt.plot(I_day[mc_step], "orange", alpha=0.3)
+    days_max = []
+    for mc_seed in range(args.mc_nseed):
+        I_day[mc_seed] = results[mc_seed][0]
+        R_day[mc_seed] = results[mc_seed][1]
+        D_day[mc_seed] = results[mc_seed][2]
+        days_max.append(results[mc_seed][3])
     # =========================
+
+    day_max = max(days_max)
 
     I_m, R_m, D_m = utils.mean_alive_rd(
         I_day, t_total, day_max, args.mc_nseed, R_day, D_day
     )
 
+    # Compute and print cost functions for I, R and D
     if config.CUMULATIVE is True:
         utils.cost_func(time_series[:, 3], I_m, args.metric)
     else:
@@ -108,6 +87,43 @@ def main():
 
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+def main_loop(args, mc_seed, t_total, rates, day_max):
+    """Function to be run in parallel"""
+    random.seed(mc_seed)
+    np.random.seed(mc_seed)
+
+    # -------------------------
+    # initialization
+
+    comp = Compartments(args)
+
+    # results per day and seed
+    I_day = np.zeros(t_total, dtype=int)
+    R_day = np.zeros(t_total, dtype=int)
+    D_day = np.zeros(t_total, dtype=int)
+    I_day[0] = args.I_0
+    R_day[0] = args.R_0
+    D_day[0] = args.D_0
+    t_step, time = 0, 0
+
+    # Time loop
+    while comp.I[t_step] > 0 and time < t_total:
+        t_step, time = gillespie(t_step, time, comp, rates)
+    # -------------------------
+
+    if config.CUMULATIVE is True:
+        i_var = comp.I_cum
+    else:
+        i_var = comp.I
+
+    day_max = utils.day_data(comp.T[:t_step], i_var[:t_step], I_day, day_max)
+    day_max = utils.day_data(comp.T[:t_step], comp.R[:t_step], R_day, day_max)
+    day_max = utils.day_data(comp.T[:t_step], comp.D[:t_step], D_day, day_max)
+    return [I_day, R_day, D_day, day_max]
+
+
 # %%%%%%%%%%%%%%%%%%%%%%%%%
 
 
