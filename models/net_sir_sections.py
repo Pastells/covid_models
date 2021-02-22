@@ -27,13 +27,14 @@ def main():
     # results per day and seed
     I_day = np.zeros([args.mc_nseed, t_total], dtype=int)
 
-    mc_step, day_max = 0, 0
+    day_max = 0
     # =========================
     # MC loop
     # =========================
     for mc_seed in range(args.mc_seed0, args.mc_seed0 + args.mc_nseed):
         random.seed(mc_seed)
         np.random.seed(mc_seed)
+        mc_step = mc_seed - args.mc_seed0
 
         # initialization
         section = 0
@@ -94,7 +95,6 @@ def main():
 
         day_max = utils.day_data(t, i_var, I_day[mc_step], day_max)
 
-        mc_step += 1
     # =========================
 
     import matplotlib.pyplot as plt

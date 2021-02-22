@@ -30,7 +30,7 @@ def main():
     # results per day and seed
     I_day = np.zeros([args.mc_nseed, t_total], dtype=int)
 
-    mc_step, day_max = 0, 0
+    day_max = 0
     # =========================
     # MC loop
     # =========================
@@ -38,6 +38,7 @@ def main():
         # print("seed", mc_seed)
         random.seed(mc_seed)
         np.random.seed(mc_seed)
+        mc_step = mc_seed - args.mc_seed0
 
         # initialization
         section = 0
@@ -107,7 +108,6 @@ def main():
             comp.T[:t_step], i_var[:t_step], I_day[mc_step], day_max
         )
 
-        mc_step += 1
     # =========================
 
     utils.cost_save_plot(I_day, t_total, day_max, args, time_series)
