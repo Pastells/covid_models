@@ -90,5 +90,5 @@ if __name__ == "__main__":
         main()
     except Exception as ex:
         sys.stderr.write(f"{repr(ex)}\n")
-        traceback.print_exc(ex)
         sys.stdout.write(f"GGA CRASHED {1e20}\n")
+        traceback.print_exc(ex)

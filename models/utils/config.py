@@ -12,36 +12,13 @@ I_0 = None
 R_0 = 0
 D_0 = 0
 
-"""
-# Italy Parameters
-N = 41300
-BETA = 7.9e-6 * N  # beta
-DELTA = 0.0213 + 0.0163  # delta
-THETA = 0.0163 / DELTA
-
-# China* Parameters
-N = 79200
-I_0 = 999
-R_0 = 10
-D_0 = 17
-BETA = 3.33e-6 * N
-DELTA = 0.018 + 0.003
-THETA = 0.003 / DELTA
-
-"""
-# China Parameters
-N = 83000
-I_0 = 430
-R_0 = 10
-D_0 = 15
-BETA = 3.95e-6 * N
-DELTA = 0.0353 + 0.0031
-THETA = 0.0031 / DELTA
-
-
 # Defaults
+N = 10000
+BETA = 0.5
+DELTA = 0.2
 BETA_A = BETA / 2
 DELTA_A = 0.01
+THETA = 0.01
 ALPHA = 1
 EPSILON = 1
 

@@ -437,9 +437,9 @@ class ParserCommon:
 
         self.parser_params = self.parser.add_argument_group("parameters")
         self.parser_init = self.parser.add_argument_group("initial conditions")
-        parser_config = self.parser.add_argument_group("configuration")
-        parser_data = self.parser.add_argument_group("data")
-        parser_act = self.parser.add_argument_group("actions")
+        self.parser_config = self.parser.add_argument_group("configuration")
+        self.parser_data = self.parser.add_argument_group("data")
+        self.parser_act = self.parser.add_argument_group("actions")
 
         self.parser_init.add_argument(
             "--I_0",
@@ -455,73 +455,75 @@ class ParserCommon:
             help="initial number of inmune individuals",
         )
 
-        parser_config.add_argument(
+        self.parser_config.add_argument(
             "--seed",
             type=int,
             default=config.SEED,
             help="seed metaparameter for the automatic configuration",
         )
-        parser_config.add_argument(
+        self.parser_config.add_argument(
             "--timeout",
             type=int,
             default=config.TIMEOUT,
             help="timeout metaparameter for the automatic configuration",
         )
-        parser_config.add_argument(
+        self.parser_config.add_argument(
             "--mc_nseed",
             type=int,
             default=config.MC_NSEED,
             help="number of mc realizations to average over",
         )
-        parser_config.add_argument(
+        self.parser_config.add_argument(
             "--mc_seed0",
             type=int,
             default=config.MC_SEED0,
             help="initial mc seed",
         )
-        parser_config.add_argument(
+        self.parser_config.add_argument(
             "--n_t_steps",
             type=int,
             default=config.N_T_STEPS,
             help="maximum number of simulation steps, dimension for the arrays",
         )
 
-        parser_data.add_argument(
+        self.parser_data.add_argument(
             "--data",
             type=str,
             default=config.DATA,
             help="file with time series",
         )
-        parser_data.add_argument(
+        self.parser_data.add_argument(
             "--day_min",
             type=int,
             default=config.DAY_MIN,
             help="first day to consider of the data series",
         )
-        parser_data.add_argument(
+        self.parser_data.add_argument(
             "--day_max",
             type=int,
             default=config.DAY_MAX,
             help="last day to consider of the data series",
         )
-        parser_data.add_argument(
+        self.parser_data.add_argument(
             "--undiagnosed",
             type=float,
             default=config.UNDIAGNOSED,
             help="percentage of undiagnosed cases, \
                     used to rescale the data to account for underreporting",
         )
-        parser_data.add_argument(
+        self.parser_data.add_argument(
             "--metric",
             type=str,
             default=config.METRIC,
             choices=config.METRICS,
-            help=f"Metric to use to compute the cost function {config.METRICS_STR}",
+            help=f"metric to use to compute the cost function {config.METRICS_STR}",
             metavar="str",
         )
 
-        parser_act.add_argument("--plot", action="store_true", help="specify for plots")
-        parser_act.add_argument(
+        self.parser_act.add_argument(
+            "--plot", action="store_true", help="specify for plots"
+        )
+        self.parser_act.add_argument(
             "--save", type=str, default=None, help="specify a name for outputfile"
         )
 
@@ -748,6 +750,15 @@ class ParserCommon:
             help="mean number of edges [1,50]",
         )
 
+        # -------------------------
+
+    def parallel(self):
+        self.parser_act.add_argument(
+            "--sequential",
+            action="store_true",
+            help="specify for sequential execution, by default is parallal",
+        )
+
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -784,6 +795,11 @@ def parameters_init_common(args):
 
     if args.I_0 is None:
         args.I_0 = int(time_series[0, 0])
+
+    if args.I_0 == 0:
+        raise ValueError(
+            "I_0 cannot be 0. Change given initial condition or check day_min data"
+        )
 
     if (hasattr(args, "E_0")) and (args.E_0 is None):
         args.E_0 = int(time_series[0, 0])

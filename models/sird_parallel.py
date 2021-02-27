@@ -26,7 +26,6 @@ from utils import utils, config
 
 def main():
     args = parsing()
-    NUM_CORES = 8
     t_total, time_series, rates = parameters_init(args)
     # print(args)
     sys.stdout.write(f"r = {rates['beta']}\n")
@@ -38,21 +37,66 @@ def main():
     R_day = np.zeros([args.mc_nseed, t_total], dtype=int)
     D_day = np.zeros([args.mc_nseed, t_total], dtype=int)
 
-    day_max = 0
     # =========================
     # MC loop
     # =========================
-    results = Parallel(n_jobs=NUM_CORES)(
-        delayed(main_loop)(args, mc_seed, t_total, rates, day_max)
-        for mc_seed in range(args.mc_seed0, args.mc_seed0 + args.mc_nseed)
-    )
 
+    if args.sequential:
+        results = []
+        for mc_seed in range(args.mc_seed0, args.mc_seed0 + args.mc_nseed):
+            _results = main_loop(args, mc_seed, t_total, rates, time_series[-1, 0])
+            results.append(_results)
+
+    # Parallel execution
+    else:
+        import multiprocessing
+
+        # Obtain number of cores from machine (doesn't check if they are available)
+        num_cores = multiprocessing.cpu_count()
+
+        # Reuse pool of workers in batches with size a multiple of num_cores
+        BATCH_SIZE = 2
+        with Parallel(n_jobs=num_cores) as parallel:
+            accum = 0
+            results = []
+            while accum * num_cores < args.mc_nseed:
+                ran = range(
+                    args.mc_seed0 + accum * BATCH_SIZE * num_cores,
+                    min(
+                        args.mc_seed0 + (accum + 1) * BATCH_SIZE * num_cores,
+                        args.mc_seed0 + args.mc_nseed,
+                    ),
+                )
+
+                _results = parallel(
+                    delayed(main_loop)(
+                        args, mc_seed, t_total, rates, time_series[-1, 0]
+                    )
+                    for mc_seed in ran
+                )
+                results.extend(_results)
+
+                bad_realizations = 0
+                for mc_seed, result in enumerate(_results):
+                    bad_realizations += result[4]
+                if bad_realizations >= num_cores // 2:
+                    sys.stdout.write(
+                        f"{bad_realizations} bad realizations out of {BATCH_SIZE * num_cores}\n"
+                    )
+                    break
+                    # raise ValueError(
+                    # "Bad realizations: (I_day_max < I_data / 2) or (I_day_max > I_data x 2)"
+                    # )
+
+                accum += 1
+
+    # get daily data from results list
     days_max = []
-    for mc_seed in range(args.mc_nseed):
-        I_day[mc_seed] = results[mc_seed][0]
-        R_day[mc_seed] = results[mc_seed][1]
-        D_day[mc_seed] = results[mc_seed][2]
-        days_max.append(results[mc_seed][3])
+    for mc_seed, result in enumerate(results):
+        I_day[mc_seed] = result[0]
+        R_day[mc_seed] = result[1]
+        D_day[mc_seed] = result[2]
+        days_max.append(result[3])
     # =========================
 
     day_max = max(days_max)
@@ -89,7 +133,7 @@ def main():
 # %%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-def main_loop(args, mc_seed, t_total, rates, day_max):
+def main_loop(args, mc_seed, t_total, rates, last_day_inf):
     """Function to be run in parallel"""
     random.seed(mc_seed)
     np.random.seed(mc_seed)
@@ -118,10 +162,16 @@ def main_loop(args, mc_seed, t_total, rates, day_max):
     else:
         i_var = comp.I
 
+    day_max = 0
     day_max = utils.day_data(comp.T[:t_step], i_var[:t_step], I_day, day_max)
     day_max = utils.day_data(comp.T[:t_step], comp.R[:t_step], R_day, day_max)
     day_max = utils.day_data(comp.T[:t_step], comp.D[:t_step], D_day, day_max)
-    return [I_day, R_day, D_day, day_max]
+
+    bad_realization = 0
+    if I_day[-1] < last_day_inf / 2 or I_day[-1] > last_day_inf * 2:
+        bad_realization = 1
+
+    return [I_day, R_day, D_day, day_max, bad_realization]
 
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%
@@ -131,12 +181,14 @@ def parsing():
     """input parameters"""
 
     description = "stochastic mean-field SIRD model using the Gillespie algorithm. \
+        Runs in parallel. \
         Dependencies: config.py, utils.py"
 
     parser = utils.ParserCommon(description)
     parser.n()
     parser.sir()
     parser.dead()
+    parser.parallel()
 
     return parser.parse_args()
 
@@ -248,5 +300,5 @@ if __name__ == "__main__":
         main()
     except Exception as ex:
         sys.stdout.write(f"{repr(ex)}\n")
-        traceback.print_exc(ex)
         sys.stdout.write(f"GGA CRASHED {1e20}\n")
+        traceback.print_exc(ex)
