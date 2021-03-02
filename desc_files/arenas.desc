@@ -18,9 +18,13 @@ julia/1.5.3
 %%TIMEOUT 1200
 %%COST_MIN 0
 %%COST_MAX 100000000000000000000
+%%GENERATIONS 60
+%%MIN_GENERATIONS 50
+%%POPULATION 50
 
 %ENVIRONMENT-SETUP
-julia -e 'using Pkg; Pkg.activate("./models/arenas/."); Pkg.instantiate()'
+julia -e 'using Pkg; Pkg.activate("./models/arenas/."); Pkg.instantiate(); Pkg.develop("MMCAcovid19")'
+
 
 %EXECUTION
 julia --project=./models/arenas/. ./models/arenas/run.jl \

@@ -68,6 +68,8 @@ function parsing()
     return parse_args(s)
 end
 
+## -------------------------------------------------
+
 try
     global args
     args = parsing()
@@ -77,14 +79,126 @@ catch e
     rethrow()
 end
 
+using JLD, CSV, DataFrames, Printf, MMCAcovid19
+import Random
+Random.seed!(1)
+
+### ----------------------------------------------------------------------------
+### COST FUNCTIONS
+### ----------------------------------------------------------------------------
+
+"""
+    cost_function(epi_params::Epidemic_Params,
+                      population::Population_Params,
+                      compartment::Char
+                      data::DataFrame)
+
+Compute the cost function comparing to real data
+
+# Arguments
+
+- `epi_params::Epidemic_Params`: Structure that contains all epidemic parameters
+  and the epidemic spreading information.
+- `population::Population_Params`: Structure that contains all the parameters
+  related with the population.
+- `compartment::String`: String indicating the compartment, one of: `"I"`, `"D"`, `"IRD"`
+- `data::DataFrame`: Contains real data
+"""
+function cost_function(epi_params::Epidemic_Params,
+        population::Population_Params,
+        compartment::String,
+        data)
+
+    M = population.M
+    G = population.G
+    T = epi_params.T
+
+    # Init. dataframe
+    df = DataFrame()
+    df.strata = repeat(1:G, outer = T * M)
+    df.patch = repeat(1:M, inner = G, outer = T)
+    df.time = repeat(1:T, inner = G * M)
+
+    # Store number of cases
+
+    df.S = reshape(epi_params.ρˢᵍ .* population.nᵢᵍ, G * M * T)
+    df.E = reshape(epi_params.ρᴱᵍ .* population.nᵢᵍ, G * M * T)
+    df.A = reshape(epi_params.ρᴬᵍ .* population.nᵢᵍ, G * M * T)
+    df.I = reshape(epi_params.ρᴵᵍ .* population.nᵢᵍ, G * M * T)
+    df.PD = reshape(epi_params.ρᴾᴰᵍ .* population.nᵢᵍ, G * M * T)
+    df.PH = reshape(epi_params.ρᴾᴴᵍ .* population.nᵢᵍ, G * M * T)
+    df.HR = reshape(epi_params.ρᴴᴿᵍ .* population.nᵢᵍ, G * M * T)
+    df.HD = reshape(epi_params.ρᴴᴰᵍ .* population.nᵢᵍ, G * M * T)
+    df.R = reshape(epi_params.ρᴿᵍ .* population.nᵢᵍ, G * M * T)
+    df.D = reshape(epi_params.ρᴰᵍ .* population.nᵢᵍ, G * M * T)
+
+    # CSV.write("output/output_pre.csv", df)
+    # Group by day (sum of all patches and strata)
+    select!(df, Not([:strata, :patch]))
+    gd = groupby(df, :time)
+    list = names(df)
+    filter!(e->e≠"time",list)
+    df = combine(gd, list .=> sum)
+
+    # Dismiss initial transient,
+    # start at first day with more than 100 total infected
+    index = findfirst(df.I_sum.>1)
+    # index = findfirst(df.I_sum.>100)
+    # if non exist don't split data
+    index == nothing ? index = 1 : nothing
+    println("Index = ", index)
+
+    df = df[setdiff(index:end), :]
+    select!(df, Not([:time]))
+
+
+    # Add data:
+    # Scale infected for underreporting
+    underreporting = 89.4
+    df.data_inf = data."#infected"[1 : end - index + 1] * 100/(100-underreporting)
+    df.data_rec = data.recovered[1 : end - index + 1]
+    df.data_dead = data.dead[1 : end - index + 1]
+    # date after time column
+    insertcols!(df, 1, :date => data.date[1 : end - index + 1])
+
+
+    # Turn recovered and dead from cumulative to daily
+    for row in length(df.data_dead):-1:2
+        df.data_rec[row] -= df.data_rec[row-1]
+        df.data_dead[row] -= df.data_dead[row-1]
+    end
+
+
+    # Compute different costs per day
+
+    df.cost_I = (df.I_sum-df.data_inf).^2
+    df.cost_R = (df.R_sum-df.data_rec).^2
+    df.cost_D = (df.D_sum-df.data_dead).^2
+    df.cost_IRD = (df.I_sum-df.data_inf).^2 + (df.R_sum-df.data_rec).^2 +
+    (df.D_sum-df.data_dead).^2
+
+    # Add all days or take maximum for chosen cost
+    if compartment == "I"
+        cost = sum(df.cost_I)
+        # cost = maximum(df.cost_I)
+    elseif compartment == "R"
+        cost = sum(df.cost_R)
+    elseif compartment == "D"
+        cost = sum(df.cost_D)
+    elseif compartment == "IRD"
+        cost = sum(df.cost_IRD)
+    else
+        error("compartment option in cost_function not correct")
+    end
+
+
+    @printf("GGA SUCCESS %.2f\n", cost/1e6)
+    CSV.write("output/output.csv", df)
+end
+
 ## -----------------------------------------------------------------------------
 ## Population parameters
 ## -----------------------------------------------------------------------------
-using JLD, CSV, DataFrames
-push!(LOAD_PATH, "./models/arenas/src/")
-using MMCAcovid19
-import Random
-Random.seed!(1)
 
 # number of strata
 G = 3
@@ -227,11 +341,11 @@ set_initial_infected!(epi_params, population, E₀, A₀, I₀)
 
 # application of containment days
 # starting at day 36
-tᶜs = [21, 35, 49, 63, 77] + 1*ones(Int, 5)
+tᶜs = [17, 33, 47, 66, 74] + 0*ones(Int, 5)
 
 
 # mobility reduction from INE
-κ₀s = [0.40, 0.29, 0.27, 0.32, 0.43]
+κ₀s = [0.31, 0.25, 0.32, 0.36, 0.45]
 
 ϕs = ones(5) * args["phi"]
 
@@ -260,7 +374,7 @@ end
 try
     data = CSV.read(args["data"], DataFrame)
     data = data[setdiff(args["day_min"]:args["day_max"]), :]
-    cost_function(epi_params, population, "D", data)
+    cost_function(epi_params, population, "I", data)
 catch e
     println("Error reading data file or computing cost:\n$e")
     println("GGA CRASHED ", 1e20)

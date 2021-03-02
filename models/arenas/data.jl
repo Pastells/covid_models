@@ -50,7 +50,7 @@ df2 = dropmissing(df2)
 
 # Turn flux into float and normalize with origin population
 df2[:FLUJO] = Float64.(df2[:FLUJO])
-df2.FLUJO ./= df2.Total
+df2.FLUJO ./= df2.Total * .7
 # * .562 # (M, Y and O don't move assumption) -> But problem, suma > 1 below
 
 
@@ -116,9 +116,9 @@ nᵢᵍ = ones(3, 3214) # can't be set to zero -> NaNs
 # M ∈ [25, 64]
 # O ∈ [65, ∞)
 
-nᵢᵍ[1, :] = df1.Total * .244
-nᵢᵍ[2, :] = df1.Total * .562
-nᵢᵍ[3, :] = df1.Total * .194
+nᵢᵍ[1, :] = trunc.(Int, df1.Total * .244)
+nᵢᵍ[2, :] = trunc.(Int, df1.Total * .562)
+nᵢᵍ[3, :] = trunc.(Int, df1.Total * .194)
 
 # Save to file
 using JLD

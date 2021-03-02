@@ -56,6 +56,8 @@ def main():
 
         # Reuse pool of workers in batches with size a multiple of num_cores
         BATCH_SIZE = 2
+        # Threshold to stop
+        BAD_REALIZATIONS_THRES = BATCH_SIZE * num_cores // 2
         with Parallel(n_jobs=num_cores) as parallel:
             accum = 0
             results = []
@@ -79,7 +81,7 @@ def main():
                 bad_realizations = 0
                 for mc_seed, result in enumerate(_results):
                     bad_realizations += result[4]
-                if bad_realizations >= num_cores // 2:
+                if bad_realizations >= BAD_REALIZATIONS_THRES:
                     sys.stdout.write(
                         f"{bad_realizations} bad realizations out of {BATCH_SIZE * num_cores}\n"
                     )

@@ -1,11 +1,8 @@
 #!/bin/bash
-./covid_ac_meta solve \
-    --name arenas_01 \
+./covid_ac_fix_solve solve \
+    --name arenas_i_no_under_rep \
     --desc ./desc_files/arenas.desc \
     --content ./data/spain.dat \
-    ./models/arenas/src/markov_aux.jl \
-    ./models/arenas/src/markov.jl \
-    ./models/arenas/src/MMCAcovid19.jl \
     ./models/arenas/data.jld \
     ./models/arenas/run.jl \
     ./models/arenas/Manifest.toml \
