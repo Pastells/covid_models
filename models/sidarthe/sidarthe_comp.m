@@ -10,7 +10,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function cost = sidarthe(params1, params2, params3, params4, params5, params6)
+function cost = sidarthe_comp(params1, params2, params3, params4, params5, params6, params1c, params2c, params3c, params4c, params5c, params6c)
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % DATA
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -46,51 +46,51 @@ function cost = sidarthe(params1, params2, params3, params4, params5, params6)
     Orizzonte = 46;
 
     % Plot yes/no: SET TO 1 IF PDF FIGURES MUST BE GENERATED, 0 OTHERWISE
-    generatefig = 0;
-    plotPDF = 0;
+    generatefig = 1;
+    plotPDF = 1;
 
     % Time-step for Euler discretisation of the continuous-time system
     step=0.01;
 
     % Transmission rate due to contacts with UNDETECTED asymptomatic infected
-    alfa=params1(1);
+    alfa=[params1(1),params1c(1)];
     % Transmission rate due to contacts with DETECTED asymptomatic infected
-    beta=params1(2);
+    beta=[params1(2),params1c(2)];
     % Transmission rate due to contacts with UNDETECTED symptomatic infected
-    gamma=params1(3);
+    gamma=[params1(3),params1c(3)];
     % Transmission rate due to contacts with DETECTED symptomatic infected
-    delta=params1(4);
+    delta=[params1(4),params1c(4)];
 
     % Detection rate for ASYMPTOMATIC
-    epsilon=params1(5);
+    epsilon=[params1(5),params1c(5)];
     % Detection rate for SYMPTOMATIC
-    theta=params1(6);
+    theta=[params1(6),params1c(6)];
 
     % Worsening rate: UNDETECTED asymptomatic infected becomes symptomatic
-    zeta=params1(7);
+    zeta=[params1(7),params1c(7)];
     % Worsening rate: DETECTED asymptomatic infected becomes symptomatic
-    eta=params1(8);
+    eta=[params1(8),params1c(8)];
 
     % Worsening rate: UNDETECTED symptomatic infected develop life-threatening
     % symptoms
-    mu=params1(9);
+    mu=[params1(9),params1c(9)];
     % Worsening rate: DETECTED symptomatic infected develop life-threatening
     % symptoms
-    nu=params1(10);
+    nu=[params1(10),params1c(10)];
 
     % Mortality rate for infected with life-threatening symptoms
-    tau=params1(11);
+    tau=[params1(11),params1c(11)];
 
     % Recovery rate for undetected asymptomatic infected
-    lambda=params1(12);
+    lambda=[params1(12),params1c(12)];
     % Recovery rate for detected asymptomatic infected
-    rho=params1(13);
+    rho=[params1(13),params1c(13)];
     % Recovery rate for undetected symptomatic infected
-    kappa=params1(14);
+    kappa=[params1(14),params1c(14)];
     % Recovery rate for detected symptomatic infected
-    xi=params1(15);
+    xi=[params1(15),params1c(15)];
     % Recovery rate for life-threatened symptomatic infected
-    sigma=params1(16);
+    sigma=[params1(16),params1c(16)];
 
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -105,47 +105,47 @@ function cost = sidarthe(params1, params2, params3, params4, params5, params6)
     r5=sigma+tau;
 
     % Initial R0
-    R0_iniziale=alfa/r1+beta*epsilon/(r1*r2)+gamma*zeta/(r1*r3)+delta*eta*epsilon/(r1*r2*r4)+delta*zeta*theta/(r1*r3*r4);
+    R0_iniziale=alfa./r1+beta.*epsilon./(r1.*r2)+gamma.*zeta./(r1.*r3)+delta.*eta.*epsilon./(r1.*r2.*r4)+delta.*zeta.*theta./(r1.*r3.*r4);
 
     % Time horizon
     t=1:step:Orizzonte;
 
     % Vectors for time evolution of variables
-    S=zeros(1,length(t));
-    I=zeros(1,length(t));
-    D=zeros(1,length(t));
-    A=zeros(1,length(t));
-    R=zeros(1,length(t));
-    T=zeros(1,length(t));
-    H=zeros(1,length(t));
-    H_diagnosticati=zeros(1,length(t)); % DIAGNOSED recovered only!
-    E=zeros(1,length(t));
+    S=zeros(length(t), 2);
+    I=zeros(length(t), 2);
+    D=zeros(length(t), 2);
+    A=zeros(length(t), 2);
+    R=zeros(length(t), 2);
+    T=zeros(length(t), 2);
+    H=zeros(length(t), 2);
+    H_diagnosticati=zeros(length(t), 2); % DIAGNOSED recovered only!
+    E=zeros(length(t), 2);
 
     % Vectors for time evolution of actual/perceived Case Fatality Rate
-    M=zeros(1,length(t));
-    P=zeros(1,length(t));
+    M=zeros(length(t), 2);
+    P=zeros(length(t), 2);
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % INITIAL CONDITIONS
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-    I(1)=200/popolazione;
-    D(1)=20/popolazione;
-    A(1)=1/popolazione;
-    R(1)=2/popolazione;
-    T(1)=0.00;
-    H(1)=0.00;
-    E(1)=0.00;
-    S(1)=1-I(1)-D(1)-A(1)-R(1)-T(1)-H(1)-E(1);
+    I(1, :)=200/popolazione;
+    D(1, :)=20/popolazione;
+    A(1, :)=1/popolazione;
+    R(1, :)=2/popolazione;
+    T(1, :)=0.00;
+    H(1, :)=0.00;
+    E(1, :)=0.00;
+    S(1, :)=1-I(1,:)-D(1,:)-A(1,:)-R(1,:)-T(1,:)-H(1,:)-E(1,:);
 
-    H_diagnosticati(1) = 0.00; % DIAGNOSED recovered only
-    Infetti_reali(1)=I(1)+D(1)+A(1)+R(1)+T(1); % Actual currently infected
+    H_diagnosticati(1,:) = 0.00; % DIAGNOSED recovered only
+    Infetti_reali(1,:)=I(1,:)+D(1,:)+A(1,:)+R(1,:)+T(1,:); % Actual currently infected
 
-    M(1)=0;
-    P(1)=0;
+    M(1,:)=0;
+    P(1,:)=0;
 
     % Whole state vector
-    x=[S(1);I(1);D(1);A(1);R(1);T(1);H(1);E(1);H_diagnosticati(1);Infetti_reali(1)];
+    x=[S(1,:);I(1,:);D(1,:);A(1,:);R(1,:);T(1,:);H(1,:);E(1,:);H_diagnosticati(1,:);Infetti_reali(1,:)];
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % SIMULATION
@@ -162,53 +162,53 @@ function cost = sidarthe(params1, params2, params3, params4, params5, params6)
     for i=2:length(t)
 
         if (i>4/step) % Basic social distancing (awareness, schools closed)
-            alfa=params2(1);
-            beta=params2(2);
-            gamma=params2(3);
-            delta=params2(4);
+            alfa=[params2(1),params2c(1)];
+            beta=[params2(2),params2c(2)];
+            gamma=[params2(3),params2c(3)];
+            delta=[params2(4),params2c(4)];
             if plottato == 0 % Compute the new R0
                 r1=epsilon+zeta+lambda;
                 r2=eta+rho;
                 r3=theta+mu+kappa;
                 r4=nu+xi;
                 r5=sigma+tau;
-                R0_primemisure=alfa/r1+beta*epsilon/(r1*r2)+gamma*zeta/(r1*r3)+delta*eta*epsilon/(r1*r2*r4)+delta*zeta*theta/(r1*r3*r4);
+                R0_primemisure=alfa./r1+beta.*epsilon./(r1.*r2)+gamma.*zeta./(r1.*r3)+delta.*eta.*epsilon./(r1.*r2.*r4)+delta.*zeta.*theta./(r1.*r3.*r4);
                 plottato = 1;
             end
         end
 
         if (i>12/step)
             % Screening limited to / focused on symptomatic subjects
-            epsilon=params3(1);
+            epsilon=[params3(1),params3c(1)];
             if plottato1 == 0
                 r1=epsilon+zeta+lambda;
                 r2=eta+rho;
                 r3=theta+mu+kappa;
                 r4=nu+xi;
                 r5=sigma+tau;
-                R0_primemisureeps=alfa/r1+beta*epsilon/(r1*r2)+gamma*zeta/(r1*r3)+delta*eta*epsilon/(r1*r2*r4)+delta*zeta*theta/(r1*r3*r4);
+                R0_primemisureeps=alfa./r1+beta.*epsilon./(r1.*r2)+gamma.*zeta./(r1.*r3)+delta.*eta.*epsilon./(r1.*r2.*r4)+delta.*zeta.*theta./(r1.*r3.*r4);
                 plottato1 = 1;
             end
         end
 
         if (i>22/step) % Social distancing: lockdown, mild effect
 
-            alfa=params4(1);
-            beta=params4(2);
-            gamma=params4(3);
-            delta=params4(4);
+            alfa=[params4(1),params4c(1)];
+            beta=[params4(2),params4c(2)];
+            gamma=[params4(3),params4c(3)];
+            delta=[params4(4),params4c(4)];
 
-            mu = params4(5);
-            nu = params4(6);
+            mu=[params4(5),params4c(5)];
+            nu=[params4(6),params4c(6)];
 
-            zeta=params4(7);
-            eta=params4(8);
+            zeta=[params4(7),params4c(7)];
+            eta=[params4(8),params4c(8)];
 
-            lambda=params4(9);
-            rho=params4(10);
-            kappa=params4(11);
-            xi=params4(12);
-            sigma=params4(13);
+            lambda=[params4(9),params4c(9)];
+            rho=[params4(10),params4c(10)];
+            kappa=[params4(11),params4c(11)];
+            xi=[params4(12),params4c(12)];
+            sigma=[params4(13),params4c(13)];
 
             if plottato_bis == 0 % Compute the new R0
                 r1=epsilon+zeta+lambda;
@@ -216,15 +216,15 @@ function cost = sidarthe(params1, params2, params3, params4, params5, params6)
                 r3=theta+mu+kappa;
                 r4=nu+xi;
                 r5=sigma+tau;
-                R0_secondemisure=(alfa*r2*r3*r4+epsilon*beta*r3*r4+gamma*zeta*r2*r4+delta*eta*epsilon*r3+delta*zeta*theta*r2)/(r1*r2*r3*r4);
+                R0_secondemisure=(alfa.*r2.*r3.*r4+epsilon.*beta.*r3.*r4+gamma.*zeta.*r2.*r4+delta.*eta.*epsilon.*r3+delta.*zeta.*theta.*r2)./(r1.*r2.*r3.*r4);
                 plottato_bis = 1;
             end
         end
 
         if (i>28/step) % Social distancing: lockdown, strong effect
 
-            alfa=params5(1);
-            gamma=params5(2);
+            alfa=[params5(1),params5c(1)];
+            gamma=[params5(2),params5c(2)];
 
             if plottato_tris == 0 % Compute the new R0
                 r1=epsilon+zeta+lambda;
@@ -232,21 +232,21 @@ function cost = sidarthe(params1, params2, params3, params4, params5, params6)
                 r3=theta+mu+kappa;
                 r4=nu+xi;
                 r5=sigma+tau;
-                R0_terzemisure=(alfa*r2*r3*r4+epsilon*beta*r3*r4+gamma*zeta*r2*r4+delta*eta*epsilon*r3+delta*zeta*theta*r2)/(r1*r2*r3*r4);
+                R0_terzemisure=(alfa.*r2.*r3.*r4+epsilon.*beta.*r3.*r4+gamma.*zeta.*r2.*r4+delta.*eta.*epsilon.*r3+delta.*zeta.*theta.*r2)./(r1.*r2.*r3.*r4);
                 plottato_tris = 1;
             end
         end
 
         if (i>38/step) % Broader diagnosis campaign
 
-            epsilon=params6(1);
-            rho=params6(2);
-            kappa=params6(3);
-            xi=params6(4);
-            sigma=params6(5);
+            epsilon=[params6(1),params6c(1)];
+            rho=[params6(2),params6c(2)];
+            kappa=[params6(3),params6c(3)];
+            xi=[params6(4),params6c(4)];
+            sigma=[params6(5),params6c(5)];
 
-            zeta=params6(6);
-            eta=params6(7);
+            zeta=[params6(6),params6c(6)];
+            eta=[params6(7),params6c(7)];
 
             if plottato_quat == 0 % Compute the new R0
                 r1=epsilon+zeta+lambda;
@@ -254,43 +254,56 @@ function cost = sidarthe(params1, params2, params3, params4, params5, params6)
                 r3=theta+mu+kappa;
                 r4=nu+xi;
                 r5=sigma+tau;
-                R0_quartemisure=(alfa*r2*r3*r4+epsilon*beta*r3*r4+gamma*zeta*r2*r4+delta*eta*epsilon*r3+delta*zeta*theta*r2)/(r1*r2*r3*r4);
+                R0_quartemisure=(alfa.*r2.*r3.*r4+epsilon.*beta.*r3.*r4+gamma.*zeta.*r2.*r4+delta.*eta.*epsilon.*r3+delta.*zeta.*theta.*r2)./(r1.*r2.*r3.*r4);
                 plottato_quat = 1;
             end
         end
 
         % Compute the system evolution
 
-        B=[-alfa*x(2)-beta*x(3)-gamma*x(4)-delta*x(5) 0 0 0 0 0 0 0 0 0;
-            alfa*x(2)+beta*x(3)+gamma*x(4)+delta*x(5) -(epsilon+zeta+lambda) 0 0 0 0 0 0 0 0;
-            0 epsilon  -(eta+rho) 0 0 0 0 0 0 0;
-            0 zeta 0 -(theta+mu+kappa) 0 0 0 0 0 0;
-            0 0 eta theta -(nu+xi) 0 0 0 0 0;
-            0 0 0 mu nu  -(sigma+tau) 0 0 0 0;
-            0 lambda rho kappa xi sigma 0 0 0 0;
-            0 0 0 0 0 tau 0 0 0 0;
-            0 0 rho 0 xi sigma 0 0 0 0;
-            alfa*x(2)+beta*x(3)+gamma*x(4)+delta*x(5) 0 0 0 0 0 0 0 0 0];
-        x=x+B*x*step;
+        B1=[-alfa(1)*x(2, 1)-beta(1)*x(3, 1)-gamma(1)*x(4, 1)-delta(1)*x(5, 1) 0 0 0 0 0 0 0 0 0;
+            alfa(1)*x(2, 1)+beta(1)*x(3, 1)+gamma(1)*x(4, 1)+delta(1)*x(5, 1) -(epsilon+zeta+lambda)(1) 0 0 0 0 0 0 0 0;
+            0 epsilon(1)  -(eta+rho)(1) 0 0 0 0 0 0 0;
+            0 zeta(1) 0 -(theta+mu+kappa)(1) 0 0 0 0 0 0;
+            0 0 eta(1) theta(1) -(nu+xi)(1) 0 0 0 0 0;
+            0 0 0 mu(1) nu(1)  -(sigma+tau)(1) 0 0 0 0;
+            0 lambda(1) rho(1) kappa(1) xi(1) sigma(1) 0 0 0 0;
+            0 0 0 0 0 tau(1) 0 0 0 0;
+            0 0 rho(1) 0 xi(1) sigma(1) 0 0 0 0;
+            alfa(1)*x(2, 1)+beta(1)*x(3, 1)+gamma(1)*x(4, 1)+delta(1)*x(5, 1) 0 0 0 0 0 0 0 0 0];
+
+        B2=[-alfa(2)*x(2, 2)-beta(2)*x(3, 2)-gamma(2)*x(4, 2)-delta(2)*x(5, 2) 0 0 0 0 0 0 0 0 0;
+            alfa(2)*x(2, 2)+beta(2)*x(3, 2)+gamma(2)*x(4, 2)+delta(2)*x(5, 2) -(epsilon+zeta+lambda)(2) 0 0 0 0 0 0 0 0;
+            0 epsilon(2)  -(eta+rho)(2) 0 0 0 0 0 0 0;
+            0 zeta(2) 0 -(theta+mu+kappa)(2) 0 0 0 0 0 0;
+            0 0 eta(2) theta(2) -(nu+xi)(2) 0 0 0 0 0;
+            0 0 0 mu(2) nu(2)  -(sigma+tau)(2) 0 0 0 0;
+            0 lambda(2) rho(2) kappa(2) xi(2) sigma(2) 0 0 0 0;
+            0 0 0 0 0 tau(2) 0 0 0 0;
+            0 0 rho(2) 0 xi(2) sigma(2) 0 0 0 0;
+            alfa(2)*x(2, 2)+beta(2)*x(3, 2)+gamma(2)*x(4, 2)+delta(2)*x(5, 2) 0 0 0 0 0 0 0 0 0];
+
+        x(:, 1)=x(:, 1)+B1*x(:, 1)*step;
+        x(:, 2)=x(:, 2)+B2*x(:, 2)*step;
 
         % Update variables
 
-        S(i)=x(1);
-        I(i)=x(2);
-        D(i)=x(3);
-        A(i)=x(4);
-        R(i)=x(5);
-        T(i)=x(6);
-        H(i)=x(7);
-        E(i)=x(8);
+        S(i, :)=x(1, :);
+        I(i, :)=x(2, :);
+        D(i, :)=x(3, :);
+        A(i, :)=x(4, :);
+        R(i, :)=x(5, :);
+        T(i, :)=x(6, :);
+        H(i, :)=x(7, :);
+        E(i, :)=x(8, :);
 
-        H_diagnosticati(i)=x(9);
-        Infetti_reali(i)=x(10);
+        H_diagnosticati(i, :)=x(9, :);
+        Infetti_reali(i, :)=x(10, :);
 
         % Update Case Fatality Rate
 
-        M(i)=E(i)/(S(1)-S(i));
-        P(i)=E(i)/((epsilon*r3+(theta+mu)*zeta)*(I(1)+S(1)-I(i)-S(i))/(r1*r3)+(theta+mu)*(A(1)-A(i))/r3);
+        M(i, :)=E(i, :)./(S(1, :)-S(i, :));
+        P(i, :)=E(i, :)./((epsilon.*r3+(theta+mu).*zeta).*(I(1, :)+S(1, :)-I(i, :)-S(i, :))./(r1.*r3)+(theta+mu).*(A(1, :)-A(i, :))./r3);
 
     end
 
@@ -314,28 +327,28 @@ function cost = sidarthe(params1, params2, params3, params4, params5, params6)
 
     % Case fatality rate from formulas
     Mbar1=Ebar/(S(1)-Sbar);
-    Pbar1=Ebar/((epsilon*r3+(theta+mu)*zeta)*(I(1)+S(1)-Sbar-Ibar)/(r1*r3)+(theta+mu)*(A(1)-Abar)/r3);
+    Pbar1=Ebar/((epsilon.*r3+(theta+mu).*zeta).*(I(1)+S(1)-Sbar-Ibar)/(r1.*r3)+(theta+mu).*(A(1)-Abar)/r3);
 
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % COST
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-    cost_h = 0;
+    cost_h = zeros(1,2);
     j = 1;
     for i=1:1/step:size(CasiTotali,2)/step
-        cost_h = cost_h + ( (H_diagnosticati(i)-Guariti(j)) * popolazione )**2;
+        cost_h = cost_h + ( (H_diagnosticati(i, :)-Guariti(j)) * popolazione ).**2;
         j = j + 1;
     end
 
     j = 1;
-    cost_d = 0;
-    cost_r = 0;
-    cost_t = 0;
+    cost_d = zeros(1,2);
+    cost_r = zeros(1,2);
+    cost_t = zeros(1,2);
     for i=1+3/step:1/step:1+(size(Ricoverati_sintomi,2)+2)/step
-        cost_d = cost_d + ( (D(i)-Isolamento_domiciliare(j)) * popolazione )**2;
-        cost_r = cost_r + ( (R(i)-Ricoverati_sintomi(j)) * popolazione )**2;
-        cost_t = cost_t + ( (T(i)-Terapia_intensiva(j)) * popolazione )**2;
+        cost_d = cost_d + ( (D(i, :)-Isolamento_domiciliare(j)) .* popolazione ).**2;
+        cost_r = cost_r + ( (R(i, :)-Ricoverati_sintomi(j)) .* popolazione ).**2;
+        cost_t = cost_t + ( (T(i, :)-Terapia_intensiva(j)) .* popolazione ).**2;
         j = j + 1;
     end
 

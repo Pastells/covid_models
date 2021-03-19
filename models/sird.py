@@ -17,7 +17,7 @@ import traceback
 import numpy as np
 from utils import utils, config
 
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%
 # %%%%%%%%%%%%%%%%%%%%%%%%%
@@ -76,7 +76,7 @@ def main():
             comp.T[:t_step], comp.D[:t_step], D_day[mc_step], day_max
         )
 
-        # plt.plot(I_day[mc_step], "orange", alpha=0.3)
+        plt.plot(I_day[mc_step], "orange", alpha=0.3)
     # =========================
 
     I_m, R_m, D_m = utils.mean_alive_rd(
@@ -99,6 +99,12 @@ def main():
     sys.stdout.write(f"GGA SUCCESS {cost}\n")
 
     if args.save is not None:
+        save = args.save
+        args.save = save + "R"
+        utils.saving(args, R_m, day_max, var="R")
+        args.save = save + "D"
+        utils.saving(args, D_m, day_max, var="D")
+        args.save = save
         utils.saving(args, I_m, day_max)
 
     if args.plot:

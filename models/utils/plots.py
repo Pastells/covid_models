@@ -73,6 +73,7 @@ def plotting(
 
     error_plot(I_m, day_max, i_label)
     show_save()
+    # show_save(args.save, "_trajectories")
 
     if config.CUMULATIVE is True:
         daily_m = np.copy(I_m)

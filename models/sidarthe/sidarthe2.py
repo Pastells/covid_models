@@ -15,7 +15,11 @@ def parsing():
         --beta2 0.0057 --gamma2 0.285 --epsilon3 0.1425 --alfa4 0.36 \
         --beta4 0.005 --gamma4 0.2 --mu4 0.008 --nu4 0.015 --zeta4 0.034 \
         --lambda4 0.08 --rho4 0.0171 --alfa5 0.21 --gamma5 0.11 \
-        --epsilon6 0.2 --rho6 0.02 --sigma6 0.01 --zeta6 0.025
+        --epsilon6 0.2 --rho6 0.02 --sigma6 0.01 --zeta6 0.025 \
+        --delta1 0.0114 --eta1 0.1254 --rho1 0.0342  --xi1 0.0171 \
+        --sigma1 0.0171 --delta2 0.0057 --delta4 0.005 --eta4 0.034 \
+        --kappa4 0.0171 --xi4 0.0171 --sigma4 0.0171 --kappa6 0.02 \
+        --xi6 0.02 --eta6 0.025
     """
     parser = argparse.ArgumentParser(
         description="python parser for sidarthe code",
@@ -50,10 +54,25 @@ def parsing():
     parser.add_argument("--rho6", type=float)
     parser.add_argument("--sigma6", type=float)
     parser.add_argument("--zeta6", type=float)
+
     parser.add_argument("--data", type=str)
     parser.add_argument("--seed", type=int)
     parser.add_argument("--timeout", type=int)
 
+    parser.add_argument("--delta1", type=float)
+    parser.add_argument("--eta1", type=float)
+    parser.add_argument("--rho1", type=float)
+    parser.add_argument("--xi1", type=float)
+    parser.add_argument("--sigma1", type=float)
+    parser.add_argument("--delta2", type=float)
+    parser.add_argument("--delta4", type=float)
+    parser.add_argument("--eta4", type=float)
+    parser.add_argument("--kappa4", type=float)
+    parser.add_argument("--xi4", type=float)
+    parser.add_argument("--sigma4", type=float)
+    parser.add_argument("--kappa6", type=float)
+    parser.add_argument("--xi6", type=float)
+    parser.add_argument("--eta6", type=float)
     return parser.parse_args()
 
 
@@ -62,40 +81,28 @@ def parsing():
 
 def get_params(args):
 
-    """
-    delta = beta
-    eta = zeta
-    rho = lambd
-    xi = kappa
-    sigma = kappa
-    """
-
     params1 = [
         args.alfa1,
         args.beta1,
         args.gamma1,
-        args.beta1,
+        args.delta1,
         args.epsilon1,
         args.theta1,
         args.zeta1,
-        args.zeta1,
+        args.eta1,
         args.mu1,
         args.nu1,
         args.tau1,
         args.lambda1,
-        args.lambda1,
+        args.rho1,
         args.kappa1,
-        args.kappa1,
-        args.kappa1,
+        args.xi1,
+        args.sigma1,
     ]
 
     # --------------------
 
-    """
-    delta = beta
-    """
-
-    params2 = [args.alfa2, args.beta2, args.gamma2, args.beta2]
+    params2 = [args.alfa2, args.beta2, args.gamma2, args.delta2]
 
     # --------------------
 
@@ -103,28 +110,20 @@ def get_params(args):
 
     # --------------------
 
-    """
-    delta = beta
-    eta = zeta
-    kappa = rho
-    xi = rho
-    sigma = rho
-    """
-
     params4 = [
         args.alfa4,
         args.beta4,
         args.gamma4,
-        args.beta4,
+        args.delta4,
         args.mu4,
         args.nu4,
         args.zeta4,
-        args.zeta4,
+        args.eta4,
         args.lambda4,
         args.rho4,
-        args.rho4,
-        args.rho4,
-        args.rho4,
+        args.kappa4,
+        args.xi4,
+        args.sigma4,
     ]
 
     # --------------------
@@ -133,20 +132,14 @@ def get_params(args):
 
     # --------------------
 
-    """
-    kappa = rho
-    xi = rho
-    eta = zeta
-    """
-
     params6 = [
         args.epsilon6,
         args.rho6,
-        args.rho6,
-        args.rho6,
+        args.kappa6,
+        args.xi6,
         args.sigma6,
         args.zeta6,
-        args.zeta6,
+        args.eta6,
     ]
     # --------------------
 

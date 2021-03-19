@@ -52,16 +52,18 @@ def main():
         import multiprocessing
 
         # Obtain number of cores from machine (doesn't check if they are available)
-        num_cores = multiprocessing.cpu_count()
+        # num_cores = multiprocessing.cpu_count()
+        num_cores = 6
 
         # Reuse pool of workers in batches with size a multiple of num_cores
         BATCH_SIZE = 2
         # Threshold to stop
-        BAD_REALIZATIONS_THRES = BATCH_SIZE * num_cores // 2
+        BAD_REALIZATIONS_THRES = BATCH_SIZE * num_cores // 2  # * 3
         with Parallel(n_jobs=num_cores) as parallel:
             accum = 0
             results = []
-            while accum * num_cores < args.mc_nseed:
+            while (1 + accum) * num_cores + 1 < args.mc_nseed:
+                print(accum)
                 ran = range(
                     args.mc_seed0 + accum * BATCH_SIZE * num_cores,
                     min(
@@ -124,6 +126,12 @@ def main():
     sys.stdout.write(f"GGA SUCCESS {cost}\n")
 
     if args.save is not None:
+        save = args.save
+        args.save = save + "R"
+        utils.saving(args, R_m, day_max, var="R")
+        args.save = save + "D"
+        utils.saving(args, D_m, day_max, var="D")
+        args.save = save
         utils.saving(args, I_m, day_max)
 
     if args.plot:

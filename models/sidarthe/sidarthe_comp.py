@@ -50,6 +50,37 @@ def parsing():
     parser.add_argument("--rho6", type=float)
     parser.add_argument("--sigma6", type=float)
     parser.add_argument("--zeta6", type=float)
+
+    parser.add_argument("--alfa1c", type=float)
+    parser.add_argument("--beta1c", type=float)
+    parser.add_argument("--gamma1c", type=float)
+    parser.add_argument("--epsilon1c", type=float)
+    parser.add_argument("--theta1c", type=float)
+    parser.add_argument("--zeta1c", type=float)
+    parser.add_argument("--mu1c", type=float)
+    parser.add_argument("--nu1c", type=float)
+    parser.add_argument("--tau1c", type=float)
+    parser.add_argument("--lambda1c", type=float)
+    parser.add_argument("--kappa1c", type=float)
+    parser.add_argument("--alfa2c", type=float)
+    parser.add_argument("--beta2c", type=float)
+    parser.add_argument("--gamma2c", type=float)
+    parser.add_argument("--epsilon3c", type=float)
+    parser.add_argument("--alfa4c", type=float)
+    parser.add_argument("--beta4c", type=float)
+    parser.add_argument("--gamma4c", type=float)
+    parser.add_argument("--zeta4c", type=float)
+    parser.add_argument("--mu4c", type=float)
+    parser.add_argument("--nu4c", type=float)
+    parser.add_argument("--lambda4c", type=float)
+    parser.add_argument("--rho4c", type=float)
+    parser.add_argument("--alfa5c", type=float)
+    parser.add_argument("--gamma5c", type=float)
+    parser.add_argument("--epsilon6c", type=float)
+    parser.add_argument("--rho6c", type=float)
+    parser.add_argument("--sigma6c", type=float)
+    parser.add_argument("--zeta6c", type=float)
+
     parser.add_argument("--data", type=str)
     parser.add_argument("--seed", type=int)
     parser.add_argument("--timeout", type=int)
@@ -89,6 +120,25 @@ def get_params(args):
         args.kappa1,
     ]
 
+    params1c = [
+        args.alfa1c,
+        args.beta1c,
+        args.gamma1c,
+        args.beta1c,
+        args.epsilon1c,
+        args.theta1c,
+        args.zeta1c,
+        args.zeta1c,
+        args.mu1c,
+        args.nu1c,
+        args.tau1c,
+        args.lambda1c,
+        args.lambda1c,
+        args.kappa1c,
+        args.kappa1c,
+        args.kappa1c,
+    ]
+
     # --------------------
 
     """
@@ -96,10 +146,12 @@ def get_params(args):
     """
 
     params2 = [args.alfa2, args.beta2, args.gamma2, args.beta2]
+    params2c = [args.alfa2c, args.beta2c, args.gamma2c, args.beta2c]
 
     # --------------------
 
     params3 = [args.epsilon3]
+    params3c = [args.epsilon3c]
 
     # --------------------
 
@@ -127,9 +179,26 @@ def get_params(args):
         args.rho4,
     ]
 
+    params4c = [
+        args.alfa4c,
+        args.beta4c,
+        args.gamma4c,
+        args.beta4c,
+        args.mu4c,
+        args.nu4c,
+        args.zeta4c,
+        args.zeta4c,
+        args.lambda4c,
+        args.rho4c,
+        args.rho4c,
+        args.rho4c,
+        args.rho4c,
+    ]
+
     # --------------------
 
     params5 = [args.alfa5, args.gamma5]
+    params5c = [args.alfa5c, args.gamma5c]
 
     # --------------------
 
@@ -148,9 +217,32 @@ def get_params(args):
         args.zeta6,
         args.zeta6,
     ]
+
+    params6c = [
+        args.epsilon6c,
+        args.rho6c,
+        args.rho6c,
+        args.rho6c,
+        args.sigma6c,
+        args.zeta6c,
+        args.zeta6c,
+    ]
     # --------------------
 
-    return params1, params2, params3, params4, params5, params6
+    return (
+        params1,
+        params2,
+        params3,
+        params4,
+        params5,
+        params6,
+        params1c,
+        params2c,
+        params3c,
+        params4c,
+        params5c,
+        params6c,
+    )
 
 
 # --------------------
@@ -158,10 +250,37 @@ def get_params(args):
 
 def main():
     args = parsing()
-    params1, params2, params3, params4, params5, params6 = get_params(args)
+    (
+        params1,
+        params2,
+        params3,
+        params4,
+        params5,
+        params6,
+        params1c,
+        params2c,
+        params3c,
+        params4c,
+        params5c,
+        params6c,
+    ) = get_params(args)
 
     oc = Oct2Py()
-    cost = oc.sidarthe(params1, params2, params3, params4, params5, params6)
+    cost = oc.sidarthe_comp(
+        params1,
+        params2,
+        params3,
+        params4,
+        params5,
+        params6,
+        params1c,
+        params2c,
+        params3c,
+        params4c,
+        params5c,
+        params6c,
+    )
+
     sys.stdout.write(f"GGA SUCCESS {cost}\n")
 
 

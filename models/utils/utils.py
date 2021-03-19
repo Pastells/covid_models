@@ -249,21 +249,32 @@ def mean_alive_rd(var_day, t_total, day_max, mc_nseed, var2_day=False, var3_day=
 # -------------------------
 
 
-def saving(args, var_m, day_max):
+def get_program_name(level):
+    """Get program calling the function
+    level : how deep is the function call
+    e.g.: sir.py calls cost_save_plot, which in turn calls saving
+          => level = 2"""
+    import inspect
+
+    frame = inspect.stack()[level]
+    module = inspect.getmodule(frame[0])
+    return module.__file__.split("/")[-1][:-3]
+
+
+# -------------------------
+
+
+def saving(args, var_m, day_max, var="I", level=2):
     """If --save is added creates a file with the daily results to config.SAVE_FOLDER
     Uses the name of the program that generated it and the given name to args.save
         e.g. sir.py --save test will generate sir_test.dat
     If that name already exists uses date and time after program name
     Modifies args.save to filename for the plots function to use (if specified)"""
 
-    import time
-    import inspect
     import os.path
 
     # get calling program name
-    frame = inspect.stack()[1]
-    module = inspect.getmodule(frame[0])
-    program_name = module.__file__.split("/")[-1][:-3]
+    program_name = get_program_name(level)
 
     # create filename
     filename = config.SAVE_FOLDER + f"{program_name}_" + args.save
@@ -272,6 +283,8 @@ def saving(args, var_m, day_max):
 
     # if already exist use date and time
     if os.path.isfile(filename):
+        import time
+
         print(f"{filename} already exists, changed to:")
         filename = (
             config.SAVE_FOLDER + f"{program_name}_" + time.strftime("%d%m_%H%M%S")
@@ -280,16 +293,29 @@ def saving(args, var_m, day_max):
         filename += ".dat"
         print(filename)
 
+    # get time series
+    if var == "I":
+        time_series = get_time_series(args)[:, 0]
+    elif var == "R":
+        time_series = get_time_series(args)[:, 1]
+    elif var == "D":
+        time_series = get_time_series(args)[:, 2]
+    else:
+        raise ValueError("Bad variable name in saving")
+
+    # save to file
     with open(filename, "w") as out_file:
         out_file.write("#")
         for key, value in vars(args).items():
             out_file.write(f"--{key} {value} ")
         out_file.write("\n")
-        out_file.write("# day        I_m        I_std\n")
+        out_file.write(f"# day       {var}_m       {var}_std      {var}_data\n")
 
-        form = "{:3.0f} {:12.2f} {:12.2f}\n"
+        form = "{:3.0f}{:12.2f}{:12.2f}{:12.0f}\n"
         for day in range(day_max):
-            out_file.write(form.format(day, var_m[day, 0], var_m[day, 1]))
+            out_file.write(
+                form.format(day, var_m[day, 0], var_m[day, 1], time_series[day])
+            )
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -375,7 +401,7 @@ def cost_func(time_series, var_m, metric=sum_sq):
     cost = metric_func.call(var_m, time_series)
 
     # Normalize with number of days
-    cost = cost / len(time_series) * 100
+    # cost = cost / len(time_series) * 100
 
     sys.stdout.write(f"GGA SUCCESS {cost}\n")
 
@@ -409,7 +435,7 @@ def cost_save_plot(var_day, t_total, day_max, args, time_series):
         cost_func(time_series[:, 0], var_m, args.metric)
 
     if args.save is not None:
-        saving(args, var_m, day_max)
+        saving(args, var_m, day_max, level=3)
 
     if args.plot:
         from . import plots
@@ -775,6 +801,7 @@ def get_time_series(args):
             int
         )
         time_series[:, 3] = time_series[:, 0:3].sum(axis=1)
+
     return time_series
 
 
@@ -791,6 +818,7 @@ def parameters_init_common(args):
         t_total = args.day_max - args.day_min
 
     time_series = get_time_series(args)
+
     args.metric = __name__ + "." + args.metric
 
     if args.I_0 is None:

@@ -11,7 +11,7 @@
 --mu1 real [0.005,0.02]
 --nu1 real [0.005,0.03]
 --tau1 real [0.005,0.02]
---lambda1 real [0.01,0.05]
+--lambda1 real [0.01,0.1]
 --kappa1 real [0.01,0.02]
 --alfa2 real [0.1,0.7]
 --beta2 real [0.003,0.02]
@@ -23,7 +23,7 @@
 --zeta4 real [0.01,0.2]
 --mu4 real [0.005,0.02]
 --nu4 real [0.005,0.03]
---lambda4 real [0.01,0.05]
+--lambda4 real [0.01,0.1]
 --rho4 real [0.005,0.03]
 --alfa5 real [0.1,0.7]
 --gamma5 real [0.05,0.7]
@@ -32,21 +32,25 @@
 --sigma6 real [0.005,0.03]
 --zeta6 real [0.01,0.2]
 
-
 %MODULES
 python/3.6.5
-octave/5.2.0
+octave/6.2.0
 
 %META
 %%SEED 42
 %%TIMEOUT 1200
+%%COST_MIN 0
+%%COST_MAX 100000000000000000000
+%%GENERATIONS 80
+%%MIN_GENERATIONS 70
+%%POPULATION 50
 
 %ENVIRONMENT-SETUP
 python3 -m venv ./venv
 ./venv/bin/pip install oct2py
 
 %EXECUTION
-./venv/bin/python -u ./myscript.py \
+./venv/bin/python -u ./sidarthe.py \
 --data ${instance} \
 --seed ${seed} \
 --timeout ${timeout} \
