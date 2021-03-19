@@ -7,9 +7,6 @@
 --delta real [0.02,0.3]
 --theta real [0.001,0.5]
 
-%INITIAL-CONFIGURATIONS
---n 41300 --beta 0.326 --delta 0.0376 --theta 0.4335
-
 %MODULES
 python/3.6.5
 

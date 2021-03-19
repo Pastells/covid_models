@@ -10,9 +10,6 @@
 --delta real [0.02,0.3]
 --theta real [0.001,0.2]
 
-%INITIAL-CONFIGURATIONS
---I_0 999 --R_0 10 --D_0 17 --n 79200 --beta 0.26374 --delta 0.021 --theta 0.143
-
 %MODULES
 python/3.6.5
 

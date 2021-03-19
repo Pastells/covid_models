@@ -2,16 +2,13 @@
 ./data/china.dat
 
 %PARAMS
---I_0 integer [100,1000]
---R_0 integer [1,100]
+--I_0 integer [410,440]
+--R_0 integer [4,6]
 --D_0 integer [1,100]
---n integer [10000,1000000]
---beta real [0.1,1.0]
---delta real [0.02,0.3]
---theta real [0.001,0.1]
-
-%INITIAL-CONFIGURATIONS
---I_0 430 --R_0 10 --D_0 15 --n 83300 --beta 0.329 --delta 0.0384 --theta 0.08
+--n integer [70000,90000]
+--beta real [0.3,0.4]
+--delta real [0.03,0.06]
+--theta real [0.004,0.008]
 
 %MODULES
 python/3.6.5
@@ -35,6 +32,6 @@ python3 -m venv ./venv
 --seed ${seed} \
 --timeout ${timeout} \
 --day_min 0 \
---day_max 28 \
+--day_max 54 \
 --mc_nseed 100 \
 ${@}
