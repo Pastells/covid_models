@@ -432,6 +432,7 @@ function cost = sidarthe_comp(params1, params2, params3, params4, params5, param
         title('Recovered: Model vs. Data')
         xlabel('Time (days)')
         ylabel('Cases (fraction of the population)')
+        legend({'Giordano', 'Ours', 'Data'})
         grid
 
         if plotPDF==1

@@ -139,6 +139,14 @@ def day_data(times, var, var_day, day_max):
 # -------------------------
 
 
+def mean_std(var_day):
+    """Returns mean and std in a 2-dim array"""
+    return np.column_stack([np.mean(var_day, axis=0), np.std(var_day, axis=0)])
+
+
+# -------------------------
+
+
 def mean_alive(var_day, t_total, day_max, mc_nseed):
     """
     Given that we already have a pandemic to study,
@@ -485,7 +493,7 @@ class ParserCommon:
             "--seed",
             type=int,
             default=config.SEED,
-            help="seed metaparameter for the automatic configuration",
+            help="seed metaparameter for the automatic configuration, also used as MC seed",
         )
         self.parser_config.add_argument(
             "--timeout",
@@ -498,12 +506,6 @@ class ParserCommon:
             type=int,
             default=config.MC_NSEED,
             help="number of mc realizations to average over",
-        )
-        self.parser_config.add_argument(
-            "--mc_seed0",
-            type=int,
-            default=config.MC_SEED0,
-            help="initial mc seed",
         )
         self.parser_config.add_argument(
             "--n_t_steps",

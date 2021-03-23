@@ -43,7 +43,7 @@ def main():
 
     if args.sequential:
         results = []
-        for mc_seed in range(args.mc_seed0, args.mc_seed0 + args.mc_nseed):
+        for mc_seed in range(args.seed, args.seed + args.mc_nseed):
             _results = main_loop(args, mc_seed, t_total, rates, time_series[-1, 0])
             results.append(_results)
 
@@ -58,17 +58,17 @@ def main():
         # Reuse pool of workers in batches with size a multiple of num_cores
         BATCH_SIZE = 2
         # Threshold to stop
-        BAD_REALIZATIONS_THRES = BATCH_SIZE * num_cores // 2  # * 3
+        BAD_REALIZATIONS_THRES = BATCH_SIZE * num_cores // 2  * 3
         with Parallel(n_jobs=num_cores) as parallel:
             accum = 0
             results = []
             while (1 + accum) * num_cores + 1 < args.mc_nseed:
                 print(accum)
                 ran = range(
-                    args.mc_seed0 + accum * BATCH_SIZE * num_cores,
+                    args.seed + accum * BATCH_SIZE * num_cores,
                     min(
-                        args.mc_seed0 + (accum + 1) * BATCH_SIZE * num_cores,
-                        args.mc_seed0 + args.mc_nseed,
+                        args.seed + (accum + 1) * BATCH_SIZE * num_cores,
+                        args.seed + args.mc_nseed,
                     ),
                 )
 

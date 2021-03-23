@@ -18,9 +18,12 @@ def error_plot(var_m, day_max, label):
     )
 
 
-def show_save(save=None, name=None):
+def show_save(save=None, name=None, metric="sum of squares"):
     """Add legend, save if wanted and show"""
-    plt.legend()
+    metric = metric.split(".")[-1]
+    plt.ylabel(f"Cost ({metric})")
+    plt.xlabel("Days")
+    plt.legend(loc="best")
     if save is not None:
         plt.savefig(save + name)
     plt.show()
@@ -72,7 +75,7 @@ def plotting(
         i_label = "Daily infected cases"
 
     error_plot(I_m, day_max, i_label)
-    show_save()
+    show_save(metric=args.metric)
     # show_save(args.save, "_trajectories")
 
     if config.CUMULATIVE is True:
@@ -100,8 +103,9 @@ def plotting(
         error_plot(D_m, day_max, "Death cases")
         plt.plot(time_series[:, 2], "o", label="data D")
 
-    show_save(args.save, "_daily.png")
+    show_save(args.save, "_daily.png", metric=args.metric)
 
+    """
     if config.CUMULATIVE is True:
         error_plot(I_m, day_max, "Cumulative infected cases")
 
@@ -113,6 +117,7 @@ def plotting(
     plt.plot(time_series[:, 3], "o", label="data")
 
     show_save(args.save, "_cumulative.png")
+    """
 
     # S_m = S_day.mean(0)
     # I_m = I_day.mean(0)

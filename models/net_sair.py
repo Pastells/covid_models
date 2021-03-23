@@ -32,10 +32,10 @@ def main():
     # =========================
     # MC loop
     # =========================
-    for mc_seed in range(args.mc_seed0, args.mc_seed0 + args.mc_nseed):
+    for mc_seed in range(args.seed, args.seed + args.mc_nseed):
         random.seed(mc_seed)
         np.random.seed(mc_seed)
-        mc_step = mc_seed - args.mc_seed0
+        mc_step = mc_seed - args.seed
 
         G = utils_net.choose_network(args.n, args.network, args.network_param)
         t, S, A, I, R = fast_sair.fast_SAIR(
