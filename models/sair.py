@@ -1,7 +1,7 @@
 """
 Stochastic mean-field SAIR model using the Gillespie algorithm
 
-Pol Pastells, 2020
+Pol Pastells, 2020-2021
 
 Equations of the deterministic system:
 

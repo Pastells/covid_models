@@ -2,7 +2,7 @@
 Stochastic mean-field SIR model.
 Uses the Gillespie algorithm and Erlang distribution transition times
 
-Pol Pastells, 2020
+Pol Pastells, 2020-2021
 
 Equations of the deterministic system:
 

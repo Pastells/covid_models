@@ -563,6 +563,12 @@ class ParserCommon:
 
     # -------------------------
 
+    def add_argument(self, *args, **kwargs):
+        """Add argument"""
+        self.parser.add_argument(*args, **kwargs)
+
+    # -------------------------
+
     def n(self):
         """Number of individuals"""
         self.parser_params.add_argument(

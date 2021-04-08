@@ -1,7 +1,7 @@
 """
 Stochastic SIR model with a social network using the event-driven algorithm
 
-Pol Pastells, 2020
+Pol Pastells, 2020-2021
 
 Equations of the deterministic system:
 

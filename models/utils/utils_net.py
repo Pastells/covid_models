@@ -1,4 +1,5 @@
 """ Common functions for network models """
+
 import heapq
 import random
 import numpy as np

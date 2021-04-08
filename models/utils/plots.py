@@ -23,7 +23,7 @@ def show_save(save=None, name=None, metric="sum of squares"):
     metric = metric.split(".")[-1]
     plt.ylabel(f"Cost ({metric})")
     plt.xlabel("Days")
-    plt.legend(loc="best")
+    plt.legend()
     if save is not None:
         plt.savefig(save + name)
     plt.show()

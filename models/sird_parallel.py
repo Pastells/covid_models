@@ -2,7 +2,7 @@
 Stochastic mean-field SIRD model using the Gillespie algorithm
 runs in parallel using joblib
 
-Pol Pastells, 2020
+Pol Pastells, 2020-2021
 
 Equations of the deterministic system:
 
@@ -37,15 +37,22 @@ def main():
     R_day = np.zeros([args.mc_nseed, t_total], dtype=int)
     D_day = np.zeros([args.mc_nseed, t_total], dtype=int)
 
+    random.seed(args.seed)
+    np.random.seed(args.seed)
+    check_realization_alive = t_total - 1
+
     # =========================
     # MC loop
     # =========================
 
     if args.sequential:
         results = []
-        for mc_seed in range(args.seed, args.seed + args.mc_nseed):
-            _results = main_loop(args, mc_seed, t_total, rates, time_series[-1, 0])
-            results.append(_results)
+        mc_step = 0
+        while mc_step < args.mc_nseed:
+            _results = main_loop(args, t_total, rates, time_series[-1, 0])
+            if _results[0][check_realization_alive] != 0:
+                mc_step += 1
+                results.append(_results)
 
     # Parallel execution
     else:
@@ -58,7 +65,7 @@ def main():
         # Reuse pool of workers in batches with size a multiple of num_cores
         BATCH_SIZE = 2
         # Threshold to stop
-        BAD_REALIZATIONS_THRES = BATCH_SIZE * num_cores // 2  * 3
+        BAD_REALIZATIONS_THRES = BATCH_SIZE * num_cores // 2 * 3
         with Parallel(n_jobs=num_cores) as parallel:
             accum = 0
             results = []
@@ -73,9 +80,7 @@ def main():
                 )
 
                 _results = parallel(
-                    delayed(main_loop)(
-                        args, mc_seed, t_total, rates, time_series[-1, 0]
-                    )
+                    delayed(main_loop)(args, t_total, rates, time_series[-1, 0])
                     for mc_seed in ran
                 )
                 results.extend(_results)
@@ -110,19 +115,28 @@ def main():
     )
 
     # Compute and print cost functions for I, R and D
+
+    cost = 0
     if config.CUMULATIVE is True:
         utils.cost_func(time_series[:, 3], I_m, args.metric)
     else:
         # utils.cost_func(time_series[:, 0], I_m)
-        cost = utils.cost_return(time_series[:, 0], I_m, args.metric)
+        _cost = utils.cost_return(time_series[:, 0], I_m, args.metric)
+        cost += _cost
         sys.stdout.write(f"cost_I = {cost}\n")
+
+    _cost = utils.cost_return(np.diff(time_series[:, 0]), np.diff(I_m), args.metric)
+    sys.stdout.write(f"cost_I_der = {_cost}\n")
+    cost += _cost
 
     _cost = utils.cost_return(time_series[:, 1], R_m, args.metric)
     sys.stdout.write(f"cost_R = {_cost}\n")
     cost += _cost
+
     _cost = utils.cost_return(time_series[:, 2], D_m, args.metric)
     sys.stdout.write(f"cost_D = {_cost}\n")
     cost += _cost
+
     sys.stdout.write(f"GGA SUCCESS {cost}\n")
 
     if args.save is not None:
@@ -143,10 +157,8 @@ def main():
 # %%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-def main_loop(args, mc_seed, t_total, rates, last_day_inf):
+def main_loop(args, t_total, rates, last_day_inf):
     """Function to be run in parallel"""
-    random.seed(mc_seed)
-    np.random.seed(mc_seed)
 
     # -------------------------
     # initialization
