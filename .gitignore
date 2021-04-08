@@ -11,3 +11,4 @@ results/*
 data/ine/
 **/__pycache__
 **.swp
+.idea/
