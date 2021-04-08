@@ -16,7 +16,7 @@ import random
 import sys
 import traceback
 import numpy as np
-from joblib import Parallel, delayed
+from joblib import Parallel, delayed  # https://stackoverflow.com/questions/11533405/python-multiprocessing-pool-retries
 from utils import utils, config
 
 

@@ -11,3 +11,5 @@ python -u ${PROJECT_DIR}/models/sird/configurable.py \
 --day_max 54 \
 --mc_nseed 100 \
 --D_0 5 --I_0 422 --R_0 4 --beta 0.33176312428241916 --delta 0.04121699838204111 --n 85226 --theta 0.07162823540904227
+
+echo "Expected cost is 6031.91404718704"

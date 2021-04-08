@@ -399,19 +399,10 @@ def cost_func(time_series, var_m, metric=sum_sq):
     var_m : array with mean and standard deviation
     time_series : ndarray with daily data
     """
-
-    import warnings
-
-    warnings.filterwarnings("error")
-
-    metric_func = StrCallable(metric)
-
-    cost = metric_func.call(var_m, time_series)
-
+    cost = cost_return(time_series, var_m, metric)
     # Normalize with number of days
     # cost = cost / len(time_series) * 100
-
-    sys.stdout.write(f"GGA SUCCESS {cost}\n")
+    print(f"GGA SUCCESS {cost}")
 
 
 # -------------------------

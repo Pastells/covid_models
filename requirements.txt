@@ -2,4 +2,5 @@ numpy
 networkx
 matplotlib
 oct2py
-optilog==0.0.300
+optilog
+joblib
