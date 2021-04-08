@@ -3,7 +3,7 @@
 CURRENT_DIR=$(dirname $(realpath ${BASH_SOURCE[0]}))
 PROJECT_DIR=$(realpath ${CURRENT_DIR}/..)
 
-python -u ${PROJECT_DIR}/models/configurable_sird.py \
+python -u ${PROJECT_DIR}/models/sird/configurable.py \
 --data ${PROJECT_DIR}/data/china.dat \
 --seed 42 \
 --timeout 100 \

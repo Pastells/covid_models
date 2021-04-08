@@ -7,8 +7,14 @@ import numpy as np
 
 from optilog.autocfg.configurators import SMACConfigurator
 
-from configurable_sird import sird
-from utils import config
+# this is required as running > if __name__ == "__main__"
+# from inside the module itself is an antipattern and we
+# must force the path to the project top-level module
+PACKAGE_PARENT = '../..'
+SCRIPT_DIR = os.path.dirname(os.path.realpath(os.path.join(os.getcwd(), os.path.expanduser(__file__))))
+sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, PACKAGE_PARENT)))
+from models.sird.configurable import sird
+from models.utils import config
 
 RESULT_REGEX = r"Result: ([+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?)$"
 

@@ -14,8 +14,16 @@ dD(t)/dt =                   delta*theta * I(t)
 import random
 import sys
 import traceback
+import os.path
 import numpy as np
-from utils import utils, config
+
+# this is required as running > if __name__ == "__main__"
+# from inside the module itself is an antipattern and we
+# must force the path to the project top-level module
+PACKAGE_PARENT = '../..'
+SCRIPT_DIR = os.path.dirname(os.path.realpath(os.path.join(os.getcwd(), os.path.expanduser(__file__))))
+sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, PACKAGE_PARENT)))
+from models.utils import utils, config
 
 # import matplotlib.pyplot as plt
 
