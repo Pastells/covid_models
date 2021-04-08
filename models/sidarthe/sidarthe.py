@@ -53,6 +53,9 @@ def parsing():
     parser.add_argument("--data", type=str)
     parser.add_argument("--seed", type=int)
     parser.add_argument("--timeout", type=int)
+    parser.add_argument("--min_cost_day", type=int, default=1)
+    parser.add_argument("--max_cost_day", type=int, default=46)
+    parser.add_argument("--print", action="store_false")
 
     return parser.parse_args()
 
@@ -159,10 +162,12 @@ def get_params(args):
 def main():
     args = parsing()
     params1, params2, params3, params4, params5, params6 = get_params(args)
+    cost_days = [args.min_cost_day, args.max_cost_day]
 
     oc = Oct2Py()
-    cost = oc.sidarthe(params1, params2, params3, params4, params5, params6)
-    sys.stdout.write(f"GGA SUCCESS {cost}\n")
+    cost = oc.sidarthe(params1, params2, params3, params4, params5, params6, cost_days)
+    if args.print:
+        sys.stdout.write(f"GGA SUCCESS {cost}\n")
 
 
 # --------------------

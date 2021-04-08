@@ -10,13 +10,14 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function cost = sidarthe(params1, params2, params3, params4, params5, params6)
+function cost = sidarthe(params1, params2, params3, params4, params5, params6, cost_days)
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % DATA
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     % Italian population
     popolazione=60e6;
+    %save_precision(4)
 
     % Data 20 February - 5 April (46 days):
     % Total Cases
@@ -321,30 +322,43 @@ function cost = sidarthe(params1, params2, params3, params4, params5, params6)
     % COST
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+    days_difference = Orizzonte-cost_days(2);
     cost_h = 0;
-    j = 1;
-    for i=1:1/step:size(CasiTotali,2)/step
+    j = cost_days(1);
+    start1 = 1+(cost_days(1)-1)/step;
+    for i=start1:1/step:(size(CasiTotali,2)-days_difference)/step
         cost_h = cost_h + ( (H_diagnosticati(i)-Guariti(j)) * popolazione )**2;
         j = j + 1;
     end
 
-    j = 1;
+    j = (cost_days(1)<=4)*1+(cost_days(1)>4)*(cost_days(1)-3);
     cost_d = 0;
     cost_r = 0;
     cost_t = 0;
-    for i=1+3/step:1/step:1+(size(Ricoverati_sintomi,2)+2)/step
+
+    start2 = (cost_days(1)<=4)*(1+3/step)+(cost_days(1)>4)*(1+(cost_days(1)-1)/step);
+    for i=start2:1/step:1+(size(Ricoverati_sintomi,2)+2-days_difference)/step
         cost_d = cost_d + ( (D(i)-Isolamento_domiciliare(j)) * popolazione )**2;
         cost_r = cost_r + ( (R(i)-Ricoverati_sintomi(j)) * popolazione )**2;
         cost_t = cost_t + ( (T(i)-Terapia_intensiva(j)) * popolazione )**2;
         j = j + 1;
     end
 
-    cost_d = cost_d/1e6
-    cost_r = cost_r/1e6
-    cost_t = cost_t/1e6
-    cost_h = cost_h/1e6
+    cost_h = cost_h/1e6;
+    cost_d = cost_d/1e6;
+    cost_r = cost_r/1e6;
+    cost_t = cost_t/1e6;
 
     cost = cost_h + cost_d + cost_r + cost_t;
+
+    vect = [cost_h, cost_d, cost_r, cost_t, cost];
+    % printf("#");
+    % disp(vect);
+    save -append costs.dat vect;
+    disp(H_diagnosticati(start1:1/step:(size(CasiTotali,2)-days_difference)/step)*popolazione)
+    disp(D(start2:1/step:1+(size(Ricoverati_sintomi,2)+2-days_difference)/step)*popolazione)
+    disp(R(start2:1/step:1+(size(Ricoverati_sintomi,2)+2-days_difference)/step)*popolazione)
+    disp(T(start2:1/step:1+(size(Ricoverati_sintomi,2)+2-days_difference)/step)*popolazione)
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % FIGURES
