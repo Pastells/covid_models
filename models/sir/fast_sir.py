@@ -1,16 +1,24 @@
 import random
 from collections import defaultdict
 import numpy as np
-from utils import utils_net
+
+import os.path
+import sys
+# this is required as running > if __name__ == "__main__"
+# from inside the module itself is an antipattern and we
+# must force the path to the project top-level module
+PACKAGE_PARENT = '../..'
+SCRIPT_DIR = os.path.dirname(os.path.realpath(os.path.join(os.getcwd(), os.path.expanduser(__file__))))
+sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, PACKAGE_PARENT)))
+from models.utils import utils_net
 
 
-def _process_trans_SAIR_(
+def _process_trans_SIR_(
     time,
     G,
     target,
     times,
     S,
-    A,
     I,
     R,
     Q,
@@ -18,7 +26,6 @@ def _process_trans_SAIR_(
     rec_time,
     pred_inf_time,
     rates,
-    e_or_i,
 ):
     r"""
         From figure A.4 of Kiss, Miller, & Simon.  Please cite the book if
@@ -33,7 +40,7 @@ def _process_trans_SAIR_(
             node receiving transmission.
         times : list
             list of times at which events have happened
-        S, A, I, R : lists
+        S, I, R : lists
             lists of numbers of nodes of each status at each time
         Q : MyQueue
             the queue of events
@@ -43,8 +50,8 @@ def _process_trans_SAIR_(
             dictionary giving recovery time of each node
         pred_inf_time : dict
             dictionary giving predicted infeciton time of nodes
-        rates (beta_a/2,delta_a/2, alpha):
-            rates of infection, recovery and latency
+        rates (beta,delta):
+            rates of infection and recovery
 
         :Returns:
 
@@ -63,67 +70,26 @@ def _process_trans_SAIR_(
 
     """
 
-    if (e_or_i == "A" and status[target] == "S") or (
-        e_or_i == "I" and status[target] == "A"
-    ):  # nothing happens if already infected.
-
+    if status[target] == "S":  # nothing happens if already infected.
+        status[target] = "I"
         times.append(time)
-        R.append(R[-1])
+        S.append(S[-1] - 1)  # one less susceptible
+        I.append(I[-1] + 1)  # one more infected
+        R.append(R[-1])  # no change to recovered
 
         suscep_neighbors = [v for v in G.neighbors(target) if status[v] == "S"]
 
-        if e_or_i == "A":
-            status[target] = "A"
-            S.append(S[-1] - 1)
-            A.append(A[-1] + 1)
-            I.append(I[-1])
-            trans_delay, rec_delay, recover_or_infect = utils_net.markovian_times(
-                suscep_neighbors,
-                rates["beta_a"],
-                rates["delta_a"],
-                rates["alpha"],
-            )
-        else:
-            status[target] = "I"
-            S.append(S[-1])
-            A.append(A[-1] - 1)
-            I.append(I[-1] + 1)
-            trans_delay, rec_delay = utils_net.markovian_times(
-                suscep_neighbors,
-                rates["beta"],
-                rates["delta"],
-            )
-            recover_or_infect = "recover"
+        trans_delay, rec_delay = utils_net.markovian_times(
+            suscep_neighbors, rates["beta"], rates["delta"]
+        )
 
         rec_time[target] = time + rec_delay
         if rec_time[target] <= Q.tmax:
-            if recover_or_infect == "recover":
-                Q.add(
-                    rec_time[target],
-                    _process_rec_SAIR_,
-                    args=(target, times, S, A, I, R, status, e_or_i),
-                )
-            else:
-                Q.add(
-                    rec_time[target],
-                    _process_trans_SAIR_,
-                    args=(
-                        G,
-                        target,
-                        times,
-                        S,
-                        A,
-                        I,
-                        R,
-                        Q,
-                        status,
-                        rec_time,
-                        pred_inf_time,
-                        rates,
-                        "I",
-                    ),
-                )
-
+            Q.add(
+                rec_time[target],
+                _process_rec_SIR_,
+                args=(target, times, S, I, R, status),
+            )
         for v in trans_delay:
             inf_time = time + trans_delay[v]
             if (
@@ -133,13 +99,12 @@ def _process_trans_SAIR_(
             ):
                 Q.add(
                     inf_time,
-                    _process_trans_SAIR_,
+                    _process_trans_SIR_,
                     args=(
                         G,
                         v,
                         times,
                         S,
-                        A,
                         I,
                         R,
                         Q,
@@ -147,7 +112,6 @@ def _process_trans_SAIR_(
                         rec_time,
                         pred_inf_time,
                         rates,
-                        "A",
                     ),
                 )
                 pred_inf_time[v] = inf_time
@@ -156,8 +120,9 @@ def _process_trans_SAIR_(
 # -------------------------
 
 
-def _process_rec_SAIR_(time, node, times, S, A, I, R, status, e_or_i):
-    r"""
+def _process_rec_SIR_(time, node, times, S, I, R, status):
+    r"""From figure A.3 of Kiss, Miller, & Simon.  Please cite the
+    book if using this algorithm.
 
     :Arguments:
 
@@ -165,7 +130,7 @@ def _process_rec_SAIR_(time, node, times, S, A, I, R, status, e_or_i):
             has details on node and time
         times : list
             list of times at which events have happened
-        S, A, I, R : lists
+        S, I, R : lists
             lists of numbers of nodes of each status at each time
         status : dict
             dictionary giving status of each node
@@ -180,78 +145,29 @@ def _process_rec_SAIR_(time, node, times, S, A, I, R, status, e_or_i):
     status : updates status of newly recovered node
     times : appends time of event
     S : appends new S (same as last)
-    A : appends new A (same as last)
     I : appends new I (decreased by 1)
     R : appends new R (increased by 1)
     """
-
     times.append(time)
-    S.append(S[-1])
-    R.append(R[-1] + 1)
-
-    if e_or_i == "A":
-        A.append(A[-1] - 1)
-        I.append(I[-1])
-    else:
-        A.append(A[-1])
-        I.append(I[-1] - 1)
-
+    S.append(S[-1])  # no change to number susceptible
+    I.append(I[-1] - 1)  # one less infected
+    R.append(R[-1] + 1)  # one more recovered
     status[node] = "R"
 
 
 # -------------------------
 
 
-def _process_inf_SAIR_(time, node, times, S, A, I, R, status):
-    r"""
-
-    :Arguments:
-
-        event : event
-            has details on node and time
-        times : list
-            list of times at which events have happened
-        S, A, I, R : lists
-            lists of numbers of nodes of each status at each time
-        status : dict
-            dictionary giving status of each node
-
-
-    :Returns:
-
-    Nothing
-
-    MODIFIES
-    ----------
-    status : updates status of newly recovered node
-    times : appends time of event
-    S : appends new S (same as last)
-    A : appends new A (same as last)
-    I : appends new I (decreased by 1)
-    R : appends new R (increased by 1)
-    """
-    times.append(time)
-    S.append(S[-1])
-    A.append(A[-1] - 1)
-    I.append(I[-1] + 1)
-    R.append(R[-1])
-    status[node] = "I"
-
-
-# -------------------------
-
-
-def fast_SAIR(
+def fast_SIR(
     G,
     rates,
-    E_0=0,
-    I_0=0,
+    I_0=None,
     R_0=0,
     tmin=0,
     tmax=float("Inf"),
 ):
     r"""
-    fast SAIR simulation for exponentially distributed infection and
+    fast SIR simulation for exponentially distributed infection and
     recovery times
 
     :Arguments:
@@ -259,14 +175,8 @@ def fast_SAIR(
     **G** networkx Graph
         The underlying network
 
-    **beta** number
-        transmission rate per edge
-
-    **delta** number
-        recovery rate per node
-
-    **E_0** number
-        initially exposed nodes (NOT IMPLEMENTED)
+    **rates** (beta,delta):
+            rates of infection and recovery
 
     **I_0** number
         initially infected nodes
@@ -279,13 +189,13 @@ def fast_SAIR(
 
     **tmax** number  (default Infinity)
         maximum time after which simulation will stop.
-        the default of running to infinity is okay for SAIR,
+        the default of running to infinity is okay for SIR,
         but not for SIS.
 
 
     :Returns:
 
-    **times, S, A, I, R** numpy arrays
+    **times, S, I, R** numpy arrays
 
     """
 
@@ -320,29 +230,21 @@ def fast_SAIR(
         I_0 = [I_0]
     # else it is assumed to be a list of nodes.
     """
-    # Just one sample, so there's no possible overlap
-    I_0 = random.sample(G.nodes(), I_0 + E_0)
 
-    times, S, A, I, R = (
-        [tmin],
-        [G.order() - len(I_0[E_0:])],
-        [len(I_0[E_0:])],
-        [0],
-        [0],
-    )
+    I_0 = random.sample(G.nodes(), I_0)
 
-    for u in I_0[:E_0]:
-        status[u] = "S"
+    times, S, I, R = ([tmin], [G.order()], [0], [0])
+
+    for u in I_0:
         pred_inf_time[u] = tmin
         Q.add(
             tmin,
-            _process_trans_SAIR_,
+            _process_trans_SIR_,
             args=(
                 G,
                 u,
                 times,
                 S,
-                A,
                 I,
                 R,
                 Q,
@@ -350,29 +252,6 @@ def fast_SAIR(
                 rec_time,
                 pred_inf_time,
                 rates,
-                "A",
-            ),
-        )
-    for u in I_0[E_0:]:
-        status[u] = "A"
-        pred_inf_time[u] = tmin
-        Q.add(
-            tmin,
-            _process_trans_SAIR_,
-            args=(
-                G,
-                u,
-                times,
-                S,
-                A,
-                I,
-                R,
-                Q,
-                status,
-                rec_time,
-                pred_inf_time,
-                rates,
-                "I",
             ),
         )
 
@@ -385,8 +264,8 @@ def fast_SAIR(
     # We'd like to get rid these excess events.
     times = times[len(I_0) :]
     S = S[len(I_0) :]
-    A = A[len(I_0) :]
     I = I[len(I_0) :]
     R = R[len(I_0) :]
 
-    return np.array(times), np.array(S), np.array(A), np.array(I), np.array(R) + R_0
+    return np.array(times), np.array(S), np.array(I), np.array(R) + R_0
+    # return times, S, I, R

@@ -234,4 +234,4 @@ if __name__ == "__main__":
     except Exception as ex:
         print(f"{repr(ex)}")
         print(f"GGA CRASHED {1e20}")
-        traceback.print_exc(ex)
+        traceback.print_exc()

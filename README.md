@@ -17,3 +17,24 @@ Additionally, the following models have been adapted from the literature:
 
 - SIDARTHE model (https://github.com/dungltr/sidarthe)
 - MMCAcovid19 (https://github.com/jtmatamalas/MMCAcovid19.jl)
+
+
+### Auto-configurable models:
+- SAIR
+    - [ ] SAIR
+    - [ ] Network SAIR
+    - [ ] Network SAIR with sections
+    - [ ] Erlang SAIR
+    - [ ] Erlang SAIR with sections
+- SEAIR
+    - [ ] SEAIR
+- SIDARTHE (todo)
+- MMCAcovid19 (todo)
+- SIR
+    - [ ] SIR
+    - [ ] Network SIR
+    - [ ] Network SIR with sections
+    - [ ] Erlang SIR
+    - [ ] Erlang SIR with sections
+- SIRD (TODO: remove old sird.py and parallel version)
+    - [x] SIRD
