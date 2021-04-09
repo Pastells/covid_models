@@ -1,185 +1,159 @@
 """
 Stochastic mean-field SIRD model using the Gillespie algorithm
 
-Pol Pastells, 2020
+Pol Pastells, 2020-2021
 
 Equations of the deterministic system:
 
 dS(t)/dt = - beta/N*I(t)*S(t) \n
 dI(t)/dt =   beta/N*I(t)*S(t) - delta * I(t) \n
-dR(t)/dt =                   delta*(1-theta) * I(t)
-dD(t)/dt =                   delta*theta * I(t)
+dR(t)/dt =   delta*(1-theta) * I(t)
+dD(t)/dt =   delta*theta * I(t)
 """
 
 import random
-import sys
-import traceback
-import os.path
+from collections import namedtuple
+
 import numpy as np
+from optilog.autocfg import ac, Int, Real
 
-# this is required as running > if __name__ == "__main__"
-# from inside the module itself is an antipattern and we
-# must force the path to the project top-level module
-PACKAGE_PARENT = '../..'
-SCRIPT_DIR = os.path.dirname(os.path.realpath(os.path.join(os.getcwd(), os.path.expanduser(__file__))))
-sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, PACKAGE_PARENT)))
-from models.utils import utils, config
-
-# import matplotlib.pyplot as plt
-
-# %%%%%%%%%%%%%%%%%%%%%%%%%
-# %%%%%%%%%%%%%%%%%%%%%%%%%
+from ..utils import utils
 
 
-def main():
-    args = parsing()
-    t_total, time_series, rates = parameters_init(args)
-    # print(args)
-    sys.stdout.write(f"r = {rates['beta']}\n")
-    sys.stdout.write(f"a = {rates['delta']*(1-rates['theta'])}\n")
-    sys.stdout.write(f"d = {rates['delta']*rates['theta']}\n")
+# Renamed:
+# - main -> sird
+# - main_loop -> gillespie_simulation
 
-    # results per day and seed
-    I_day = np.zeros([args.mc_nseed, t_total], dtype=int)
-    R_day = np.zeros([args.mc_nseed, t_total], dtype=int)
-    D_day = np.zeros([args.mc_nseed, t_total], dtype=int)
+
+Result = namedtuple("Result", "infected recovered dead day_max")
+
+
+def check_successful_simulation(result: Result, time_total: int):
+    return not result.infected[time_total - 1] == 0
+
+
+def get_cost(time_series, infected, recovered, dead, metric):
+    mean_infected = utils.mean_std(infected)
+    mean_recovered = utils.mean_std(recovered)
+    mean_dead = utils.mean_std(dead)
+
+    infected_cost = utils.cost_return(time_series[:, 0], mean_infected, metric)
+    print(f"cost_infected = {infected_cost}")
+    recovered_cost = utils.cost_return(time_series[:, 1], mean_recovered, metric)
+    print(f"cost_recovered = {recovered_cost}")
+    dead_cost = utils.cost_return(time_series[:, 2], mean_dead, metric)
+    print(f"cost_dead = {dead_cost}")
+
+    return infected_cost + recovered_cost + dead_cost
+
+
+@ac
+def sird(time_series: np.ndarray,
+         seed: int,
+         n_seeds: int,
+         t_total: int,
+         n_t_steps: int,
+         metric,
+         n: Int(70000, 90000) = 70000,
+         initial_infected: Int(410, 440) = 410,
+         initial_recovered: Int(4, 6) = 4,
+         initial_dead: Int(1, 100) = 1,
+         delta: Real(0.03, 0.06) = 0.03,
+         beta: Real(0.3, 0.4) = 0.3,
+         theta: Real(0.004, 0.008) = 0.004):
+    random.seed(seed)
+    np.random.seed(seed)
+
+    # Normalize beta for the number of individuals
+    beta = beta / n
 
     day_max = 0
-    check_realization_alive = t_total - 1
-    random.seed(args.seed)
-    np.random.seed(args.seed)
-    # =========================
-    # MC loop
-    # =========================
     mc_step = 0
-    while mc_step < args.mc_nseed:
-        # print(mc_step)
-        I_day[mc_step], R_day[mc_step], D_day[mc_step], day_max = main_loop(
-            args, t_total, rates, day_max
+
+    results = []
+    while mc_step < n_seeds:
+        result = gillespie_simulation(
+            n, n_t_steps,
+            initial_infected, initial_recovered, initial_dead,
+            t_total,
+            delta, beta, theta,
+            day_max
         )
-        if I_day[mc_step, check_realization_alive] != 0:
+
+        day_max = result.day_max
+
+        if check_successful_simulation(result, t_total):
             mc_step += 1
-        # =========================
+            results.append(result)
+    # =========================
 
-    I_m = utils.mean_std(I_day)
-    R_m = utils.mean_std(R_day)
-    D_m = utils.mean_std(D_day)
+    # results per day and seed
+    infected = np.zeros([n_seeds, t_total], dtype=int)
+    recovered = np.zeros([n_seeds, t_total], dtype=int)
+    dead = np.zeros([n_seeds, t_total], dtype=int)
+    for mc_step, result in enumerate(results):
+        infected[mc_step] = result.infected
+        recovered[mc_step] = result.recovered
+        dead[mc_step] = result.dead
 
-    if config.CUMULATIVE is True:
-        utils.cost_func(time_series[:, 3], I_m, args.metric)
-    else:
-        # utils.cost_func(time_series[:, 0], I_m)
-        cost = utils.cost_return(time_series[:, 0], I_m, args.metric)
-        sys.stdout.write(f"cost_I = {cost}\n")
+    cost = get_cost(time_series, infected, recovered, dead, metric)
 
-    _cost = utils.cost_return(time_series[:, 1], R_m, args.metric)
-    sys.stdout.write(f"cost_R = {_cost}\n")
-    cost += _cost
-    _cost = utils.cost_return(time_series[:, 2], D_m, args.metric)
-    sys.stdout.write(f"cost_D = {_cost}\n")
-    cost += _cost
-    sys.stdout.write(f"GGA SUCCESS {cost}\n")
+    print(f"GGA SUCCESS {cost}")
 
-    if args.save is not None:
-        save = args.save
-        args.save = save + "R"
-        utils.saving(args, R_m, day_max, var="R")
-        args.save = save + "D"
-        utils.saving(args, D_m, day_max, var="D")
-        args.save = save
-        utils.saving(args, I_m, day_max)
-
-    if args.plot:
-        from utils import plots
-
-        plots.plotting(args, day_max, I_m, R_m, D_m)
+    return cost
 
 
-# %%%%%%%%%%%%%%%%%%%%%%%%%
+def gillespie_simulation(n: int,
+                         n_t_steps: int,
+                         initial_infected: int,
+                         initial_recovered: int,
+                         initial_dead: int,
+                         t_total,  # TODO
+                         delta: float,
+                         beta: float,
+                         theta: float,
+                         day_max: int) -> Result:
+    comp = Compartments(n, n_t_steps,
+                        initial_infected, initial_recovered, initial_dead)
 
+    infected = np.zeros(t_total, dtype=int)
+    recovered = np.zeros(t_total, dtype=int)
+    dead = np.zeros(t_total, dtype=int)
 
-def main_loop(args, t_total, rates, day_max):
+    infected[0] = initial_infected
+    recovered[0] = initial_recovered
+    dead[0] = initial_dead
 
-    # -------------------------
-    # initialization
-
-    comp = Compartments(args)
-
-    I_day = np.zeros(t_total, dtype=int)
-    R_day = np.zeros(t_total, dtype=int)
-    D_day = np.zeros(t_total, dtype=int)
-    I_day[0] = args.I_0
-    R_day[0] = args.R_0
-    D_day[0] = args.D_0
     t_step, time = 0, 0
 
     # Time loop
     while comp.I[t_step] > 0 and time < t_total:
-        t_step, time = gillespie(t_step, time, comp, rates)
+        t_step, time = gillespie(t_step, time, comp, delta, beta, theta)
     # -------------------------
 
-    if config.CUMULATIVE is True:
-        i_var = comp.I_cum
-    else:
-        i_var = comp.I
+    day_max = utils.day_data(comp.T[:t_step], comp.I[:t_step], infected, day_max)
+    day_max = utils.day_data(comp.T[:t_step], comp.R[:t_step], recovered, day_max)
+    day_max = utils.day_data(comp.T[:t_step], comp.D[:t_step], dead, day_max)
 
-    day_max = utils.day_data(comp.T[:t_step], i_var[:t_step], I_day, day_max)
-    day_max = utils.day_data(comp.T[:t_step], comp.R[:t_step], R_day, day_max)
-    day_max = utils.day_data(comp.T[:t_step], comp.D[:t_step], D_day, day_max)
-
-    # plt.plot(I_day, "orange", alpha=0.3)
-    return [I_day, R_day, D_day, day_max]
-
-
-# %%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-def parsing():
-    """input parameters"""
-
-    description = "stochastic mean-field SIRD model using the Gillespie algorithm. \
-            Dependencies: config.py, utils.py"
-
-    parser = utils.ParserCommon(description)
-    parser.n()
-    parser.sir()
-    parser.dead()
-
-    return parser.parse_args()
-
-
-# -------------------------
-# Parameters
-
-
-def parameters_init(args):
-    """initial parameters from argparse"""
-    t_total, time_series = utils.parameters_init_common(args)
-
-    rates = {"beta": args.beta / args.n, "delta": args.delta, "theta": args.theta}
-    return t_total, time_series, rates
-
-
-# -------------------------
+    return Result(infected, recovered, dead, day_max)
 
 
 class Compartments:
     """Compartments for SIR model"""
 
-    def __init__(self, args):
+    def __init__(self, n, n_t_steps,
+                 initial_infected, initial_recovered, initial_dead):
         """Initialization"""
-        self.S = np.zeros(args.n_t_steps, dtype=int)
-        self.I = np.zeros(args.n_t_steps, dtype=int)
-        self.R = np.zeros(args.n_t_steps, dtype=int)
-        self.D = np.zeros(args.n_t_steps, dtype=int)
-        self.T = np.zeros(args.n_t_steps)
-        self.I[0] = args.I_0
-        self.R[0] = args.R_0
-        self.D[0] = args.D_0
-        self.S[0] = args.n - args.I_0 - args.R_0 - args.D_0
+        self.S = np.zeros(n_t_steps, dtype=int)
+        self.I = np.zeros(n_t_steps, dtype=int)
+        self.R = np.zeros(n_t_steps, dtype=int)
+        self.D = np.zeros(n_t_steps, dtype=int)
+        self.T = np.zeros(n_t_steps)
+        self.I[0] = initial_infected
+        self.R[0] = initial_recovered
+        self.D[0] = initial_dead
+        self.S[0] = n - initial_infected - initial_recovered - initial_dead
         self.T[0] = 0
-        self.I_cum = np.zeros(args.n_t_steps, dtype=int)
-        self.I_cum[0] = args.I_0
 
     def infect(self, t_step):
         """Infection"""
@@ -187,7 +161,6 @@ class Compartments:
         self.I[t_step] = self.I[t_step - 1] + 1
         self.R[t_step] = self.R[t_step - 1]
         self.D[t_step] = self.D[t_step - 1]
-        self.I_cum[t_step] = self.I_cum[t_step - 1] + 1
 
     def recover(self, t_step):
         """Recovery"""
@@ -195,7 +168,6 @@ class Compartments:
         self.I[t_step] = self.I[t_step - 1] - 1
         self.R[t_step] = self.R[t_step - 1] + 1
         self.D[t_step] = self.D[t_step - 1]
-        self.I_cum[t_step] = self.I_cum[t_step - 1]
 
     def die(self, t_step):
         """Death"""
@@ -203,22 +175,18 @@ class Compartments:
         self.I[t_step] = self.I[t_step - 1] - 1
         self.R[t_step] = self.R[t_step - 1]
         self.D[t_step] = self.D[t_step - 1] + 1
-        self.I_cum[t_step] = self.I_cum[t_step - 1]
 
 
-# -------------------------
-
-
-def gillespie(t_step, time, comp, rates):
+def gillespie(t_step, time, comp, delta, beta, theta):
     """
     Time elapsed for the next event
     Calls gillespie_step
     """
 
-    lambda_sum = (rates["delta"] + rates["beta"] * comp.S[t_step]) * comp.I[t_step]
+    lambda_sum = (delta + beta * comp.S[t_step]) * comp.I[t_step]
     probs = {}
-    probs["heal"] = rates["delta"] * comp.I[t_step] / lambda_sum
-    probs["die"] = rates["theta"]
+    probs["heal"] = delta * comp.I[t_step] / lambda_sum
+    probs["die"] = theta
 
     t_step += 1
     time += utils.time_dist(lambda_sum)
@@ -226,9 +194,6 @@ def gillespie(t_step, time, comp, rates):
 
     gillespie_step(t_step, comp, probs)
     return t_step, time
-
-
-# -------------------------
 
 
 def gillespie_step(t_step, comp, probs):
@@ -247,13 +212,24 @@ def gillespie_step(t_step, comp, probs):
         comp.infect(t_step)
 
 
-# ~~~~~~~~~~~~~~~~~~~
+def parameters_init(args):
+    """initial parameters from argparse"""
+    t_total, time_series = utils.parameters_init_common(args)
+
+    rates = {"beta": args.beta, "delta": args.delta, "theta": args.theta}
+    return t_total, time_series, rates
 
 
-if __name__ == "__main__":
-    try:
-        main()
-    except Exception as ex:
-        sys.stdout.write(f"{repr(ex)}\n")
-        sys.stdout.write(f"GGA CRASHED {1e20}\n")
-        traceback.print_exc()
+def main(args):
+    t_total, time_series, rates = parameters_init(args)
+    print(f"r = {rates['beta']}")
+    print(f"a = {rates['delta']*(1-rates['theta'])}")
+    print(f"d = {rates['delta']*rates['theta']}")
+    sird(time_series, args.seed, args.mc_nseed, t_total, args.n_t_steps, args.metric,
+         n=args.n,  # due to a bug, naming the configurable parameters is mandatory
+         initial_infected=args.I_0,
+         initial_recovered=args.R_0,
+         initial_dead=args.D_0,
+         delta=rates["delta"],
+         beta=rates["beta"],
+         theta=rates["theta"])

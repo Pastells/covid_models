@@ -2,15 +2,7 @@ import random
 from collections import defaultdict
 import numpy as np
 
-import os.path
-import sys
-# this is required as running > if __name__ == "__main__"
-# from inside the module itself is an antipattern and we
-# must force the path to the project top-level module
-PACKAGE_PARENT = '../..'
-SCRIPT_DIR = os.path.dirname(os.path.realpath(os.path.join(os.getcwd(), os.path.expanduser(__file__))))
-sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, PACKAGE_PARENT)))
-from models.utils import utils_net
+from ..utils import utils_net
 
 
 def _process_trans_SAIR_(

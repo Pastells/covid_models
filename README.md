@@ -18,8 +18,25 @@ Additionally, the following models have been adapted from the literature:
 - SIDARTHE model (https://github.com/dungltr/sidarthe)
 - MMCAcovid19 (https://github.com/jtmatamalas/MMCAcovid19.jl)
 
+### How to run the models
+To list all the available models, use:
+```shell script
+python -m models --help
+```
+
+To execute a model, use:
+```shell script
+python -m models <model> [model args]
+```
+
+To see the arguments for a specific model (p.e. sird), use:
+```shell script
+python -m models sird --help
+``` 
 
 ### Auto-configurable models:
+The following models are ready to be used with Optilog:
+
 - SAIR
     - [ ] SAIR
     - [ ] Network SAIR
@@ -27,7 +44,7 @@ Additionally, the following models have been adapted from the literature:
     - [ ] Erlang SAIR
     - [ ] Erlang SAIR with sections
 - SEAIR
-    - [ ] SEAIR
+    - [x] SEAIR
 - SIDARTHE (todo)
 - MMCAcovid19 (todo)
 - SIR

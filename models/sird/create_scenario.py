@@ -13,7 +13,7 @@ from optilog.autocfg.configurators import SMACConfigurator
 PACKAGE_PARENT = '../..'
 SCRIPT_DIR = os.path.dirname(os.path.realpath(os.path.join(os.getcwd(), os.path.expanduser(__file__))))
 sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, PACKAGE_PARENT)))
-from models.sird.configurable import sird
+from models.sird.sird import sird
 from models.utils import config
 
 RESULT_REGEX = r"Result: ([+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?)$"
@@ -42,7 +42,6 @@ def auto_sird(dataset, seed):
         metric="models.utils.utils.sum_sq"
     )
     print(f"Result: {cost}")
-    print(re.match(RESULT_REGEX, f"Result: {cost}"))
 
 
 def create_scenario(scenario_path):
