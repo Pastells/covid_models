@@ -5,7 +5,7 @@
 #  - seed : automatic configurator seed
 
 max_cost_day=46
-./covid_ac list --start-from 1070 --count 20 > list.dat
+./covid_ac list --start-from 1114 > list.dat
 
 for day in 42; do
     echo '# min_day' $((day+1)) 'max_day' $max_cost_day >> costs.dat
