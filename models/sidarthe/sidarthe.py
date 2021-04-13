@@ -55,7 +55,7 @@ def parsing():
     parser.add_argument("--timeout", type=int)
     parser.add_argument("--min_cost_day", type=int, default=1)
     parser.add_argument("--max_cost_day", type=int, default=46)
-    parser.add_argument("--print", action="store_false")
+    parser.add_argument("--print", action="store_false", help="Don't print GGA result")
 
     return parser.parse_args()
 
@@ -166,6 +166,11 @@ def main():
 
     oc = Oct2Py()
     cost = oc.sidarthe(params1, params2, params3, params4, params5, params6, cost_days)
+
+    with open("costs.dat", "a") as f:
+        f.write(f"{cost}\n")
+
+    # Print GGA result (default), if flag --print => args.print = False
     if args.print:
         sys.stdout.write(f"GGA SUCCESS {cost}\n")
 

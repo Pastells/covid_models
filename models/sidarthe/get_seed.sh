@@ -5,7 +5,7 @@
 #  - seed : automatic configurator seed
 
 max_cost_day=46
-./covid_ac list --start-from 1114 > list.dat
+./covid_ac list --start-from 1134 --count 10 > list.dat
 
 for day in 42; do
     echo '# min_day' $((day+1)) 'max_day' $max_cost_day >> costs.dat
@@ -15,7 +15,7 @@ for day in 42; do
         number=$(grep $day'_'$seed list.dat | awk '{print $1;}')
         # number=$((1072+seed-42))
         ./covid_ac stdout $number | tail > temp.dat
-        params=$(tail temp.dat | grep bin | sed 's/^[^-]*//')
+        params=$(tail temp.dat | grep command | sed 's/^[^-]*//')
         cost=$(tail temp.dat | grep objective | sed 's/^[^0-9]*//')
 
         echo '# ac cost =' $cost >> costs.dat

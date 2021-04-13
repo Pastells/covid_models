@@ -5,7 +5,7 @@ for day in 42; do
         sidarthe_precise.desc
     for seed in {42..51}; do
         sed -i 's/%%SEED .*/%%SEED '${seed}'/' sidarthe_precise.desc
-        ./covid_ac solve --name sidarthe_${day}_${seed}'.60gen' \
+        ./covid_ac solve --name sidarthe_${day}_${seed}'.200gen' \
             --desc ./sidarthe_precise.desc \
             --content ./sidarthe.py ./sidarthe.m ./empty.dat
     done
