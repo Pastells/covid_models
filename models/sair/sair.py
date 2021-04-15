@@ -12,8 +12,6 @@ dR(t)/dt =   delta * I(t)                          + delta_a * A(t)
 """
 
 import random
-import sys
-import traceback
 import numpy as np
 
 from ..utils import utils, config

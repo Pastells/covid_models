@@ -14,25 +14,15 @@ dR(t)/dt =   delta * I(t)                          + delta_a * A(t)
 """
 
 import random
-import sys
-import traceback
 import numpy as np
 
-import os.path
-# this is required as running > if __name__ == "__main__"
-# from inside the module itself is an antipattern and we
-# must force the path to the project top-level module
-PACKAGE_PARENT = '../..'
-SCRIPT_DIR = os.path.dirname(os.path.realpath(os.path.join(os.getcwd(), os.path.expanduser(__file__))))
-sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, PACKAGE_PARENT)))
-from models.utils import utils, config
-from models.sair import sair_erlang
+from ..utils import utils, config
+from . import sair_erlang
 
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%
 # %%%%%%%%%%%%%%%%%%%%%%%%%
-def main():
-    args = parsing()
+def main(args):
     t_total, time_series, n_sections = parameters_init(args)
     # print(args)
 
@@ -125,22 +115,6 @@ def main():
 
 
 # -------------------------
-def parsing():
-    """input parameters"""
-    description = "Stochastic mean-field SAIR model using the Gillespie algorithm and Erlang \
-        distribution transition times. It allows for different sections with different \
-        n, delta and beta: same number of arguments must be specified for all three, \
-        and one more for section_days. Dependencies: config.py, utils.py, sair_erlang.py"
-
-    parser = utils.ParserCommon(description)
-    parser.n_sections()
-    parser.sir_sections()
-    parser.asymptomatic_sections()
-    parser.erlang(True)
-
-    return parser.parse_args()
-
-
 # -------------------------
 # Parameters
 # -------------------------
@@ -228,15 +202,3 @@ def gillespie(
 
     sair_erlang.gillespie_step(t_step, comp, probs, shapes)
     return t_step, time
-
-
-# -------------------------
-
-
-if __name__ == "__main__":
-    try:
-        main()
-    except Exception as ex:
-        sys.stdout.write(f"{repr(ex)}\n")
-        sys.stdout.write(f"GGA CRASHED {1e20}\n")
-        traceback.print_exc()

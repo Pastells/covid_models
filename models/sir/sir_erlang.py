@@ -12,26 +12,16 @@ dR(t)/dt =                      delta * I(t)
 """
 
 import random
-import sys
-import traceback
 import numpy as np
 
-import os.path
-# this is required as running > if __name__ == "__main__"
-# from inside the module itself is an antipattern and we
-# must force the path to the project top-level module
-PACKAGE_PARENT = '../..'
-SCRIPT_DIR = os.path.dirname(os.path.realpath(os.path.join(os.getcwd(), os.path.expanduser(__file__))))
-sys.path.append(os.path.normpath(os.path.join(SCRIPT_DIR, PACKAGE_PARENT)))
-from models.utils import utils, config
+from ..utils import utils, config
 
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%
 # %%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-def main():
-    args = parsing()
+def main(args):
     # print(args)
     t_total, time_series, rates, shapes = parameters_init(args)
 
@@ -75,22 +65,6 @@ def main():
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%
 # %%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-def parsing():
-    """input parameters"""
-
-    description = "stochastic mean-field SIR model using the Gillespie algorithm and Erlang \
-        distribution transition times. Dependencies: config.py, utils.py"
-
-    parser = utils.ParserCommon(description)
-    parser.n()
-    parser.sir()
-    parser.erlang()
-
-    return parser.parse_args()
-
-
 # -------------------------
 # Parameters
 
@@ -202,15 +176,3 @@ def gillespie_step(t_step, comp, probs, shapes):
         if random < (prob_heal_tot + probs["infect"][: k + 1].sum()):
             comp.infect_adv_s(t_step, k)
             return
-
-
-# -------------------------
-
-
-if __name__ == "__main__":
-    try:
-        main()
-    except Exception as ex:
-        sys.stdout.write(f"{repr(ex)}\n")
-        sys.stdout.write(f"GGA CRASHED {1e20}\n")
-        traceback.print_exc()

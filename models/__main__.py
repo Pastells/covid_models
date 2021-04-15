@@ -1,20 +1,10 @@
 from argparse import ArgumentParser
 
 from .utils import config
+from .sir import sir, net_sir, net_sir_sections, sir_erlang, sir_erlang_sections
 from .sird.sird import main as sird_main
 from .seair.seair import main as seair_main
 from .sair import sair, net_sair, net_sair_sections, sair_erlang, sair_erlang_sections
-
-
-def run_sir(args):
-    print("Using model sir")
-    # Available:
-    # - Network
-    # - Network with sections
-    # - Normal
-    # - Erlang distribution
-    # - Erlang distribution with sections
-    raise NotImplementedError
 
 
 class CommonParser:
@@ -112,61 +102,50 @@ class CommonParser:
         )
 
 
-class SairParser(CommonParser):
-    # .n(), .sir(), .asymptomatic()
+# Basic models (SIR)
+
+class SirParser(CommonParser):
+    # n(), sir()
     @classmethod
     def initialize_parameters_group(cls, group):
-        super().initialize_parameters_group(group)
-        # N:
+        # N
         group.add_argument(
             "--n", type=int, default=config.N,
-            help="fixed number of (effective) individuals [1000,1000000]"
+            help="fixed number of (effective) individuals [1000, 1000000]",
         )
-        # Sir:
+        # Sir
         group.add_argument(
-            "--delta", type=float, default=config.DELTA,
+            "--delta",
+            type=float,
+            default=config.DELTA,
             help="rate of recovery from infected phase (i->r) [0.05,1.0]",
         )
         group.add_argument(
-            "--beta", type=float, default=config.BETA,
+            "--beta",
+            type=float,
+            default=config.BETA,
             help="infectivity due to infected [0.05,1.0]",
         )
-        # Asymptomatic
-        group.add_argument(
-            "--A_0", type=int, default=config.A_0,
-            help="initial number of asymptomatic individuals, if None is"
-                 "specified is set to first day of input data",
-        )
-        group.add_argument(
-            "--delta_a", type=float, default=config.DELTA_A,
-            help="rate of recovery from asymptomatic phase (a->r) [0.05,1.0]",
-        )
-        group.add_argument(
-            "--beta_a", type=float, default=config.BETA_A,
-            help="infectivity due to asymptomatic [0.05,1.0]",
-        )
-        group.add_argument(
-            "--alpha", type=float, default=config.ALPHA,
-            help="asymptomatic rate (a->i) [0.05,2.0]",
-        )
 
 
-class NetworkSairParser(SairParser):
-    # .network()
+class NetworkSirParser(SirParser):
+    # + network()
     @classmethod
     def initialize_parameters_group(cls, group):
+        super().initialize_parameters_group(group)
+        # Newtork
         group.add_argument(
             "--network", type=str, choices=["er", "ba"], default=config.NETWORK,
             help="Erdos-Renyi or Barabasi-Albert {er,ba}",
         )
         group.add_argument(
             "--network_param", type=int, default=config.NETWORK_PARAM,
-            help="mean number of edges [1,50]",
+            help="mean number of edges [1, 50]",
         )
 
 
-class NetworkSairSections(CommonParser):
-    # .n_sections(), sir_sections(), asymptomatic_sections(), .network()
+class NetworkSirSectionsParser(CommonParser):
+    # n_sections(), sir_sections(), network()
     @classmethod
     def initialize_parameters_group(cls, group):
         # N sections:
@@ -186,7 +165,7 @@ class NetworkSairSections(CommonParser):
             type=int,
             default=config.TRANSITION_DAYS,
             help="days it takes to transition from one number of individuals \
-                            to the next [1,10]",
+                                    to the next [1,10]",
         )
         # Sir sections:
         group.add_argument(
@@ -196,24 +175,6 @@ class NetworkSairSections(CommonParser):
         group.add_argument(
             "--beta", type=float, default=[config.BETA], nargs="*",
             help="infectivity due to infected [0.05,1.0]",
-        )
-        # Asymptomatic sections
-        group.add_argument(
-            "--A_0", type=int, default=config.A_0,
-            help="initial number of asymptomatic individuals if None is"
-                 "specified is set to first day of input data",
-        )
-        group.add_argument(
-            "--delta_a", type=float, default=[config.DELTA_A], nargs="*",
-            help="rate of recovery from asymptomatic phase (a->r) [0.05,1.0]",
-        )
-        group.add_argument(
-            "--beta_a", type=float, default=[config.BETA_A], nargs="*",
-            help="infectivity due to asymptomatic [0.05,1.0]",
-        )
-        group.add_argument(
-            "--alpha", type=float, default=[config.ALPHA], nargs="*",
-            help="asymptomatic rate (a->i) [0.05,1]",
         )
         # Network:
         group.add_argument(
@@ -226,35 +187,80 @@ class NetworkSairSections(CommonParser):
         )
 
 
-class SeairParser(CommonParser):
-    # .n(), .sir(), .exposed(), .asymptomatic()
+class SirErlangParser(SirParser):
+    # + erlang()
     @classmethod
     def initialize_parameters_group(cls, group):
         super().initialize_parameters_group(group)
-        # N:
+        # Erlang
         group.add_argument(
-            "--n", type=int, default=config.N,
-            help="fixed number of (effective) individuals [1000,1000000]"
+            "--k_rec", type=int, default=config.K_REC,
+            help="k for the recovery time erlang distribution [1, 5]"
         )
-        # Sir:
         group.add_argument(
-            "--delta", type=float, default=config.DELTA,
+            "--k_inf", type=int, default=config.K_INF,
+            help="k for the infection time erlang distribution [1, 5]",
+        )
+        group.add_argument(
+            "--k_asym", type=int, default=config.K_ASYM,
+            help="k for the infection time erlang distribution [1, 5]",
+        )
+
+
+class SirErlangSectionsParser(CommonParser):
+    # n_sections(), sir_sections(), erlang()
+    @classmethod
+    def initialize_parameters_group(cls, group):
+        # N sections:
+        group.add_argument(
+            "--n", type=int, default=[config.N], nargs="*",
+            help="fixed number of (effecitve) individuals, initial and"
+                 "increments [1000,1000000]",
+        )
+        group.add_argument(
+            "--section_days", type=int, default=config.SECTIONS_DAYS,
+            nargs="*",
+            help="starting day for each section, first one must be 0, and"
+                 "final day for last one",
+        )
+        group.add_argument(
+            "--transition_days",
+            type=int,
+            default=config.TRANSITION_DAYS,
+            help="days it takes to transition from one number of individuals \
+                                        to the next [1,10]",
+        )
+        # Sir sections:
+        group.add_argument(
+            "--delta", type=float, default=[config.DELTA], nargs="*",
             help="rate of recovery from infected phase (i->r) [0.05,1.0]",
         )
         group.add_argument(
-            "--beta", type=float, default=config.BETA,
+            "--beta", type=float, default=[config.BETA], nargs="*",
             help="infectivity due to infected [0.05,1.0]",
         )
-        # Exposed
+        # Erlang
         group.add_argument(
-            "--E_0", type=int, default=config.E_0,
-            help="initial number of latent individuals if None is specified"
-                 "is set to first day of input data",
+            "--k_rec", type=int, default=config.K_REC,
+            help="k for the recovery time erlang distribution [1, 5]"
         )
         group.add_argument(
-            "--epsilon", type=float, default=config.EPSILON,
-            help="latency rate (e->a) [0.2,1.0]",
+            "--k_inf", type=int, default=config.K_INF,
+            help="k for the infection time erlang distribution [1, 5]",
         )
+        group.add_argument(
+            "--k_asym", type=int, default=config.K_ASYM,
+            help="k for the infection time erlang distribution [1, 5]",
+        )
+
+
+# SAIR versions:
+
+class SairParser(SirParser):
+    # + .asymptomatic()
+    @classmethod
+    def initialize_parameters_group(cls, group):
+        super().initialize_parameters_group(group)
         # Asymptomatic
         group.add_argument(
             "--A_0", type=int, default=config.A_0,
@@ -275,29 +281,124 @@ class SeairParser(CommonParser):
         )
 
 
-class SirParser(CommonParser):
-    pass
-
-
-class SirdParser(CommonParser):
-    # .n(), .sir(), .dead()
+class NetworkSairParser(NetworkSirParser):
+    # + .asymptomatic()
     @classmethod
     def initialize_parameters_group(cls, group):
-        # N:
         super().initialize_parameters_group(group)
+        # Asymptomatic
         group.add_argument(
-            "--n", type=int, default=config.N,
-            help="fixed number of (effective) individuals [1000,1000000]"
-        )
-        # Sir:
-        group.add_argument(
-            "--delta", type=float, default=config.DELTA,
-            help="rate of recovery from infected phase (i->r) [0.05,1.0]",
+            "--A_0", type=int, default=config.A_0,
+            help="initial number of asymptomatic individuals, if None is"
+                 "specified is set to first day of input data",
         )
         group.add_argument(
-            "--beta", type=float, default=config.BETA,
-            help="infectivity due to infected [0.05,1.0]",
+            "--delta_a", type=float, default=config.DELTA_A,
+            help="rate of recovery from asymptomatic phase (a->r) [0.05,1.0]",
         )
+        group.add_argument(
+            "--beta_a", type=float, default=config.BETA_A,
+            help="infectivity due to asymptomatic [0.05,1.0]",
+        )
+        group.add_argument(
+            "--alpha", type=float, default=config.ALPHA,
+            help="asymptomatic rate (a->i) [0.05,2.0]",
+        )
+
+
+class NetworkSairSectionsParser(NetworkSirSectionsParser):
+    # + asymptomatic_sections()
+    @classmethod
+    def initialize_parameters_group(cls, group):
+        # Asymptomatic sections
+        group.add_argument(
+            "--A_0", type=int, default=config.A_0,
+            help="initial number of asymptomatic individuals if None is"
+                 "specified is set to first day of input data",
+        )
+        group.add_argument(
+            "--delta_a", type=float, default=[config.DELTA_A], nargs="*",
+            help="rate of recovery from asymptomatic phase (a->r) [0.05,1.0]",
+        )
+        group.add_argument(
+            "--beta_a", type=float, default=[config.BETA_A], nargs="*",
+            help="infectivity due to asymptomatic [0.05,1.0]",
+        )
+        group.add_argument(
+            "--alpha", type=float, default=[config.ALPHA], nargs="*",
+            help="asymptomatic rate (a->i) [0.05,1]",
+        )
+
+
+class SairErlangParser(SairParser):
+    # + .erlang(True)
+    @classmethod
+    def initialize_parameters_group(cls, group):
+        super().initialize_parameters_group(group)
+        # Erlang
+        group.add_argument(
+            "--k_rec", type=int, default=config.K_REC,
+            help="k for the recovery time erlang distribution [1, 5]"
+        )
+        group.add_argument(
+            "--k_inf", type=int, default=config.K_INF,
+            help="k for the infection time erlang distribution [1, 5]",
+        )
+        group.add_argument(
+            "--k_asym", type=int, default=config.K_ASYM,
+            help="k for the infection time erlang distribution [1, 5]",
+        )
+
+
+class SairErlangSectionsParser(SirErlangSectionsParser):
+    # + asymptomatic_sections()
+    @classmethod
+    def initialize_parameters_group(cls, group):
+        # Asymptomatic sections
+        group.add_argument(
+            "--A_0", type=int, default=config.A_0,
+            help="initial number of asymptomatic individuals if None is"
+                 "specified is set to first day of input data",
+        )
+        group.add_argument(
+            "--delta_a", type=float, default=[config.DELTA_A], nargs="*",
+            help="rate of recovery from asymptomatic phase (a->r) [0.05,1.0]",
+        )
+        group.add_argument(
+            "--beta_a", type=float, default=[config.BETA_A], nargs="*",
+            help="infectivity due to asymptomatic [0.05,1.0]",
+        )
+        group.add_argument(
+            "--alpha", type=float, default=[config.ALPHA], nargs="*",
+            help="asymptomatic rate (a->i) [0.05,1]",
+        )
+
+
+# SEAIR versions:
+
+class SeairParser(SairParser):
+    # + .exposed()
+    @classmethod
+    def initialize_parameters_group(cls, group):
+        super().initialize_parameters_group(group)
+        # Exposed
+        group.add_argument(
+            "--E_0", type=int, default=config.E_0,
+            help="initial number of latent individuals if None is specified"
+                 "is set to first day of input data",
+        )
+        group.add_argument(
+            "--epsilon", type=float, default=config.EPSILON,
+            help="latency rate (e->a) [0.2,1.0]",
+        )
+
+
+# SIRD versions:
+
+class SirdParser(SirParser):
+    # + .dead()
+    @classmethod
+    def initialize_parameters_group(cls, group):
         # Dead
         group.add_argument(
             "--D_0", type=int, default=config.D_0,
@@ -317,17 +418,17 @@ def parse_args():
     models = [
         ("sair", SairParser, sair.main),
         ("sair-network", NetworkSairParser, net_sair.main),
-        ("sair-network-sections", NetworkSairSections, net_sair_sections.main),
-        ("sair-erlang", None, sair_erlang.main),
-        ("sair-erlang-sections", None, sair_erlang_sections.main),
+        ("sair-network-sections", NetworkSairSectionsParser, net_sair_sections.main),
+        ("sair-erlang", SairErlangParser, sair_erlang.main),
+        ("sair-erlang-sections", SairErlangSectionsParser, sair_erlang_sections.main),
 
         ("seair", SeairParser, seair_main),
 
-        ("sir", SirParser, run_sir),
-        ("sir-network", None, None),
-        ("sir-network-sections", None, None),
-        ("sir-erlang", None, None),
-        ("sir-erlang-sections", None, None),
+        ("sir", SirParser, sir.main),
+        ("sir-network", NetworkSirParser, net_sir.main),
+        ("sir-network-sections", NetworkSirSectionsParser, net_sir_sections.main),
+        ("sir-erlang", SirErlangParser, sir_erlang.main),
+        ("sir-erlang-sections", SirErlangSectionsParser, sir_erlang_sections.main),
 
         ("sird", SirdParser, sird_main),
     ]
