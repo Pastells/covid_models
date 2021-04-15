@@ -38,7 +38,7 @@ python -m models sird --help
 The following models are ready to be used with Optilog:
 
 - SAIR
-    - [ ] SAIR
+    - [x] SAIR
     - [ ] Network SAIR
     - [ ] Network SAIR with sections
     - [ ] Erlang SAIR

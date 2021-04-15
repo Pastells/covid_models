@@ -61,18 +61,18 @@ def sird(time_series: np.ndarray,
          delta: Real(0.03, 0.06) = 0.03,
          beta: Real(0.3, 0.4) = 0.3,
          theta: Real(0.004, 0.008) = 0.004):
-    random.seed(seed)
-    np.random.seed(seed)
-
     # Normalize beta for the number of individuals
     beta = beta / n
 
     day_max = 0
     mc_step = 0
+    current_seed = seed - 1  # we increase the seed at the start of the loop
 
     results = []
     while mc_step < n_seeds:
+        current_seed += 1
         result = gillespie_simulation(
+            current_seed,
             n, n_t_steps,
             initial_infected, initial_recovered, initial_dead,
             t_total,
@@ -103,7 +103,8 @@ def sird(time_series: np.ndarray,
     return cost
 
 
-def gillespie_simulation(n: int,
+def gillespie_simulation(seed:int,
+                         n: int,
                          n_t_steps: int,
                          initial_infected: int,
                          initial_recovered: int,
@@ -113,6 +114,9 @@ def gillespie_simulation(n: int,
                          beta: float,
                          theta: float,
                          day_max: int) -> Result:
+    random.seed(seed)
+    np.random.seed(seed)
+
     comp = Compartments(n, n_t_steps,
                         initial_infected, initial_recovered, initial_dead)
 
