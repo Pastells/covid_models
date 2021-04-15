@@ -45,7 +45,10 @@ The following models are ready to be used with Optilog:
     - [ ] Erlang SAIR with sections
 - SEAIR
     - [x] SEAIR
-- SIDARTHE (todo)
+- SIDARTHE
+    - [ ] Sidarthe 1 (todo: more descriptive name?)
+    - [ ] Sidarthe 2 (todo: more descriptive name?)
+    - [ ] Sidarthe comp (todo: more descriptive name?)
 - MMCAcovid19 (todo)
 - SIR
     - [ ] SIR

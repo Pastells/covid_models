@@ -5,6 +5,7 @@ from .sir import sir, net_sir, net_sir_sections, sir_erlang, sir_erlang_sections
 from .sird.sird import main as sird_main
 from .seair.seair import main as seair_main
 from .sair import sair, net_sair, net_sair_sections, sair_erlang, sair_erlang_sections
+from .sidarthe import sidarthe, sidarthe2, sidarthe_comp
 
 
 class CommonParser:
@@ -103,7 +104,6 @@ class CommonParser:
 
 
 # Basic models (SIR)
-
 class SirParser(CommonParser):
     # n(), sir()
     @classmethod
@@ -255,7 +255,6 @@ class SirErlangSectionsParser(CommonParser):
 
 
 # SAIR versions:
-
 class SairParser(SirParser):
     # + .asymptomatic()
     @classmethod
@@ -375,7 +374,6 @@ class SairErlangSectionsParser(SirErlangSectionsParser):
 
 
 # SEAIR versions:
-
 class SeairParser(SairParser):
     # + .exposed()
     @classmethod
@@ -394,7 +392,6 @@ class SeairParser(SairParser):
 
 
 # SIRD versions:
-
 class SirdParser(SirParser):
     # + .dead()
     @classmethod
@@ -408,6 +405,168 @@ class SirdParser(SirParser):
             "--theta", type=float, default=config.THETA,
             help="death probability [0.001,0.1]",
         )
+
+
+# SIDARTHE
+class SidartheParser(CommonParser):
+    @classmethod
+    def add_arguments(cls, parser, function_to_run):
+        parser.set_defaults(run_fn=function_to_run)
+        parser.add_argument("--alfa1", type=float, default=0.57)
+        parser.add_argument("--beta1", type=float, default=0.0114)
+        parser.add_argument("--gamma1", type=float, default=0.456)
+        parser.add_argument("--epsilon1", type=float, default=0.171)
+        parser.add_argument("--theta1", type=float, default=0.3705)
+        parser.add_argument("--zeta1", type=float, default=0.1254)
+        parser.add_argument("--mu1", type=float, default=0.0171)
+        parser.add_argument("--nu1", type=float, default=0.0274)
+        parser.add_argument("--tau1", type=float, default=0.01)
+        parser.add_argument("--lambda1", type=float, default=0.0342)
+        parser.add_argument("--kappa1", type=float, default=0.0171)
+        parser.add_argument("--alfa2", type=float, default=0.4218)
+        parser.add_argument("--beta2", type=float, default=0.0057)
+        parser.add_argument("--gamma2", type=float, default=0.285)
+        parser.add_argument("--epsilon3", type=float, default=0.1425)
+        parser.add_argument("--alfa4", type=float, default=0.36)
+        parser.add_argument("--beta4", type=float, default=0.005)
+        parser.add_argument("--gamma4", type=float, default=0.2)
+        parser.add_argument("--zeta4", type=float, default=0.034)
+        parser.add_argument("--mu4", type=float, default=0.008)
+        parser.add_argument("--nu4", type=float, default=0.015)
+        parser.add_argument("--lambda4", type=float, default=0.08)
+        parser.add_argument("--rho4", type=float, default=0.0171)
+        parser.add_argument("--alfa5", type=float, default=0.21)
+        parser.add_argument("--gamma5", type=float, default=0.11)
+        parser.add_argument("--epsilon6", type=float, default=0.2)
+        parser.add_argument("--rho6", type=float, default=0.02)
+        parser.add_argument("--sigma6", type=float, default=0.01)
+        parser.add_argument("--zeta6", type=float, default=0.025)
+        parser.add_argument("--data", type=str)
+        parser.add_argument("--seed", type=int)
+        parser.add_argument("--timeout", type=int)
+
+
+class Sidarthe2Parser(CommonParser):
+    @classmethod
+    def add_arguments(cls, parser, function_to_run):
+        parser.set_defaults(run_fn=function_to_run)
+        parser.add_argument("--alfa1", type=float, default=0.57)
+        parser.add_argument("--beta1", type=float, default=0.0114)
+        parser.add_argument("--gamma1", type=float, default=0.456)
+        parser.add_argument("--epsilon1", type=float, default=0.171)
+        parser.add_argument("--theta1", type=float, default=0.3705)
+        parser.add_argument("--zeta1", type=float, deafult=0.1254)
+        parser.add_argument("--mu1", type=float, default=0.0171)
+        parser.add_argument("--nu1", type=float, default=0.0274)
+        parser.add_argument("--tau1", type=float, default=0.01)
+        parser.add_argument("--lambda1", type=float, default=0.0342)
+        parser.add_argument("--kappa1", type=float, default=0.0171)
+        parser.add_argument("--alfa2", type=float, default=0.4218)
+        parser.add_argument("--beta2", type=float, default=0.0057)
+        parser.add_argument("--gamma2", type=float, default=0.285)
+        parser.add_argument("--epsilon3", type=float, default=0.1425)
+        parser.add_argument("--alfa4", type=float, default=0.36)
+        parser.add_argument("--beta4", type=float, default=0.005)
+        parser.add_argument("--gamma4", type=float, default=0.2)
+        parser.add_argument("--zeta4", type=float, default=0.034)
+        parser.add_argument("--mu4", type=float, default=0.008)
+        parser.add_argument("--nu4", type=float, default=0.015)
+        parser.add_argument("--lambda4", type=float, default=0.08)
+        parser.add_argument("--rho4", type=float, default=0.0171)
+        parser.add_argument("--alfa5", type=float, default=0.21)
+        parser.add_argument("--gamma5", type=float, default=0.11)
+        parser.add_argument("--epsilon6", type=float, default=0.2)
+        parser.add_argument("--rho6", type=float, default=0.02)
+        parser.add_argument("--sigma6", type=float, default=0.01)
+        parser.add_argument("--zeta6", type=float, default=0.025)
+
+        parser.add_argument("--data", type=str)
+        parser.add_argument("--seed", type=int)
+        parser.add_argument("--timeout", type=int)
+
+        parser.add_argument("--delta1", type=float, default=0.0114)
+        parser.add_argument("--eta1", type=float, default=0.1254)
+        parser.add_argument("--rho1", type=float, default=0.0342)
+        parser.add_argument("--xi1", type=float, default=0.0171)
+        parser.add_argument("--sigma1", type=float, default=0.0171)
+        parser.add_argument("--delta2", type=float, default=0.0057)
+        parser.add_argument("--delta4", type=float, default=0.005)
+        parser.add_argument("--eta4", type=float, default=0.034)
+        parser.add_argument("--kappa4", type=float, default=0.0171)
+        parser.add_argument("--xi4", type=float, default=0.0171)
+        parser.add_argument("--sigma4", type=float, default=0.0171)
+        parser.add_argument("--kappa6", type=float, default=0.02)
+        parser.add_argument("--xi6", type=float, default=0.02)
+        parser.add_argument("--eta6", type=float, default=0.025)
+
+
+class SidartheCompParser(CommonParser):
+    @classmethod
+    def add_arguments(cls, parser, function_to_run):
+        parser.set_defaults(run_fn=function_to_run)
+        parser.add_argument("--alfa1", type=float, default=0.57)
+        parser.add_argument("--beta1", type=float, default=0.0114)
+        parser.add_argument("--gamma1", type=float, default=0.456)
+        parser.add_argument("--epsilon1", type=float, default=0.171)
+        parser.add_argument("--theta1", type=float, default=0.3705)
+        parser.add_argument("--zeta1", type=float, default=0.1254)
+        parser.add_argument("--mu1", type=float, default=0.0171)
+        parser.add_argument("--nu1", type=float, default=0.0274)
+        parser.add_argument("--tau1", type=float, default=0.01)
+        parser.add_argument("--lambda1", type=float, default=0.0342)
+        parser.add_argument("--kappa1", type=float, default=0.0171)
+        parser.add_argument("--alfa2", type=float, default=0.4218)
+        parser.add_argument("--beta2", type=float, default=0.0057)
+        parser.add_argument("--gamma2", type=float, default=0.285)
+        parser.add_argument("--epsilon3", type=float, default=0.1425)
+        parser.add_argument("--alfa4", type=float, default=0.36)
+        parser.add_argument("--beta4", type=float, default=0.005)
+        parser.add_argument("--gamma4", type=float, default=0.2)
+        parser.add_argument("--zeta4", type=float, default=0.034)
+        parser.add_argument("--mu4", type=float, default=0.008)
+        parser.add_argument("--nu4", type=float, default=0.015)
+        parser.add_argument("--lambda4", type=float, default=0.08)
+        parser.add_argument("--rho4", type=float, default=0.0171)
+        parser.add_argument("--alfa5", type=float, default=0.21)
+        parser.add_argument("--gamma5", type=float, default=0.11)
+        parser.add_argument("--epsilon6", type=float, default=0.2)
+        parser.add_argument("--rho6", type=float, default=0.2)
+        parser.add_argument("--sigma6", type=float, default=0.01)
+        parser.add_argument("--zeta6", type=float, default=0.025)
+
+        parser.add_argument("--alfa1c", type=float, default=0.57)
+        parser.add_argument("--beta1c", type=float, default=0.0114)
+        parser.add_argument("--gamma1c", type=float, default=0.456)
+        parser.add_argument("--epsilon1c", type=float, default=0.171)
+        parser.add_argument("--theta1c", type=float, default=0.3705)
+        parser.add_argument("--zeta1c", type=float, default=0.1254)
+        parser.add_argument("--mu1c", type=float, default=0.0171)
+        parser.add_argument("--nu1c", type=float, default=0.0274)
+        parser.add_argument("--tau1c", type=float, default=0.01)
+        parser.add_argument("--lambda1c", type=float, default=0.0342)
+        parser.add_argument("--kappa1c", type=float, default=0.0171)
+        parser.add_argument("--alfa2c", type=float, default=0.4218)
+        parser.add_argument("--beta2c", type=float, default=0.0057)
+        parser.add_argument("--gamma2c", type=float, default=0.285)
+        parser.add_argument("--epsilon3c", type=float, default=0.1425)
+        parser.add_argument("--alfa4c", type=float, default=0.36)
+        parser.add_argument("--beta4c", type=float, default=0.005)
+        parser.add_argument("--gamma4c", type=float, default=0.2)
+        parser.add_argument("--zeta4c", type=float, default=0.034)
+        parser.add_argument("--mu4c", type=float, default=0.008)
+        parser.add_argument("--nu4c", type=float, default=0.015)
+        parser.add_argument("--lambda4c", type=float, default=0.08)
+        parser.add_argument("--rho4c", type=float, default=0.0171)
+        parser.add_argument("--alfa5c", type=float, default=0.21)
+        parser.add_argument("--gamma5c", type=float, default=0.11)
+        parser.add_argument("--epsilon6c", type=float, default=0.2)
+        parser.add_argument("--rho6c", type=float, default=0.2)
+        parser.add_argument("--sigma6c", type=float, default=0.01)
+        parser.add_argument("--zeta6c", type=float, default=0.025)
+
+        parser.add_argument("--data", type=str)
+        parser.add_argument("--seed", type=int)
+        parser.add_argument("--timeout", type=int)
 
 
 def parse_args():
@@ -431,6 +590,10 @@ def parse_args():
         ("sir-erlang-sections", SirErlangSectionsParser, sir_erlang_sections.main),
 
         ("sird", SirdParser, sird_main),
+
+        ("sidarthe", SidartheParser, sidarthe.main),
+        ("sidarthe2", Sidarthe2Parser, sidarthe2.main),
+        ("sidarthe-comp", SidartheCompParser, sidarthe_comp.main)
     ]
 
     for model_name, parser_class, run_fn in models:
