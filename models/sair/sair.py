@@ -17,7 +17,6 @@ from collections import namedtuple
 import numpy as np
 from optilog.autocfg import ac, Int, Real
 
-from utils.utils import mean_alive
 from ..utils import utils, config
 
 
@@ -29,7 +28,7 @@ def check_successful_simulation(result: Result, time_total: int):
 
 
 def get_cost(time_series: np.ndarray, infected, t_total, day_max, n_seeds, metric):
-    var_m = mean_alive(infected, t_total, day_max, n_seeds)
+    var_m = utils.mean_alive(infected, t_total, day_max, n_seeds)
     return utils.cost_func(time_series[:, 0], var_m, metric)
 
 
@@ -40,15 +39,15 @@ def sair(time_series: np.ndarray,
          t_total: int,
          n_t_steps: int,
          metric,
-         n: Int(70000, 90000) = config.N,
-         initial_infected: Int(410, 440) = config.I_0,
-         initial_recovered: Int(4, 6) = config.R_0,
-         initial_asymptomatic: Int(0, 100) = config.A_0,
-         alpha: Real(0.05, 2.0) = config.ALPHA,
-         delta_a: Real(0.05, 1.0) = config.DELTA_A,
-         delta: Real(0.03, 0.06) = config.DELTA,
-         beta_a: Real(0.05, 1.0) = config.BETA_A,
-         beta: Real(0.3, 0.4) = config.BETA):
+         n: Int(70000, 90000) = 70000,
+         initial_infected: Int(410, 440) = 410,
+         initial_recovered: Int(4, 6) = 4,
+         initial_asymptomatic: Int(0, 100) = 0,
+         alpha: Real(0.05, 2.0) = 0.05,
+         delta_a: Real(0.05, 1.0) = 0.05,
+         delta: Real(0.03, 0.06) = 0.03,
+         beta_a: Real(0.05, 1.0) = 0.05,
+         beta: Real(0.3, 0.4) = 0.3):
     # Normalize beta and beta_a for the number of individuals
     beta = beta / n
     beta_a = beta_a / n
