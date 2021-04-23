@@ -37,12 +37,12 @@ python/3.6.5
 octave/6.2.0
 
 %META
-%%SEED 51
+%%SEED 61
 %%TIMEOUT 1200
 %%COST_MIN 0
 %%COST_MAX 100000000000000000000
-%%GENERATIONS 200
-%%MIN_GENERATIONS 190
+%%GENERATIONS 500
+%%MIN_GENERATIONS 490
 %%POPULATION 50
 
 %ENVIRONMENT-SETUP
@@ -54,5 +54,5 @@ python3 -m venv ./venv
 --data ${instance} \
 --seed ${seed} \
 --timeout ${timeout} \
---max_cost_day 42 \
+--max_cost_day 35 \
 ${@}
