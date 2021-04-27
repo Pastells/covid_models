@@ -30,6 +30,7 @@ def main():
 
     else:
         costs_df2, costs_df2_vec = get_dataframe(args.cost_file2)
+        print(f"Average 2 over {len(costs_df_vec)} seeds")
         results_df2, results_df2_vec = get_dataframe(args.results_file2)
 
         cost = compute_cost(data, results_df2)
@@ -53,6 +54,8 @@ def parsing():
 
     parser.add_argument("--folder2", type=str, default=False)
     parser.add_argument("--day_mid", type=int, default=False)
+
+    parser.add_argument("--ylim", type=int, default=1000)
     args = parser.parse_args()
 
     args.cost_file = args.folder + "/costs.dat"
@@ -228,7 +231,7 @@ def title_labels(save=False):
     plt.title("SIDARTHE")
     plt.xlabel("generations")
     plt.ylabel("cost")
-    plt.ylim([0, 1000])
+    plt.ylim([0, args.ylim])
     plt.legend()
     if save is not False:
         save = args.folder + "/" + save

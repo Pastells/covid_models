@@ -47,8 +47,12 @@ for ((i=$((day+1)); i<=$max_cost_day; i++)); do str="$str D$i"; done
 for ((i=$((day+1)); i<=$max_cost_day; i++)); do str="$str R$i"; done
 for ((i=$((day+1)); i<=$max_cost_day; i++)); do str="$str T$i"; done
 echo "seed gen $str" > results.csv
-# Merge every 5 lines
-paste -d " "  - - - - -  < results.dat >> results.csv
+
+# Deal with multiple line output from octave
+sed -i -e '/Column/d' -e '/^$/d' results.dat
+
+# Merge lines
+awk '/^[0-9]/{if (NR!=1)print "";}{printf $0}END{print "";}' results.dat >> results.csv
 
 rm list.dat temp.dat costs_temp.dat params_temp.dat results.dat
 cd ../..

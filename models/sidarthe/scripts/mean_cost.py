@@ -5,11 +5,11 @@ import argparse
 # -------------------
 parser = argparse.ArgumentParser()
 parser.add_argument("--alfa1", type=float)
-parser.add_argument("--min_cost_day", type=int, default=3)
-parser.add_argument("--max_cost_day", type=int, default=46)
+parser.add_argument("--day_min", type=int, default=3)
+parser.add_argument("--day_max ", type=int, default=46)
 args = parser.parse_args()
 # -------------------
-min_cost_day, max_cost_day = args.min_cost_day, args.max_cost_day
+day_min, day_max = args.day_min, args.day_max
 
 
 # Read and average results
@@ -29,13 +29,13 @@ Ricoverati_sintomi = np.array([54, 99, 114, 128, 248, 345, 401, 639, 742, 1034, 
 Terapia_intensiva = np.array([26, 23, 35, 36, 56, 64, 105, 140, 166, 229, 295, 351, 462, 567, 650, 733, 877, 1028, 1153, 1328, 1518, 1672, 1851, 2060, 2257, 2498, 2655, 2857, 3009, 3204, 3396, 3489, 3612, 3732, 3856, 3906, 3981, 4023, 4035, 4053, 4068, 3994, 3977])
 # fmt: on
 
-start = (min_cost_day <= 4) * 0 + (min_cost_day > 4) * (min_cost_day - 3)
+start = (day_min <= 4) * 0 + (day_min > 4) * (day_min - 3)
 
 data = [
-    Guariti[min_cost_day:max_cost_day],
-    Isolamento_domiciliare[start:max_cost_day],
-    Ricoverati_sintomi[start:max_cost_day],
-    Terapia_intensiva[start:max_cost_day],
+    Guariti[day_min:day_max],
+    Isolamento_domiciliare[start:day_max],
+    Ricoverati_sintomi[start:day_max],
+    Terapia_intensiva[start:day_max],
 ]
 # -------------------
 
@@ -44,7 +44,7 @@ data = [
 # -------------------
 cost = np.zeros(5)
 cost_check = np.zeros(5)
-for day in range(max_cost_day - min_cost_day):
+for day in range(day_max - day_min):
     for comp in range(4):
         cost[comp] += (results[comp][day] - data[comp][day]) ** 2
         cost_check[comp] += (check[comp][day] - data[comp][day]) ** 2
