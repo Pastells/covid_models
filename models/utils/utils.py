@@ -547,6 +547,12 @@ class ParserCommon:
             help=f"metric to use to compute the cost function {config.METRICS_STR}",
             metavar="str",
         )
+        self.parser_data.add_argument(
+            "--cost_day",
+            type=int,
+            default=None,
+            help="At which day start computing the cost, only implemented in sird_parallel for now",
+        )
 
         self.parser_act.add_argument(
             "--plot", action="store_true", help="specify for plots"
@@ -790,7 +796,7 @@ class ParserCommon:
         self.parser_act.add_argument(
             "--sequential",
             action="store_true",
-            help="specify for sequential execution, by default is parallal",
+            help="specify for sequential execution, by default is parallel",
         )
 
 
@@ -804,7 +810,7 @@ def get_time_series(args):
     ]
 
     # Scale for undiagnosed cases
-    if args.undiagnosed != 0:
+    if hasattr(args, "undiagnosed") and args.undiagnosed != 0:
         time_series[:, 0] = (time_series[:, 0] * 100 / (100 - args.undiagnosed)).astype(
             int
         )

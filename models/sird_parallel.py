@@ -28,9 +28,9 @@ def main():
     args = parsing()
     t_total, time_series, rates = parameters_init(args)
     # print(args)
-    sys.stdout.write(f"r = {rates['beta']}\n")
-    sys.stdout.write(f"a = {rates['delta']*(1-rates['theta'])}\n")
-    sys.stdout.write(f"d = {rates['delta']*rates['theta']}\n")
+    # sys.stdout.write(f"r = {rates['beta']}\n")
+    # sys.stdout.write(f"a = {rates['delta']*(1-rates['theta'])}\n")
+    # sys.stdout.write(f"d = {rates['delta']*rates['theta']}\n")
 
     # results per day and seed
     I_day = np.zeros([args.mc_nseed, t_total], dtype=int)
@@ -70,7 +70,7 @@ def main():
             accum = 0
             results = []
             while (1 + accum) * num_cores + 1 < args.mc_nseed:
-                print(accum)
+                # print(accum)
                 ran = range(
                     args.seed + accum * BATCH_SIZE * num_cores,
                     min(
@@ -123,21 +123,29 @@ def main():
         # utils.cost_func(time_series[:, 0], I_m)
         _cost = utils.cost_return(time_series[:, 0], I_m, args.metric)
         cost += _cost
-        sys.stdout.write(f"cost_I = {cost}\n")
+        # sys.stdout.write(f"cost_I = {cost}\n")
 
-    _cost = utils.cost_return(np.diff(time_series[:, 0]), np.diff(I_m), args.metric)
-    sys.stdout.write(f"cost_I_der = {_cost}\n")
-    cost += _cost
+    # _cost = utils.cost_return(np.diff(time_series[:, 0]), np.diff(I_m), args.metric)
+    # sys.stdout.write(f"cost_I_der = {_cost}\n")
+    # cost += _cost
 
     _cost = utils.cost_return(time_series[:, 1], R_m, args.metric)
-    sys.stdout.write(f"cost_R = {_cost}\n")
+    # sys.stdout.write(f"cost_R = {_cost}\n")
     cost += _cost
 
     _cost = utils.cost_return(time_series[:, 2], D_m, args.metric)
-    sys.stdout.write(f"cost_D = {_cost}\n")
+    # sys.stdout.write(f"cost_D = {_cost}\n")
     cost += _cost
 
-    sys.stdout.write(f"GGA SUCCESS {cost}\n")
+    # sys.stdout.write(f"GGA SUCCESS {cost}\n")
+
+    with open("costs.dat", "a") as f:
+        f.write(f"{cost}\n")
+
+    if args.cost_day is not None:
+        print(I_m[args.cost_day - args.day_min :, 0])
+        print(R_m[args.cost_day - args.day_min :, 0])
+        print(D_m[args.cost_day - args.day_min :, 0])
 
     if args.save is not None:
         save = args.save

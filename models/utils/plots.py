@@ -2,8 +2,11 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+import seaborn as sns
 from . import config
 from .utils import get_time_series
+
+sns.set()
 
 
 def error_plot(var_m, day_max, label):
