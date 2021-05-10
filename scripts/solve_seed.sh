@@ -1,9 +1,9 @@
 #!/bin/bash
 
-day=54
+day=50
 sed -i 's/--day_max .*/--day_max '${day}' \\/' \
     desc_files/sird_china.desc
-for seed in {52..53}; do
+for seed in {45..53}; do
     sed -i 's/%%SEED .*/%%SEED '${seed}'/' desc_files/sird_china.desc
     ./covid_ac solve --name sird_china_${day}_${seed}'.100gen' \
         --desc ./desc_files/sird_china.desc \

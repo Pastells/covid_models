@@ -261,6 +261,8 @@ def plotting(costs_df, costs_df_vec):
     """Create plots"""
 
     colors = sns.color_palette()
+    alpha_fill = 0.3
+    alpha_seeds = 0.4
     if args.day_mid is not False:
         dt_str = f"(days {args.day_mid+1}-{args.day_max})"
         sf = 1  # scale factor
@@ -303,16 +305,16 @@ def plotting(costs_df, costs_df_vec):
         costs_df["train_cost"]["mean"] - costs_df["train_cost"]["std"],
         costs_df["train_cost"]["mean"] + costs_df["train_cost"]["std"],
         color=colors[0],
-        alpha=0.3,
+        alpha=alpha_fill,
     )
     plt.plot(
         costs_df_vec[0]["train_cost"],
-        alpha=0.3,
+        alpha=alpha_seeds,
         lw=1,
         label=f"train (individual seeds) ({args.day_min} days)",
     )
     for df_i in costs_df_vec[1:]:
-        plt.plot(df_i["train_cost"], alpha=0.3, lw=1)
+        plt.plot(df_i["train_cost"], alpha=alpha_seeds, lw=1)
 
     plt.plot(
         np.arange(len(costs_df)),
@@ -332,16 +334,16 @@ def plotting(costs_df, costs_df_vec):
         costs_df["test_av_cost"]["mean"] - costs_df["test_av_cost"]["std"],
         costs_df["test_av_cost"]["mean"] + costs_df["test_av_cost"]["std"],
         color=colors[1],
-        alpha=0.3,
+        alpha=alpha_fill,
     )
     plt.plot(
         costs_df_vec[0]["test_av_cost"] / sf,
-        alpha=0.3,
+        alpha=alpha_seeds,
         lw=1,
         label=f"test (individual seeds) {sf_str}{dt_str}",
     )
     for df_i in costs_df_vec[1:]:
-        plt.plot(df_i["test_av_cost"] / sf, alpha=0.3, lw=1)
+        plt.plot(df_i["test_av_cost"] / sf, alpha=alpha_seeds, lw=1)
     plt.plot(
         costs_df["test_av_cost"]["mean"],
         label=f"test (cost average) {sf_str}{dt_str}",

@@ -8,26 +8,27 @@ import argparse
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import seaborn as sns
+
+sns.set()
 
 sys.path.append(os.path.abspath(os.path.join(sys.path[0], os.pardir, "models")))
 from utils.utils import get_time_series
 
-N_GENERATIONS = 500
-N_SEEDS = 20
+N_GENERATIONS = 100
+N_SEEDS = 12
 
 
 # --------------------------------------------------------
 
 
 def main():
-    costs_df, costs_df_vec = get_dataframe(args.cost_file)
+    costs_df, costs_df_vec = get_dataframe(args.cost_file, True)
 
     print(f"Average over {len(costs_df_vec)} seeds")
 
     results_df, results_df_vec = get_dataframe(args.results_file)
     results_df_vec = reduce(lambda x, y: pd.merge(x, y, how="outer"), results_df_vec)
-    print(results_df)
-    exit()
 
     data = get_data()
 
@@ -145,7 +146,7 @@ def val_test(results_df_vec):
 # --------------------------------------------------------
 
 
-def get_dataframe(file) -> pd.DataFrame:
+def get_dataframe(file, std=False) -> pd.DataFrame:
     """Return DataFrame from input data with gaps filled"""
 
     df = pd.read_csv(file, delim_whitespace=True)
@@ -167,7 +168,12 @@ def get_dataframe(file) -> pd.DataFrame:
 
     # Average over seeds
     df = reduce(lambda x, y: pd.merge(x, y, how="outer"), df_vec)
-    df = df.groupby("gen").mean()
+
+    if std is True:
+        df = df.groupby("gen").agg(["mean", "std"])
+    else:
+        df = df.groupby("gen").mean()
+
     del df["seed"]
     return df, df_vec
 
@@ -209,6 +215,7 @@ def compute_cost(data, df, which="test", columns=0) -> np.array:
             args.day_max
             - (args.day_mid is not False) * args.day_mid
             - (args.day_mid is False) * args.day_min
+            - 1
         )
     else:
         raise ValueError("Choose 'validation' or 'test' in `compute_cost`")
@@ -227,10 +234,10 @@ def compute_cost(data, df, which="test", columns=0) -> np.array:
 def title_labels(save=False):
     """Add title, labels and show figure
     Specify save name if wanted"""
-    plt.title("SIDARTHE")
+    plt.title("SIRD")
     plt.xlabel("generations")
     plt.ylabel("cost")
-    plt.ylim([0, args.ylim])
+    # plt.ylim([0, args.ylim])
     plt.legend()
     if save is not False:
         save = args.folder + "/" + save
@@ -249,73 +256,122 @@ def title_labels(save=False):
 def plotting(costs_df, costs_df_vec):
     """Create plots"""
 
-    dt_str = f"(days {args.day_min+1}-{args.day_max})"
-    sf = 2  # scale factor
-    costs_df["test_av_cost"] /= sf
-    costs_df["test_av_curve"] /= sf
+    colors = sns.color_palette()
+    alpha_fill = 0.3
+    alpha_seeds = 0.4
+    if args.day_mid is not False:
+        dt_str = f"(days {args.day_mid+1}-{args.day_max})"
+    else:
+        dt_str = f"(days {args.day_min+1}-{args.day_max})"
 
-    # main plot
-    plt.plot(
-        costs_df["train_cost"],
-        label=f"train (cost average) ({args.day_min} days)",
-        c="tab:blue",
+    sf_str = "(scaled)"
+
+    # Scale costs relative to training
+    av_cost_scaling = (
+        costs_df["train_cost"]["mean"].iloc[-1]
+        / costs_df["test_av_cost"]["mean"].iloc[-1]
     )
+
+    costs_df["test_av_cost"] *= av_cost_scaling
+    for df_i in costs_df_vec:
+        df_i["test_av_cost"] *= av_cost_scaling
+
+    costs_df["test_av_curve"] *= (
+        costs_df["train_cost"]["mean"].iloc[-1] / costs_df["test_av_curve"].iloc[-1]
+    )
+    costs_df["test_of_best_val"] *= (
+        costs_df["train_cost"]["mean"].iloc[-1] / costs_df["test_of_best_val"].iloc[-1]
+    )
+
+    # -----------
+    # main plot
+    # -----------
     plt.plot(
-        costs_df["test_av_cost"],
-        label=f"test (cost average) /{sf} {dt_str}",
-        c="tab:orange",
+        costs_df["train_cost"]["mean"],
+        label=f"train (cost average) ({args.day_min} days)",
     )
     plt.plot(
         costs_df["test_av_curve"],
-        label=f"test (realization average) /{sf} {dt_str}",
-        c="tab:green",
+        label=f"test (realization average) {sf_str}{dt_str}",
     )
 
     if args.day_mid is not False:
         dt_str2 = f"(days {args.day_mid+1}-{args.day_max})"
-        costs_df["test_of_best_val"] /= sf
+        costs_df["test_of_best_val"]
         plt.plot(
             costs_df["test_of_best_val"],
-            label=f"test (best validation seed) /{sf} {dt_str2}",
-            c="tab:purple",
+            label=f"test (best validation seed) {sf_str}{dt_str2}",
         )
 
-    title_labels("sidarthe_train_test")
+    title_labels("sird_train_test")
 
+    # -----------
     # training seeds
-    for df_i in costs_df_vec:
-        plt.plot(df_i["train_cost"], alpha=0.3, lw=1)
+    # -----------
+    plt.fill_between(
+        np.arange(len(costs_df)),
+        costs_df["train_cost"]["mean"] - costs_df["train_cost"]["std"],
+        costs_df["train_cost"]["mean"] + costs_df["train_cost"]["std"],
+        color=colors[0],
+        alpha=alpha_fill,
+    )
     plt.plot(
-        costs_df["train_cost"],
+        costs_df_vec[0]["train_cost"],
+        alpha=alpha_seeds,
+        lw=1,
+        label=f"train (individual seeds) ({args.day_min} days)",
+    )
+    for df_i in costs_df_vec[1:]:
+        plt.plot(df_i["train_cost"], alpha=alpha_seeds, lw=1)
+
+    plt.plot(
+        np.arange(len(costs_df)),
+        costs_df["train_cost"]["mean"],
+        "-",
         label=f"train (cost average) ({args.day_min} days)",
-        c="tab:blue",
+        c=colors[0],
         lw=2,
     )
-    title_labels("sidarthe_train")
+    title_labels("sird_train")
 
+    # -----------
     # test seeds
-    for df_i in costs_df_vec:
-        plt.plot(df_i["test_av_cost"] / sf, alpha=0.3, lw=1)
+    # -----------
+    plt.fill_between(
+        np.arange(len(costs_df)),
+        costs_df["test_av_cost"]["mean"] - costs_df["test_av_cost"]["std"],
+        costs_df["test_av_cost"]["mean"] + costs_df["test_av_cost"]["std"],
+        color=colors[1],
+        alpha=alpha_fill,
+    )
     plt.plot(
-        costs_df["test_av_cost"],
-        label=f"test (cost average) /{sf} {dt_str}",
-        c="tab:orange",
+        costs_df_vec[0]["test_av_cost"],
+        alpha=alpha_seeds,
+        lw=1,
+        label=f"test (individual seeds) {sf_str}{dt_str}",
+    )
+    for df_i in costs_df_vec[1:]:
+        plt.plot(df_i["test_av_cost"], alpha=alpha_seeds, lw=1)
+    plt.plot(
+        costs_df["test_av_cost"]["mean"],
+        label=f"test (cost average) {sf_str}{dt_str}",
+        c=colors[1],
         lw=2,
     )
     plt.plot(
         costs_df["test_av_curve"],
-        label=f"test (realization average) /{sf} {dt_str}",
-        c="tab:green",
+        label=f"test (realization average) {sf_str}{dt_str}",
+        c=colors[2],
         lw=2,
     )
     if args.day_mid is not False:
         plt.plot(
             costs_df["test_of_best_val"],
-            label=f"test (best validation seed) /{sf} {dt_str2}",
-            c="tab:purple",
+            label=f"test (best validation seed) {sf_str}{dt_str2}",
+            c=colors[3],
             lw=2,
         )
-    title_labels("sidarthe_test")
+    title_labels("sird_test")
 
 
 # --------------------------------------------------------

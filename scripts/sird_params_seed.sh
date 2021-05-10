@@ -1,17 +1,17 @@
 #!/bin/bash
 
-day=54
-day_max=60
+day=50  # starts at one more
+day_max=60  # will do one less
 prefix="sird_china"
 n_gen=100
-results="/home/pol/Documents/iiia_udl/programs/results/ac"  # results folder
+results="results/ac"  # results folder
 
 if [[ -f "costs.dat" ]]; then
     echo "costs.dat exists"
     exit
 fi
 
-grep -E "$prefix.*$n_gen" results/ac/LIST.dat > .list.dat  # filter saved list
+grep -E "$prefix.*$n_gen" $results/LIST.dat > .list.dat  # filter saved list
 
 
 echo "seed gen train_cost test_av_cost" > costs.dat
@@ -34,7 +34,7 @@ for seed in {42..53}; do
 
         echo -n "$seed $gen $cost " >> costs.dat
         # program writes test cost and adds newline character
-        python models/sird_parallel.py "$params" \
+        python models/sird_parallel.py $params \
             --data data/china.dat \
             --mc_nseed 10 --day_min 0 \
             --cost_day $((day+1)) --day_max $day_max \
