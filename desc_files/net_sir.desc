@@ -1,11 +1,11 @@
 %DATA
-./data/italy.dat
+./data/italy.dat 42 43 44 45 46
 
 %PARAMS
 --n integer [10000,1000000]
 --beta real [0.1,1.0]
 --delta real [0.1,1.0]
---network_type categorical {er,ba}
+--network categorical {er,ba}
 --network_param int [1,50]
 
 %MODULES
@@ -16,16 +16,21 @@ python/3.6.5
 %%TIMEOUT 1200
 %%COST_MIN 0
 %%COST_MAX 100000000000000000000
+%%GENERATIONS 500
+%%MIN_GENERATIONS 400
+%%POPULATION 50
+%%INSTANCES_GEN_MAX 20
 
 %ENVIRONMENT-SETUP
 python3 -m venv ./venv
-./venv/bin/pip install numpy matplotlib networkx
+./venv/bin/pip install numpy networkx
 
 %EXECUTION
 ./venv/bin/python -u ./models/net_sir.py \
 --data ${instance} \
 --seed ${seed} \
 --timeout ${timeout} \
---day_max 45 \
---mc_nseed 5 \
+--day_min 0 \
+--day_max 50 \
+--mc_nseed 3 \
 ${@}

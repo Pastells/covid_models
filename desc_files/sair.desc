@@ -1,11 +1,11 @@
 %DATA
-./data/italy.dat
+./data/italy.dat 42 43 44 45 46
 
 %PARAMS
 --n integer [10000,10000000]
---beta_i real [0.05,1.0]
+--beta real [0.05,1.0]
 --beta_a real [0.01,1.0]
---delta_i real [0.05,1.0]
+--delta real [0.05,1.0]
 --delta_a real [0.01,1.0]
 --alpha real [0.05,2.0]
 
@@ -17,6 +17,10 @@ python/3.6.5
 %%TIMEOUT 1200
 %%COST_MIN 0
 %%COST_MAX 100000000000000000000
+%%GENERATIONS 500
+%%MIN_GENERATIONS 400
+%%POPULATION 50
+%%INSTANCES_GEN_MAX 20
 
 %ENVIRONMENT-SETUP
 python3 -m venv ./venv
@@ -27,5 +31,7 @@ python3 -m venv ./venv
 --data ${instance} \
 --seed ${seed} \
 --timeout ${timeout} \
---undiagnosed 0 \
+--day_min 0 \
+--day_max 50 \
+--mc_nseed 3 \
 ${@}
