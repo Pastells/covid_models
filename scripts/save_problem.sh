@@ -36,4 +36,4 @@ while [[ $# -gt 0 ]]; do
     echo "$number $name" >> $list
 done
 
-sort -no $list $list
+sort -nuo $list $list

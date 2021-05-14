@@ -237,7 +237,7 @@ def title_labels(save=False):
     plt.title("SIRD")
     plt.xlabel("generations")
     plt.ylabel("cost")
-    # plt.ylim([0, args.ylim])
+    plt.ylim(None, args.ylim)
     plt.legend()
     if save is not False:
         save = args.folder + "/" + save
