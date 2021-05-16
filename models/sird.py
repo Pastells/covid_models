@@ -100,9 +100,9 @@ def main_loop(args, t_total, rates, day_max):
     I_day = np.zeros(t_total, dtype=int)
     R_day = np.zeros(t_total, dtype=int)
     D_day = np.zeros(t_total, dtype=int)
-    I_day[0] = args.I_0
-    R_day[0] = args.R_0
-    D_day[0] = args.D_0
+    I_day[0] = args.initial_infected
+    R_day[0] = args.initial_recovered
+    D_day[0] = args.initial_dead
     t_step, time = 0, 0
 
     # Time loop
@@ -165,13 +165,13 @@ class Compartments:
         self.R = np.zeros(args.n_t_steps, dtype=int)
         self.D = np.zeros(args.n_t_steps, dtype=int)
         self.T = np.zeros(args.n_t_steps)
-        self.I[0] = args.I_0
-        self.R[0] = args.R_0
-        self.D[0] = args.D_0
-        self.S[0] = args.n - args.I_0 - args.R_0 - args.D_0
+        self.I[0] = args.initial_infected
+        self.R[0] = args.initial_recovered
+        self.D[0] = args.initial_dead
+        self.S[0] = args.n - args.initial_infected - args.initial_recovered - args.initial_dead
         self.T[0] = 0
         self.I_cum = np.zeros(args.n_t_steps, dtype=int)
-        self.I_cum[0] = args.I_0
+        self.I_cum[0] = args.initial_infected
 
     def infect(self, t_step):
         """Infection"""

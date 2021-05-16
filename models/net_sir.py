@@ -37,10 +37,10 @@ def main():
 
         G = utils_net.choose_network(args.n, args.network, args.network_param)
         t, S, I, R = fast_sir.fast_SIR(
-            G, rates, args.I_0, args.R_0, tmax=t_total - 0.95
+            G, rates, args.initial_infected, args.initial_recovered, tmax=t_total - 0.95
         )
 
-        I_day[mc_step, 0] = args.I_0
+        I_day[mc_step, 0] = args.initial_infected
 
         if config.CUMULATIVE is True:
             i_var = I + R
@@ -88,6 +88,9 @@ def parameters_init(args):
 if __name__ == "__main__":
     try:
         main()
+    except MemoryError as ex:
+        sys.stderr.write(f"{repr(ex)}\n")
+        sys.stdout.write(f"GGA CRASHED {1e20}\n")
     except Exception as ex:
         sys.stderr.write(f"{repr(ex)}\n")
         sys.stdout.write(f"GGA CRASHED {1e20}\n")

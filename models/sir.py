@@ -41,7 +41,7 @@ def main():
         # initialization
         comp = Compartments(args)
 
-        I_day[mc_step, 0] = args.I_0
+        I_day[mc_step, 0] = args.initial_infected
         # S_day[mc_step,0]=s[0]
         t_step, time = 0, 0
 
@@ -105,12 +105,12 @@ class Compartments:
         self.I = np.zeros(args.n_t_steps, dtype=int)
         self.R = np.zeros(args.n_t_steps, dtype=int)
         self.T = np.zeros(args.n_t_steps)
-        self.I[0] = args.I_0
-        self.R[0] = args.R_0
-        self.S[0] = args.n - args.I_0 - args.R_0
+        self.I[0] = args.initial_infected
+        self.R[0] = args.initial_recovered
+        self.S[0] = args.n - args.initial_infected - args.initial_recovered
         self.T[0] = 0
         self.I_cum = np.zeros(args.n_t_steps, dtype=int)
-        self.I_cum[0] = args.I_0
+        self.I_cum[0] = args.initial_infected
 
     def infect(self, t_step):
         """Infection"""

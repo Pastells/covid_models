@@ -39,7 +39,7 @@ def main():
 
         G = utils_net.choose_network(args.n, args.network, args.network_param)
         t, S, A, I, R = fast_sair.fast_SAIR(
-            G, rates, args.A_0, args.I_0, args.R_0, tmax=t_total - 0.95
+            G, rates, args.initial_asymptomatic, args.initial_infected, args.initial_recovered, tmax=t_total - 0.95
         )
 
         import matplotlib.pyplot as plt
@@ -49,7 +49,7 @@ def main():
         plt.plot(t, I)
         plt.plot(t, R)
 
-        I_day[mc_step, 0] = args.I_0
+        I_day[mc_step, 0] = args.initial_infected
 
         if config.CUMULATIVE is True:
             i_var = I + R

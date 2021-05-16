@@ -43,7 +43,7 @@ def main():
         # initialization
         comp = Compartments(shapes, args)
 
-        I_day[mc_step, 0] = args.I_0
+        I_day[mc_step, 0] = args.initial_infected
         t_step, time = 0, 0
 
         # Time loop
@@ -117,18 +117,18 @@ class Compartments:
 
         # Used for both sir_erlang and sir_erlang sections, where args.n is a vector
         try:
-            self.S[0, :-1] = (args.n - args.I_0 - args.R_0) / shapes["k_inf"]
+            self.S[0, :-1] = (args.n - args.initial_infected - args.initial_recovered) / shapes["k_inf"]
         except TypeError:
-            self.S[0, :-1] = (args.n[0] - args.I_0 - args.R_0) / shapes["k_inf"]
+            self.S[0, :-1] = (args.n[0] - args.initial_infected - args.initial_recovered) / shapes["k_inf"]
 
         if self.S[0, 0] < 0:
             raise ValueError("S cannot be negative, check initial conditions")
 
-        self.S[0, -1] = self.I[0, :-1] = args.I_0 / shapes["k_rec"]
-        self.I[0, -1] = self.R[0] = args.R_0
+        self.S[0, -1] = self.I[0, :-1] = args.initial_infected / shapes["k_rec"]
+        self.I[0, -1] = self.R[0] = args.initial_recovered
         self.T[0] = 0
         self.I_cum = np.zeros(args.n_t_steps, dtype=int)
-        self.I_cum[0] = args.I_0
+        self.I_cum[0] = args.initial_infected
 
     def infect_adv_s(self, t_step, k):
         """Infect or advance in S

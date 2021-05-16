@@ -42,7 +42,7 @@ def main():
         # initialization
         comp = Compartments(args)
 
-        I_day[mc_step, 0] = args.I_0
+        I_day[mc_step, 0] = args.initial_infected
         t_step, time = 0, 0
 
         # -------------------------
@@ -117,14 +117,20 @@ class Compartments:
         self.I = np.zeros(args.n_t_steps, dtype=int)
         self.R = np.zeros(args.n_t_steps, dtype=int)
         self.T = np.zeros(args.n_t_steps)
-        self.E[0] = args.E_0
-        self.A[0] = args.A_0
-        self.I[0] = args.I_0
-        self.R[0] = args.R_0
-        self.S[0] = args.n - args.I_0 - args.R_0 - args.A_0 - args.E_0
+        self.E[0] = args.initial_exposed
+        self.A[0] = args.initial_asymptomatic
+        self.I[0] = args.initial_infected
+        self.R[0] = args.initial_recovered
+        self.S[0] = (
+            args.n
+            - args.initial_infected
+            - args.initial_recovered
+            - args.initial_asymptomatic
+            - args.initial_exposed
+        )
         self.T[0] = 0
         self.I_cum = np.zeros(args.n_t_steps, dtype=int)
-        self.I_cum[0] = args.I_0
+        self.I_cum[0] = args.initial_infected
 
     def turn_exposed(self, t_step):
         """Expose s->e"""

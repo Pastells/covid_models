@@ -56,7 +56,7 @@ def main():
             np.array([]),
             np.array([]),
         )
-        I_day[mc_step, 0] = args.I_0
+        I_day[mc_step, 0] = args.initial_infected
 
         # Sections
         while section < n_sections:
@@ -65,9 +65,9 @@ def main():
                 rates,
                 rates_old,
                 section_day_old,
-                args.A_0,
-                args.I_0,
-                args.R_0,
+                args.initial_asymptomatic,
+                args.initial_infected,
+                args.initial_recovered,
                 tmin=section_day_old - 1,
                 tmax=section_day,
             )
@@ -88,10 +88,10 @@ def main():
                 if section == n_sections - 1:
                     section_day -= 0.9
                 G = utils_net.choose_network(n, args.network, args.network_param)
-                args.A_0 = A[-1]
-                args.I_0 = I[-1]
+                args.initial_asymptomatic = A[-1]
+                args.initial_infected = I[-1]
                 # R will have jumps
-                args.R_0 = R[-1]
+                args.initial_recovered = R[-1]
 
         if config.CUMULATIVE is True:
             i_var = I + R

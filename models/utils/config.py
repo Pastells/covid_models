@@ -6,11 +6,11 @@
 
 # Initial conditions
 # if set to None they are computed from the input data
-E_0 = None
-A_0 = None
-I_0 = None
-R_0 = 0
-D_0 = 0
+initial_exposed = None
+initial_asymptomatic = None
+initial_infected = None
+initial_recovered = 0
+initial_dead = 0
 
 # Defaults
 N = 10000

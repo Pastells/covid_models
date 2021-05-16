@@ -476,16 +476,16 @@ class ParserCommon:
         self.parser_act = self.parser.add_argument_group("actions")
 
         self.parser_init.add_argument(
-            "--I_0",
+            "--initial_infected",
             type=int,
-            default=config.I_0,
+            default=config.initial_infected,
             help="initial number of infected individuals,\
                     if None is specified is set to first day of input data",
         )
         self.parser_init.add_argument(
-            "--R_0",
+            "--initial_recovered",
             type=int,
-            default=config.R_0,
+            default=config.initial_recovered,
             help="initial number of inmune individuals",
         )
 
@@ -653,9 +653,9 @@ class ParserCommon:
     def asymptomatic(self):
         """Add asymptomatic compartment: initial and all transition rates"""
         self.parser_init.add_argument(
-            "--A_0",
+            "--initial_asymptomatic",
             type=int,
-            default=config.A_0,
+            default=config.initial_asymptomatic,
             help="initial number of asymptomatic individuals, \
                 if None is specified is set to first day of input data",
         )
@@ -684,9 +684,9 @@ class ParserCommon:
         """Add asymptomatic compartment for model with sections: \
                 initial and all transition rates"""
         self.parser_init.add_argument(
-            "--A_0",
+            "--initial_asymptomatic",
             type=int,
-            default=config.A_0,
+            default=config.initial_asymptomatic,
             help="initial number of asymptomatic individuals \
                 if None is specified is set to first day of input data",
         )
@@ -742,9 +742,9 @@ class ParserCommon:
     def exposed(self):
         """Add exposed compartment: initial and transition rate"""
         self.parser_init.add_argument(
-            "--E_0",
+            "--initial_exposed",
             type=int,
-            default=config.E_0,
+            default=config.initial_exposed,
             help="initial number of latent individuals \
                 if None is specified is set to first day of input data",
         )
@@ -760,9 +760,9 @@ class ParserCommon:
     def dead(self):
         """Add dead compartment: initial and transition rate"""
         self.parser_init.add_argument(
-            "--D_0",
+            "--initial_dead",
             type=int,
-            default=config.D_0,
+            default=config.initial_dead,
             help="initial number of dead individuals",
         )
         self.parser_params.add_argument(
@@ -835,18 +835,18 @@ def parameters_init_common(args):
 
     args.metric = __name__ + "." + args.metric
 
-    if args.I_0 is None:
-        args.I_0 = int(time_series[0, 0])
+    if args.initial_infected is None:
+        args.initial_infected = int(time_series[0, 0])
 
-    if args.I_0 == 0:
+    if args.initial_infected == 0:
         raise ValueError(
-            "I_0 cannot be 0. Change given initial condition or check day_min data"
+            "initial_infected cannot be 0. Change given initial condition or check day_min data"
         )
 
     if (hasattr(args, "E_0")) and (args.E_0 is None):
         args.E_0 = int(time_series[0, 0])
 
-    if (hasattr(args, "A_0")) and (args.A_0 is None):
-        args.A_0 = int(time_series[0, 0])
+    if (hasattr(args, "initial_asymptomatic")) and (args.initial_asymptomatic is None):
+        args.initial_asymptomatic = int(time_series[0, 0])
 
     return t_total, time_series
