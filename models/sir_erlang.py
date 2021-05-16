@@ -103,7 +103,13 @@ class Compartments:
     """Compartments for the SIR Erlang model"""
 
     def __init__(self, shapes, args):
-        """Initialization"""
+        """Initialization
+        S and I are vectors, with one dimension more than the Erlang shape.
+        This extra dimension is used to facilitate notation.
+        E.g.: both infection and advance in S remove an individual from the k
+        dimension and add one to the k+1 in S. In case where k+1 is the last entry,
+        the individual is added to the first I compartment."""
+
         self.S = np.zeros([args.n_t_steps, shapes["k_inf"] + 1])
         self.I = np.zeros([args.n_t_steps, shapes["k_rec"] + 1])
         self.R = np.zeros(args.n_t_steps)
