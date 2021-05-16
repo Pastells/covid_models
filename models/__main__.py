@@ -1,11 +1,14 @@
 from argparse import ArgumentParser
 
 from .utils import config
-from .sir import sir, net_sir, net_sir_sections, sir_erlang, sir_erlang_sections
+from .sir import net_sir, net_sir_sections, sir_erlang, sir_erlang_sections
+from .sir.sir import main as sir_main
 from .sird.sird import main as sird_main
 from .seair.seair import main as seair_main
 from .sair import sair, net_sair, net_sair_sections, sair_erlang, sair_erlang_sections
 from .sidarthe import sidarthe, sidarthe2, sidarthe_comp
+
+# fmt: off
 
 
 class CommonParser:
@@ -37,12 +40,12 @@ class CommonParser:
     @classmethod
     def initialize_initial_conditions_group(cls, group):
         group.add_argument(
-            "--I_0", type=int, default=config.I_0,
+            "--initial_infected", type=int, default=config.initial_infected,
             help="initial number of infected individuals, if None is specified"
                  "is set to first day of input data"
         )
         group.add_argument(
-            "--R_0", type=int, default=config.R_0,
+            "--initial_recovered", type=int, default=config.initial_recovered,
             help="initial number of inmune individuals",
         )
 
@@ -262,7 +265,7 @@ class SairParser(SirParser):
         super().initialize_parameters_group(group)
         # Asymptomatic
         group.add_argument(
-            "--A_0", type=int, default=config.A_0,
+            "--initial_asymptomatic", type=int, default=config.initial_asymptomatic,
             help="initial number of asymptomatic individuals, if None is"
                  "specified is set to first day of input data",
         )
@@ -287,7 +290,7 @@ class NetworkSairParser(NetworkSirParser):
         super().initialize_parameters_group(group)
         # Asymptomatic
         group.add_argument(
-            "--A_0", type=int, default=config.A_0,
+            "--initial_asymptomatic", type=int, default=config.initial_asymptomatic,
             help="initial number of asymptomatic individuals, if None is"
                  "specified is set to first day of input data",
         )
@@ -311,7 +314,7 @@ class NetworkSairSectionsParser(NetworkSirSectionsParser):
     def initialize_parameters_group(cls, group):
         # Asymptomatic sections
         group.add_argument(
-            "--A_0", type=int, default=config.A_0,
+            "--initial_asymptomatic", type=int, default=config.initial_asymptomatic,
             help="initial number of asymptomatic individuals if None is"
                  "specified is set to first day of input data",
         )
@@ -355,7 +358,7 @@ class SairErlangSectionsParser(SirErlangSectionsParser):
     def initialize_parameters_group(cls, group):
         # Asymptomatic sections
         group.add_argument(
-            "--A_0", type=int, default=config.A_0,
+            "--initial_asymptomatic", type=int, default=config.initial_asymptomatic,
             help="initial number of asymptomatic individuals if None is"
                  "specified is set to first day of input data",
         )
@@ -381,7 +384,7 @@ class SeairParser(SairParser):
         super().initialize_parameters_group(group)
         # Exposed
         group.add_argument(
-            "--E_0", type=int, default=config.E_0,
+            "--initial_exposed", type=int, default=config.initial_exposed,
             help="initial number of latent individuals if None is specified"
                  "is set to first day of input data",
         )
@@ -398,7 +401,7 @@ class SirdParser(SirParser):
     def initialize_parameters_group(cls, group):
         # Dead
         group.add_argument(
-            "--D_0", type=int, default=config.D_0,
+            "--initial_dead", type=int, default=config.initial_dead,
             help="initial number of dead individuals",
         )
         group.add_argument(
@@ -455,7 +458,7 @@ class Sidarthe2Parser(CommonParser):
         parser.add_argument("--gamma1", type=float, default=0.456)
         parser.add_argument("--epsilon1", type=float, default=0.171)
         parser.add_argument("--theta1", type=float, default=0.3705)
-        parser.add_argument("--zeta1", type=float, deafult=0.1254)
+        parser.add_argument("--zeta1", type=float, default=0.1254)
         parser.add_argument("--mu1", type=float, default=0.0171)
         parser.add_argument("--nu1", type=float, default=0.0274)
         parser.add_argument("--tau1", type=float, default=0.01)
@@ -583,7 +586,7 @@ def parse_args():
 
         ("seair", SeairParser, seair_main),
 
-        ("sir", SirParser, sir.main),
+        ("sir", SirParser, sir_main),
         ("sir-network", NetworkSirParser, net_sir.main),
         ("sir-network-sections", NetworkSirSectionsParser, net_sir_sections.main),
         ("sir-erlang", SirErlangParser, sir_erlang.main),
@@ -612,3 +615,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+# fmt: on

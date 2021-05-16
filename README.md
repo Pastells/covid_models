@@ -51,7 +51,7 @@ The following models are ready to be used with Optilog:
     - [ ] Sidarthe comp (todo: more descriptive name?)
 - MMCAcovid19 (todo)
 - SIR
-    - [ ] SIR
+    - [x] SIR
     - [ ] Network SIR
     - [ ] Network SIR with sections
     - [ ] Erlang SIR
