@@ -161,8 +161,8 @@ def fast_SIR(
     rates,
     rates_old,
     section_day_old,
-    I_0=None,
-    R_0=0,
+    initial_infected=None,
+    initial_recovered=0,
     tmin=0,
     tmax=float("Inf"),
 ):
@@ -178,10 +178,10 @@ def fast_SIR(
     **rates** (beta,delta):
             rates of infection and recovery
 
-    **I_0** number
+    **initial_infected** number
         initially infected nodes
 
-    **R_0** number
+    **initial_recovered** number
         initially recovered nodes
 
     **tmin** number (default 0)
@@ -204,13 +204,13 @@ def fast_SIR(
     rec_time = defaultdict(lambda: tmin - 1)  # node recovery time defaults to -1
 
     # simply remove initially recovered nodes
-    if R_0 != 0:
-        R_0_nodes = random.sample(G.nodes(), R_0)
-        G.remove_nodes_from(R_0_nodes)
+    if initial_recovered != 0:
+        initial_recovered_nodes = random.sample(G.nodes(), initial_recovered)
+        G.remove_nodes_from(initial_recovered_nodes)
 
     """
-    if R_0 is not None:
-        for node in R_0:
+    if initial_recovered is not None:
+        for node in initial_recovered:
             status[node] = "R"
             rec_time[node] = (
                 tmin - 1
@@ -223,19 +223,19 @@ def fast_SIR(
     Q = utils_net.MyQueue(tmax)
 
     """
-    if I_0 is None:  # create initial infecteds list if not given
+    if initial_infected is None:  # create initial infecteds list if not given
         initial_number = 1
-        I_0 = random.sample(G.nodes(), initial_number)
-    elif G.has_node(I_0):
-        I_0 = [I_0]
+        initial_infected = random.sample(G.nodes(), initial_number)
+    elif G.has_node(initial_infected):
+        initial_infected = [initial_infected]
     # else it is assumed to be a list of nodes.
     """
 
-    I_0 = random.sample(G.nodes(), I_0)
+    initial_infected = random.sample(G.nodes(), initial_infected)
 
     times, S, I, R = ([tmin], [G.order()], [0], [0])
 
-    for u in I_0:
+    for u in initial_infected:
         pred_inf_time[u] = tmin
         Q.add(
             tmin,
@@ -264,10 +264,10 @@ def fast_SIR(
     # time 0.
     # So each initial infection added an entry at time 0 to lists.
     # We'd like to get rid these excess events.
-    times = times[len(I_0) :]
-    S = S[len(I_0) :]
-    I = I[len(I_0) :]
-    R = R[len(I_0) :]
+    times = times[len(initial_infected) :]
+    S = S[len(initial_infected) :]
+    I = I[len(initial_infected) :]
+    R = R[len(initial_infected) :]
 
-    return np.array(times), np.array(S), np.array(I), np.array(R) + R_0
+    return np.array(times), np.array(S), np.array(I), np.array(R) + initial_recovered
     # return times, S, I, R

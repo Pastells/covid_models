@@ -159,9 +159,9 @@ def main_loop(args, mc_seed, t_total, rates, last_day_inf):
     I_day = np.zeros(t_total, dtype=int)
     R_day = np.zeros(t_total, dtype=int)
     D_day = np.zeros(t_total, dtype=int)
-    I_day[0] = args.I_0
-    R_day[0] = args.R_0
-    D_day[0] = args.D_0
+    I_day[0] = args.initial_infected
+    R_day[0] = args.initial_recovered
+    D_day[0] = args.inital_dead
     t_step, time = 0, 0
 
     # Time loop

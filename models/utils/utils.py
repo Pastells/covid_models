@@ -739,9 +739,9 @@ class ParserCommon:
     def dead(self):
         """Add dead compartment: initial and transition rate"""
         self.parser_init.add_argument(
-            "--D_0",
+            "--inital_dead",
             type=int,
-            default=config.D_0,
+            default=config.inital_dead,
             help="initial number of dead individuals",
         )
         self.parser_params.add_argument(

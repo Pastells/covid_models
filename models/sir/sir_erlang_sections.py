@@ -52,7 +52,7 @@ def main(args):
         comp = sir_erlang.Compartments(shapes, args)
 
         t_step, time = 0, 0
-        I_day[mc_step, 0] = args.I_0
+        I_day[mc_step, 0] = args.initial_infected
         index_n = 1  # just to avoid pylint complaining
 
         # Sections
