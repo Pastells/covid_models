@@ -21,7 +21,7 @@ from utils import utils, utils_net, config
 def main():
     args = parsing()
     t_total, time_series, rates = parameters_init(args)
-    # print(args)
+    print(args)
 
     # results per day and seed
     I_day = np.zeros([args.mc_nseed, t_total], dtype=int)
@@ -90,6 +90,7 @@ if __name__ == "__main__":
         main()
     except MemoryError as ex:
         sys.stderr.write(f"{repr(ex)}\n")
+        sys.stdout.write("MemoryError in python")
         sys.stdout.write(f"GGA CRASHED {1e20}\n")
     except Exception as ex:
         sys.stderr.write(f"{repr(ex)}\n")

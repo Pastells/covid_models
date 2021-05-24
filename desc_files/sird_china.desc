@@ -2,9 +2,9 @@
 ./data/china.dat
 
 %PARAMS
---I_0 integer [410,440]
---R_0 integer [4,6]
---D_0 integer [1,100]
+--initial_infected integer [410,440]
+--initial_recovered integer [4,6]
+--initial_dead integer [1,100]
 --n integer [70000,90000]
 --beta real [0.3,0.4]
 --delta real [0.03,0.06]

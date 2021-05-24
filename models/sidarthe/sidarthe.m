@@ -355,10 +355,15 @@ function cost = sidarthe(params1, params2, params3, params4, params5, params6, c
     % printf("#");
     % disp(vect);
     % save -append costs.dat vect;
-    disp(H_diagnosticati(start1:1/step:(size(CasiTotali,2)-days_difference)/step)*popolazione)
-    disp(D(start2:1/step:1+(size(Ricoverati_sintomi,2)+2-days_difference)/step)*popolazione)
-    disp(R(start2:1/step:1+(size(Ricoverati_sintomi,2)+2-days_difference)/step)*popolazione)
-    disp(T(start2:1/step:1+(size(Ricoverati_sintomi,2)+2-days_difference)/step)*popolazione)
+    % disp(H_diagnosticati(start1:1/step:(size(CasiTotali,2)-days_difference)/step)*popolazione)
+    % disp(D(start2:1/step:1+(size(Ricoverati_sintomi,2)+2-days_difference)/step)*popolazione)
+    % disp(R(start2:1/step:1+(size(Ricoverati_sintomi,2)+2-days_difference)/step)*popolazione)
+    % disp(T(start2:1/step:1+(size(Ricoverati_sintomi,2)+2-days_difference)/step)*popolazione)
+
+    disp(H_diagnosticati(1:1/step:(size(CasiTotali,2)-days_difference)/step)*popolazione)
+    disp(D(1:1/step:1+(size(Ricoverati_sintomi,2)+2-days_difference)/step)*popolazione)
+    disp(R(1:1/step:1+(size(Ricoverati_sintomi,2)+2-days_difference)/step)*popolazione)
+    disp(T(1:1/step:1+(size(Ricoverati_sintomi,2)+2-days_difference)/step)*popolazione)
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % FIGURES

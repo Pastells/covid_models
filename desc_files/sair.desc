@@ -1,5 +1,5 @@
 %DATA
-./data/italy.dat 42 43 44 45 46
+./data/china.dat
 
 %PARAMS
 --n integer [10000,10000000]
@@ -32,6 +32,6 @@ python3 -m venv ./venv
 --seed ${seed} \
 --timeout ${timeout} \
 --day_min 0 \
---day_max 50 \
---mc_nseed 3 \
+--day_max 54 \
+--mc_nseed 10 \
 ${@}
