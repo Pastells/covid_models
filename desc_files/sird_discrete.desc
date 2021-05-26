@@ -1,0 +1,33 @@
+%DATA
+./data/dpc-covid19-ita-andamento-nazionale.csv
+
+%PARAMS
+--beta real [0.05,0.2]
+--delta real [0.005,0.03]
+--nu real [0.001,0.03]
+--q real [0.002,1]
+
+%MODULES
+python/3.6.5
+
+%META
+%%SEED 42
+%%TIMEOUT 1200
+%%COST_MIN 0
+%%COST_MAX 100000000000000000000
+%%GENERATIONS 100
+%%MIN_GENERATIONS 50
+%%POPULATION 50
+
+%ENVIRONMENT-SETUP
+python3 -m venv ./venv
+./venv/bin/pip install numpy pandas
+
+%EXECUTION
+./venv/bin/python -u ./models/sird_discrete.py \
+--data ${instance} \
+--seed ${seed} \
+--timeout ${timeout} \
+--day_min 0 \
+--day_max 54 \
+${@}
