@@ -12,7 +12,7 @@ def _process_trans_SIR_(
     S,
     I,
     R,
-    Q,
+    queue,
     status,
     rec_time,
     pred_inf_time,
@@ -33,7 +33,7 @@ def _process_trans_SIR_(
             list of times at which events have happened
         S, I, R : lists
             lists of numbers of nodes of each status at each time
-        Q : MyQueue
+        queue : MyQueue
             the queue of events
         status : dict
             dictionary giving status of each node
@@ -56,7 +56,7 @@ def _process_trans_SIR_(
         S : appends new S (reduced by 1 from last)
         I : appends new I (increased by 1)
         R : appends new R (same as last)
-        Q : adds recovery and transmission events for newly infected node.
+        queue : adds recovery and transmission events for newly infected node.
         pred_inf_time : updated for nodes that will receive transmission
 
     """
@@ -75,8 +75,8 @@ def _process_trans_SIR_(
         )
 
         rec_time[target] = time + rec_delay
-        if rec_time[target] <= Q.tmax:
-            Q.add(
+        if rec_time[target] <= queue.tmax:
+            queue.add(
                 rec_time[target],
                 _process_rec_SIR_,
                 args=(target, times, S, I, R, status),
@@ -86,9 +86,9 @@ def _process_trans_SIR_(
             if (
                 inf_time <= rec_time[target]
                 and inf_time < pred_inf_time[v]
-                and inf_time <= Q.tmax
+                and inf_time <= queue.tmax
             ):
-                Q.add(
+                queue.add(
                     inf_time,
                     _process_trans_SIR_,
                     args=(
@@ -98,7 +98,7 @@ def _process_trans_SIR_(
                         S,
                         I,
                         R,
-                        Q,
+                        queue,
                         status,
                         rec_time,
                         pred_inf_time,
@@ -211,7 +211,7 @@ def fast_SIR(
     # infection time defaults to \infty  --- this could be set to tmax,
     # probably with a slight improvement to performance.
 
-    Q = utils_net.MyQueue(tmax)
+    queue = utils_net.MyQueue(tmax)
 
     """
     if initial_infected is None:  # create initial infecteds list if not given
@@ -228,7 +228,7 @@ def fast_SIR(
 
     for u in initial_infected:
         pred_inf_time[u] = tmin
-        Q.add(
+        queue.add(
             tmin,
             _process_trans_SIR_,
             args=(
@@ -238,7 +238,7 @@ def fast_SIR(
                 S,
                 I,
                 R,
-                Q,
+                queue,
                 status,
                 rec_time,
                 pred_inf_time,
@@ -246,8 +246,8 @@ def fast_SIR(
             ),
         )
 
-    while Q:  # all the work is done in this while loop.
-        Q.pop_and_run()
+    while queue:  # all the work is done in this while loop.
+        queue.pop_and_run()
 
     # the initial infections were treated as ordinary infection events at
     # time 0.
@@ -258,5 +258,5 @@ def fast_SIR(
     I = I[len(initial_infected) :]
     R = R[len(initial_infected) :]
 
-    return np.array(times), np.array(S), np.array(I), np.array(R) + initial_recovered
-    # return times, S, I, R
+    # return np.array(times), np.array(S), np.array(I), np.array(R) + initial_recovered
+    return times, I

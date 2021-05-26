@@ -38,25 +38,19 @@ def main():
         mc_step = mc_seed - args.seed
 
         G = utils_net.choose_network(args.n, args.network, args.network_param)
-        t, S, A, I, R = fast_sair.fast_SAIR(
-            G, rates, args.initial_asymptomatic, args.initial_infected, args.initial_recovered, tmax=t_total - 0.95
+        t, I = fast_sair.fast_SAIR(
+            G,
+            rates,
+            args.initial_asymptomatic,
+            args.initial_infected,
+            args.initial_recovered,
+            tmax=t_total - 0.95,
         )
-
-        import matplotlib.pyplot as plt
-
-        plt.plot(t, S)
-        plt.plot(t, A)
-        plt.plot(t, I)
-        plt.plot(t, R)
 
         I_day[mc_step, 0] = args.initial_infected
 
-        if config.CUMULATIVE is True:
-            i_var = I + R
-        else:
-            i_var = I
-
-        day_max = utils.day_data(t, i_var, I_day[mc_step], day_max)
+        day_max = utils.day_data(t, I, I_day[mc_step], day_max)
+        del t, I, G
 
     # =========================
 

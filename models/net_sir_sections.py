@@ -48,17 +48,11 @@ def main():
 
         G = utils_net.choose_network(n, args.network, args.network_param)
 
-        t_all, S_all, I_all, R_all = (
-            np.array([]),
-            np.array([]),
-            np.array([]),
-            np.array([]),
-        )
         I_day[mc_step, 0] = args.initial_infected
 
         # Sections
         while section < n_sections:
-            t, S, I, R = fast_sir_sections.fast_SIR(
+            t, I, R = fast_sir_sections.fast_SIR(
                 G,
                 rates,
                 rates_old,
@@ -68,10 +62,6 @@ def main():
                 tmin=section_day_old - 1,
                 tmax=section_day,
             )
-            t_all = np.append(t_all, t)
-            S_all = np.append(S_all, S)
-            I_all = np.append(I_all, I)
-            R_all = np.append(R_all, R)
             section += 1
             if section < n_sections:
                 (
@@ -88,24 +78,10 @@ def main():
                 # R will have jumps, given that the n
                 args.initial_recovered = R[-1]
 
-        if config.CUMULATIVE is True:
-            i_var = I + R
-        else:
-            i_var = I
-
-        day_max = utils.day_data(t, i_var, I_day[mc_step], day_max)
+        day_max = utils.day_data(t, I, I_day[mc_step], day_max)
+        del t, I, G
 
     # =========================
-
-    import matplotlib.pyplot as plt
-
-    sum_all = S_all + I_all + R_all
-    plt.plot(t_all, S_all, label="S")
-    plt.plot(t_all, I_all, label="I")
-    plt.plot(t_all, R_all, label="R")
-    plt.plot(t_all, sum_all, label="total")
-    plt.legend()
-    plt.show()
 
     utils.cost_save_plot(I_day, t_total, day_max, args, time_series)
 

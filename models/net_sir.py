@@ -13,6 +13,7 @@ dR(t)/dt =                      delta * I(t)
 import random
 import sys
 import traceback
+import resource
 import numpy as np
 from event_driven import fast_sir
 from utils import utils, utils_net, config
@@ -24,7 +25,7 @@ def main():
     print(args)
 
     # results per day and seed
-    I_day = np.zeros([args.mc_nseed, t_total], dtype=int)
+    I_day = np.zeros([args.mc_nseed, t_total], dtype=np.uint32)
 
     day_max = 0
     # =========================
@@ -36,18 +37,13 @@ def main():
         mc_step = mc_seed - args.seed
 
         G = utils_net.choose_network(args.n, args.network, args.network_param)
-        t, S, I, R = fast_sir.fast_SIR(
+        t, I = fast_sir.fast_SIR(
             G, rates, args.initial_infected, args.initial_recovered, tmax=t_total - 0.95
         )
-
         I_day[mc_step, 0] = args.initial_infected
 
-        if config.CUMULATIVE is True:
-            i_var = I + R
-        else:
-            i_var = I
-
-        day_max = utils.day_data(t, i_var, I_day[mc_step], day_max)
+        day_max = utils.day_data(t, I, I_day[mc_step], day_max)
+        del t, I, G
 
     # =========================
 
@@ -86,11 +82,13 @@ def parameters_init(args):
 # -------------------------
 
 if __name__ == "__main__":
+    soft, hard = resource.getrlimit(resource.RLIMIT_AS)
+    resource.setrlimit(resource.RLIMIT_AS, (int(1024 ** 3 * 5.5), hard))
     try:
         main()
     except MemoryError as ex:
         sys.stderr.write(f"{repr(ex)}\n")
-        sys.stdout.write("MemoryError in python")
+        sys.stdout.write("MemoryError in python\n")
         sys.stdout.write(f"GGA CRASHED {1e20}\n")
     except Exception as ex:
         sys.stderr.write(f"{repr(ex)}\n")
