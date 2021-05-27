@@ -54,5 +54,5 @@ python3 -m venv ./venv
 --data ${instance} \
 --seed ${seed} \
 --timeout ${timeout} \
---day_max 35 \
+--day_max 46 \
 ${@}

@@ -28,9 +28,9 @@ def main():
     args = parsing()
     t_total, time_series, rates = parameters_init(args)
     # print(args)
-    # sys.stdout.write(f"r = {rates['beta']}\n")
-    # sys.stdout.write(f"a = {rates['delta']*(1-rates['theta'])}\n")
-    # sys.stdout.write(f"d = {rates['delta']*rates['theta']}\n")
+    sys.stdout.write(f"r = {rates['beta']}\n")
+    sys.stdout.write(f"a = {rates['delta']*(1-rates['theta'])}\n")
+    sys.stdout.write(f"d = {rates['delta']*rates['theta']}\n")
 
     # results per day and seed
     I_day = np.zeros([args.mc_nseed, t_total], dtype=int)
@@ -137,7 +137,7 @@ def main():
     # sys.stdout.write(f"cost_D = {_cost}\n")
     cost += _cost
 
-    # sys.stdout.write(f"GGA SUCCESS {cost}\n")
+    sys.stdout.write(f"GGA SUCCESS {cost}\n")
 
     with open("costs.dat", "a") as f:
         f.write(f"{cost}\n")
