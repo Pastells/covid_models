@@ -47,9 +47,6 @@ def sir(
     # Normalize beta for the number of individuals
     beta = beta / n
 
-    # results per day and seed
-    infected = np.zeros([n_seeds, t_total], dtype=int)
-
     mc_step = 0
     day_max = 0
     current_seed = seed - 1  # we increase the seed at the start of the loop
@@ -164,7 +161,7 @@ def gillespie(t_step, time, comp, beta, delta):
     """
 
     lambda_sum = (delta + beta * comp.S[t_step]) * comp.I[t_step]
-    prob_heal = delta5 * comp.I[t_step] / lambda_sum
+    prob_heal = delta * comp.I[t_step] / lambda_sum
 
     t_step += 1
     time += utils.time_dist(lambda_sum)
