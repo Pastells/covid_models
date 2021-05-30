@@ -52,7 +52,7 @@ The following models are ready to be used with Optilog:
 - MMCAcovid19 (todo)
 - SIR
     - [x] SIR
-    - [ ] Network SIR
+    - [x] Network SIR
     - [ ] Network SIR with sections
     - [ ] Erlang SIR
     - [ ] Erlang SIR with sections

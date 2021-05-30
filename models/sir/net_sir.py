@@ -1,7 +1,7 @@
 """
 Stochastic SIR model with a social network using the event-driven algorithm
 
-Pol Pastells, 2020
+Pol Pastells, 2020-2021
 
 Equations of the deterministic system:
 
@@ -11,45 +11,107 @@ dR(t)/dt =                      delta * I(t)
 """
 
 import random
+from collections import namedtuple
+
 import numpy as np
+from optilog.autocfg import ac, Int, Real
 
 from . import fast_sir
-from ..utils import utils, utils_net, config
+from ..utils import utils, utils_net
+
+Result = namedtuple("Result", "infected day_max")
 
 
-def main(args):
-    t_total, time_series, rates = parameters_init(args)
-    # print(args)
+def check_successful_simulation(result: Result, time_total: int):
+    return not result.infected[time_total - 1] == 0
+
+
+def get_cost(time_series: np.ndarray, infected, t_total, day_max, n_seeds, metric):
+    var_m = utils.mean_alive(infected, t_total, day_max, n_seeds)
+    return utils.cost_func(time_series[:, 0], var_m, metric)
+
+
+@ac
+def net_sir(
+    time_series: np.ndarray,
+    seed: int,
+    n_seeds: int,
+    t_total: int,
+    metric: str,
+    network: str,
+    network_param: int,
+    n: Int(70000, 90000) = 70000,
+    initial_infected: Int(1, 1000) = 10,
+    initial_recovered: Int(0, 1000) = 4,
+    delta: Real(0.1, 1.0) = 0.2,
+    beta: Real(0.1, 1.0) = 0.5,
+):
+    # Normalize beta for the number of individuals
+    beta = beta / n
 
     # results per day and seed
-    I_day = np.zeros([args.mc_nseed, t_total], dtype=int)
+    infected = np.zeros([n_seeds, t_total], dtype=np.uint32)
 
+    mc_step = 0
     day_max = 0
-    # =========================
-    # MC loop
-    # =========================
-    for mc_seed in range(args.seed, args.seed + args.mc_nseed):
-        random.seed(mc_seed)
-        np.random.seed(mc_seed)
-        mc_step = mc_seed - args.seed
+    current_seed = seed - 1  # we increase the seed at the start of the loop
 
-        G = utils_net.choose_network(args.n, args.network, args.network_param)
-        t, S, I, R = fast_sir.fast_SIR(
-            G, rates, args.initial_infected, args.initial_recovered, tmax=t_total - 0.95
+    results = list()
+
+    while mc_step < n_seeds:
+        current_seed += 1
+        result = simulation(
+            current_seed,
+            n,
+            network,
+            network_param,
+            initial_infected,
+            initial_recovered,
+            t_total,
+            beta,
+            delta,
+            day_max,
         )
+        day_max = result.day_max
 
-        I_day[mc_step, 0] = args.initial_infected
+        if check_successful_simulation(result, t_total):
+            mc_step += 1
+            results.append(result)
 
-        if config.CUMULATIVE is True:
-            i_var = I + R
-        else:
-            i_var = I
+    for mc_step, result in enumerate(results):
+        infected[mc_step] = result.infected
 
-        day_max = utils.day_data(t, i_var, I_day[mc_step], day_max)
+    cost = get_cost(time_series, infected, t_total, day_max, n_seeds, metric)
+    print(f"GGA SUCCESS {cost}")
+    return cost
 
-    # =========================
 
-    utils.cost_save_plot(I_day, t_total, day_max, args, time_series)
+def simulation(
+    seed,
+    n,
+    network,
+    network_param,
+    initial_infected,
+    initial_recovered,
+    t_total,
+    beta,
+    delta,
+    day_max,
+) -> Result:
+    random.seed(seed)
+    np.random.seed(seed)
+
+    infected = np.zeros(t_total, dtype=int)
+    infected[0] = initial_infected
+
+    G = utils_net.choose_network(n, network, network_param)
+    t, I = fast_sir.fast_SIR(
+        G, beta, delta, initial_infected, initial_recovered, tmax=t_total - 0.95
+    )
+
+    day_max = utils.day_data(t, I, infected, day_max)
+    del t, I, G
+    return Result(infected, day_max)
 
 
 # %%%%%%%%%%%%%%%%%%%%%%%%%
@@ -64,3 +126,21 @@ def parameters_init(args):
 
     rates = {"beta": args.beta, "delta": args.delta}
     return t_total, time_series, rates
+
+
+def main(args):
+    t_total, time_series, rates = parameters_init(args)
+    net_sir(
+        time_series,
+        args.seed,
+        args.mc_nseed,
+        t_total,
+        args.metric,
+        args.network,
+        args.network_param,
+        n=args.n,  # due to a bug, naming the configurable parameters is mandatory
+        initial_infected=args.initial_infected,
+        initial_recovered=args.initial_recovered,
+        delta=rates["delta"],
+        beta=rates["beta"],
+    )

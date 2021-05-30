@@ -20,7 +20,7 @@ from ..utils import utils
 
 Result = namedtuple("Result", "infected recovered day_max")
 
-
+# TODO: maybe put this in the utils or a common file
 def check_successful_simulation(result: Result, time_total: int):
     return not result.infected[time_total - 1] == 0
 
@@ -77,13 +77,9 @@ def sir(
 
     # results per day and seed
     infected = np.zeros([n_seeds, t_total], dtype=int)
-    recovered = np.zeros([n_seeds, t_total], dtype=int)
-    asymptomatic = np.zeros([n_seeds, t_total], dtype=int)
 
     for mc_step, result in enumerate(results):
         infected[mc_step] = result.infected
-        recovered[mc_step] = result.recovered
-        asymptomatic[mc_step] = result.asymptomatic
 
     cost = get_cost(time_series, infected, t_total, day_max, n_seeds, metric)
     print(f"GGA SUCCESS {cost}")
@@ -161,14 +157,14 @@ class Compartments:
         self.I_cum[t_step] = self.I_cum[t_step - 1]
 
 
-def gillespie(t_step, time, comp, rates):
+def gillespie(t_step, time, comp, beta, delta):
     """
     Time elapsed for the next event
     Calls gillespie_step
     """
 
-    lambda_sum = (rates["delta"] + rates["beta"] * comp.S[t_step]) * comp.I[t_step]
-    prob_heal = rates["delta"] * comp.I[t_step] / lambda_sum
+    lambda_sum = (delta + beta * comp.S[t_step]) * comp.I[t_step]
+    prob_heal = delta5 * comp.I[t_step] / lambda_sum
 
     t_step += 1
     time += utils.time_dist(lambda_sum)
