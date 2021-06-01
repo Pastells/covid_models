@@ -12,79 +12,117 @@ dR(t)/dt =                      delta * I(t)
 """
 
 import random
+from collections import namedtuple
+
 import numpy as np
+from optilog.autocfg import ac, Int, Real
 
 from ..utils import utils, config
 
-
-# %%%%%%%%%%%%%%%%%%%%%%%%%
-# %%%%%%%%%%%%%%%%%%%%%%%%%
+Result = namedtuple("Result", "infected day_max")
 
 
-def main(args):
-    # print(args)
-    t_total, time_series, rates, shapes = parameters_init(args)
+def check_successful_simulation(result: Result, time_total: int):
+    return not result.infected[time_total - 1] == 0
+
+
+def get_cost(time_series: np.ndarray, infected, t_total, day_max, n_seeds, metric):
+    var_m = utils.mean_alive(infected, t_total, day_max, n_seeds)
+    return utils.cost_func(time_series[:, 0], var_m, metric)
+
+
+@ac
+def sir_erlang(
+    time_series: np.ndarray,
+    seed: int,
+    n_seeds: int,
+    t_total: int,
+    n_t_steps: int,
+    metric: str,
+    n: Int(70000, 90000) = 70000,
+    initial_infected: Int(1, 1000) = 10,
+    initial_recovered: Int(0, 1000) = 4,
+    delta: Real(0.1, 1.0) = 0.2,
+    beta: Real(0.1, 1.0) = 0.5,
+    k_rec: Int(1, 5) = 1,
+    k_inf: Int(1, 5) = 1,
+):
+    # Create shapes and rates dictionaries
+    # Normalize beta for the number of individuals
+    # Scale beta and delta with the Erlang shapes
+    shapes = {"k_inf": k_inf, "k_rec": k_rec}
+    rates = {"beta": beta / n * k_inf, "delta": delta * k_rec}
+
+    mc_step = 0
+    day_max = 0
+    current_seed = seed - 1  # we increase the seed at the start of the loop
+
+    results = list()
+
+    while mc_step < n_seeds:
+        current_seed += 1
+        result = gillespie_simulation(
+            current_seed,
+            n,
+            n_t_steps,
+            initial_infected,
+            initial_recovered,
+            t_total,
+            rates,
+            shapes,
+            day_max,
+        )
+        day_max = result.day_max
+
+        if check_successful_simulation(result, t_total):
+            mc_step += 1
+            results.append(result)
 
     # results per day and seed
-    I_day = np.zeros([args.mc_nseed, t_total], dtype=int)
+    infected = np.zeros([n_seeds, t_total], dtype=int)
 
-    day_max = 0
-    # =========================
-    # MC loop
-    # =========================
-    for mc_seed in range(args.seed, args.seed + args.mc_nseed):
-        random.seed(mc_seed)
-        np.random.seed(mc_seed)
-        mc_step = mc_seed - args.seed
+    for mc_step, result in enumerate(results):
+        infected[mc_step] = result.infected
 
-        # -------------------------
-        # initialization
-        comp = Compartments(shapes, args)
-
-        I_day[mc_step, 0] = args.initial_infected
-        t_step, time = 0, 0
-
-        # Time loop
-        while comp.I[t_step, :-1].sum() > 0 and time < t_total:
-            t_step, time = gillespie(t_step, time, comp, rates, shapes)
-        # -------------------------
-
-        if config.CUMULATIVE is True:
-            i_var = comp.I_cum
-        else:
-            i_var = comp.I[:, :-1].sum(axis=1)
-
-        day_max = utils.day_data(
-            comp.T[:t_step], i_var[:t_step], I_day[mc_step], day_max
-        )
-
-    # =========================
-
-    utils.cost_save_plot(I_day, t_total, day_max, args, time_series)
+    cost = get_cost(time_series, infected, t_total, day_max, n_seeds, metric)
+    print(f"GGA SUCCESS {cost}")
+    return cost
 
 
-# %%%%%%%%%%%%%%%%%%%%%%%%%
-# %%%%%%%%%%%%%%%%%%%%%%%%%
-# -------------------------
-# Parameters
+def gillespie_simulation(
+    seed,
+    n,
+    n_t_steps,
+    initial_infected,
+    initial_recovered,
+    t_total,
+    rates,
+    shapes,
+    day_max,
+) -> Result:
+    random.seed(seed)
+    np.random.seed(seed)
 
+    # initialization
+    comp = Compartments(n, n_t_steps, initial_infected, initial_recovered, shapes)
 
-def parameters_init(args):
-    """Initial parameters from argparse"""
-    t_total, time_series = utils.parameters_init_common(args)
+    infected = np.zeros(t_total, dtype=int)
+    infected[0] = initial_infected
 
-    shapes = {"k_inf": args.k_inf, "k_rec": args.k_rec}
-    rates = {"beta": args.beta / args.n * args.k_inf, "delta": args.delta * args.k_rec}
-    return t_total, time_series, rates, shapes
+    t_step, time = 0, 0
 
+    while comp.I[t_step, :-1].sum() > 0 and time < t_total:
+        t_step, time = gillespie(t_step, time, comp, rates=rates, shapes=shapes)
 
-# -------------------------
+    day_max = utils.day_data(comp.T[:t_step], comp.I[:t_step].sum(axis=1), infected, day_max)
+
+    return Result(infected, day_max)
 
 
 class Compartments:
     """Compartments for the SIR Erlang model"""
 
-    def __init__(self, shapes, args):
+    def __init__(self, n, n_t_steps, initial_infected, initial_recovered, shapes):
         """Initialization
         S and I are vectors, with one dimension more than the
         This extra dimension is used to facilitate notation.
@@ -92,25 +130,29 @@ class Compartments:
         dimension and add one to the k+1 in S. In case where
         the individual is added to the first I compartment."""
 
-        self.S = np.zeros([args.n_t_steps, shapes["k_inf"] + 1])
-        self.I = np.zeros([args.n_t_steps, shapes["k_rec"] + 1])
-        self.R = np.zeros(args.n_t_steps)
-        self.T = np.zeros(args.n_t_steps)
+        self.S = np.zeros([n_t_steps, shapes["k_inf"] + 1])
+        self.I = np.zeros([n_t_steps, shapes["k_rec"] + 1])
+        self.R = np.zeros(n_t_steps)
+        self.T = np.zeros(n_t_steps)
 
-        # Used for both sir_erlang and sir_erlang sections, where args.n is a vector
+        # Used for both sir_erlang and sir_erlang sections, where n is a vector
         try:
-            self.S[0, :-1] = (args.n - args.initial_infected - args.initial_recovered) / shapes["k_inf"]
+            self.S[0, :-1] = (n - initial_infected - initial_recovered) / shapes[
+                "k_inf"
+            ]
         except TypeError:
-            self.S[0, :-1] = (args.n[0] - args.initial_infected - args.initial_recovered) / shapes["k_inf"]
+            self.S[0, :-1] = (n[0] - initial_infected - initial_recovered) / shapes[
+                "k_inf"
+            ]
 
         if self.S[0, 0] < 0:
             raise ValueError("S cannot be negative, check initial conditions")
 
-        self.S[0, -1] = self.I[0, :-1] = args.initial_infected / shapes["k_rec"]
-        self.I[0, -1] = self.R[0] = args.initial_recovered
+        self.S[0, -1] = self.I[0, :-1] = initial_infected / shapes["k_rec"]
+        self.I[0, -1] = self.R[0] = initial_recovered
         self.T[0] = 0
-        self.I_cum = np.zeros(args.n_t_steps, dtype=int)
-        self.I_cum[0] = args.initial_infected
+        self.I_cum = np.zeros(n_t_steps, dtype=int)
+        self.I_cum[0] = initial_infected
 
     def infect_adv_s(self, t_step, k):
         """Infect or advance in S
@@ -182,3 +224,31 @@ def gillespie_step(t_step, comp, probs, shapes):
         if random < (prob_heal_tot + probs["infect"][: k + 1].sum()):
             comp.infect_adv_s(t_step, k)
             return
+
+
+def parameters_init(args):
+    """Initial parameters from argparse"""
+    t_total, time_series = utils.parameters_init_common(args)
+
+    shapes = {"k_inf": args.k_inf, "k_rec": args.k_rec}
+    rates = {"beta": args.beta, "delta": args.delta}
+    return t_total, time_series, rates, shapes
+
+
+def main(args):
+    t_total, time_series, rates, shapes = parameters_init(args)
+    sir_erlang(
+        time_series,
+        args.seed,
+        args.mc_nseed,
+        t_total,
+        args.n_t_steps,
+        args.metric,
+        n=args.n,  # due to a bug, naming the configurable parameters is mandatory
+        initial_infected=args.initial_infected,
+        initial_recovered=args.initial_recovered,
+        delta=rates["delta"],
+        beta=rates["beta"],
+        k_rec=shapes["k_rec"],
+        k_inf=shapes["k_inf"],
+    )

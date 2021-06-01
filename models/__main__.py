@@ -1,7 +1,8 @@
 from argparse import ArgumentParser
 
 from .utils import config
-from .sir import net_sir_sections, sir_erlang, sir_erlang_sections
+from .sir import net_sir_sections, sir_erlang_sections
+from .sir.sir_erlang import main as sir_erlang_main
 from .sir.net_sir import main as net_sir_main
 from .sir.sir import main as sir_main
 from .sird.sird import main as sird_main
@@ -205,6 +206,7 @@ class SirErlangParser(SirParser):
             "--k_inf", type=int, default=config.K_INF,
             help="k for the infection time erlang distribution [1, 5]",
         )
+        # TODO: k_asym shouldn't be available in sir_erlang, only on sair_erlang
         group.add_argument(
             "--k_asym", type=int, default=config.K_ASYM,
             help="k for the infection time erlang distribution [1, 5]",
@@ -590,7 +592,7 @@ def parse_args():
         ("sir", SirParser, sir_main),
         ("sir-network", NetworkSirParser, net_sir_main),
         ("sir-network-sections", NetworkSirSectionsParser, net_sir_sections.main),
-        ("sir-erlang", SirErlangParser, sir_erlang.main),
+        ("sir-erlang", SirErlangParser, sir_erlang_main),
         ("sir-erlang-sections", SirErlangSectionsParser, sir_erlang_sections.main),
 
         ("sird", SirdParser, sird_main),

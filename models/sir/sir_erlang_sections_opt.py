@@ -13,19 +13,45 @@ dR(t)/dt =                      delta * I(t)
 """
 
 import random
+from collections import namedtuple
+
 import numpy as np
+from optilog.autocfg import ac, Int, Real
 
 from ..utils import utils, config
 from . import sir_erlang
 
+Result = namedtuple("Result", "infected day_max")
 
-# %%%%%%%%%%%%%%%%%%%%%%%%%
-# %%%%%%%%%%%%%%%%%%%%%%%%%
-def main(args):
-    t_total, time_series, n_sections = parameters_init(args)
+
+def check_successful_simulation(result: Result, time_total: int):
+    return not result.infected[time_total - 1] == 0
+
+
+def get_cost(time_series: np.ndarray, infected, t_total, day_max, n_seeds, metric):
+    var_m = utils.mean_alive(infected, t_total, day_max, n_seeds)
+    return utils.cost_func(time_series[:, 0], var_m, metric)
+
+
+@ac
+def sir_erlang_sections(
+    time_series: np.ndarray,
+    seed: int,
+    n_seeds: int,
+    t_total: int,
+    n_t_steps: int,
+    metric: str,
+    n: Int(70000, 90000) = 70000,
+    initial_infected: Int(1, 1000) = 10,
+    initial_recovered: Int(0, 1000) = 4,
+    delta: Real(0.1, 1.0) = 0.2,
+    beta: Real(0.1, 1.0) = 0.5,
+    k_rec: Int(1, 5) = 1,
+    k_inf: Int(1, 5) = 1,
+):
 
     # results per day and seed
-    I_day = np.zeros([args.mc_nseed, t_total], dtype=int)
+    infected = np.zeros([n_seeds, t_total], dtype=int)
 
     day_max = 0
     # =========================
@@ -50,7 +76,7 @@ def main(args):
         ) = parameters_section(args, section)
 
         comp = sir_erlang.Compartments(
-            n, args.n_t_steps, args.initial_infected, args.initial_recovered, shapes
+            n, n_t_steps, initial_infected, initial_recovered, shapes
         )
 
         t_step, time = 0, 0
@@ -121,14 +147,6 @@ def main(args):
 # Parameters
 
 
-def parameters_init(args):
-    """Initial parameters from argparse"""
-    t_total, time_series = utils.parameters_init_common(args)
-
-    n_sections = len(args.section_days) - 1
-    return t_total, time_series, n_sections
-
-
 # -------------------------
 
 
@@ -144,6 +162,7 @@ def parameters_section(args, section, rates_old=None, section_day_old=0, n_old=N
 
     # should return section_day_old , given that the input will be section_day.
     # but I want to add 2 to it for the tanh in rates_sir/n_individuals
+    # TODO: aclarar aquest comentari ^^
     return (n, rates, shapes, section_day, rates_old, section_day_old + 1, n_ind)
 
 
@@ -171,3 +190,26 @@ def gillespie(t_step, time, section_day_old, comp, rates, rates_old, shapes):
 
     sir_erlang.gillespie_step(t_step, comp, probs, shapes)
     return t_step, time
+
+
+def parameters_init(args):
+    """Initial parameters from argparse"""
+    t_total, time_series = utils.parameters_init_common(args)
+
+    n_sections = len(args.section_days) - 1
+    return t_total, time_series, n_sections
+
+
+def main(args):
+    t_total, time_series, n_sections = parameters_init(args)
+    sir_erlang_sections(
+        time_series,
+        args.seed,
+        args.mc_nseed,
+        t_total,
+        args.n_t_steps,
+        args.metric,
+        n=args.n,  # due to a bug, naming the configurable parameters is mandatory
+        initial_infected=args.initial_infected,
+        initial_recovered=args.initial_recovered,
+    )

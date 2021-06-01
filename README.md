@@ -54,7 +54,7 @@ The following models are ready to be used with Optilog:
     - [x] SIR
     - [x] Network SIR
     - [ ] Network SIR with sections
-    - [ ] Erlang SIR
+    - [x] Erlang SIR
     - [ ] Erlang SIR with sections
-- SIRD (TODO: remove old sird.py and parallel version)
+- SIRD (TODO: remove old sird.py)
     - [x] SIRD
