@@ -601,8 +601,7 @@ class ParserCommon:
             type=int,
             default=config.SECTIONS_DAYS,
             nargs="*",
-            help="starting day for each section, first one must be 0,\
-                            and final day for last one",
+            help="ending day for each section",
         )
         self.parser_params.add_argument(
             "--transition_days",

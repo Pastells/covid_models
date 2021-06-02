@@ -96,7 +96,9 @@ def main():
 def parsing():
     """input parameters"""
 
-    description = "stochastic SAIR model using the Gillespie algorithm. \
+    description = "Stochastic SAIR model with a social network using the event-driven algorithm \
+        It allows for different sections with different n, delta, delta_a, beta, beta_a and alpha: \
+        same number of arguments must be specified for all 5, and section_days. \
             Dependencies: config.py, utils.py, utils_net.py, fast_sair_sections.py"
 
     parser = utils.ParserCommon(description)
@@ -116,7 +118,19 @@ def parameters_init(args):
     """initial parameters from argparse"""
     t_total, time_series = utils.parameters_init_common(args)
 
-    n_sections = len(args.section_days) - 1
+    n_sections = len(args.section_days)
+    args.section_days.insert(0, 0)
+
+    if (
+        not len(args.beta)
+        == len(args.delta)
+        == len(args.beta_a)
+        == len(args.delta_a)
+        == len(args.alpha)
+        == n_sections
+        >= len(args.n)
+    ):
+        raise ValueError("All rates and n must have same dimension")
 
     return t_total, time_series, n_sections
 

@@ -25,7 +25,7 @@ from utils import utils, config
 # %%%%%%%%%%%%%%%%%%%%%%%%%
 def main():
     args = parsing()
-    t_total, time_series, n_sections = parameters_init(args)
+    t_total, time_series, n_sections, shapes = parameters_init(args)
     # print(args)
 
     # results per day and seed
@@ -45,7 +45,6 @@ def main():
         (
             n,
             rates,
-            shapes,
             section_day,
             rates_old,
             section_day_old,
@@ -87,7 +86,6 @@ def main():
                 (
                     n,
                     rates,
-                    shapes,
                     section_day,
                     rates_old,
                     section_day_old,
@@ -121,8 +119,8 @@ def parsing():
     """input parameters"""
     description = "Stochastic mean-field SAIR model using the Gillespie algorithm and Erlang \
         distribution transition times. It allows for different sections with different \
-        n, delta and beta: same number of arguments must be specified for all three, \
-        and one more for section_days. Dependencies: config.py, utils.py, sair_erlang.py"
+        n, delta, delta_a, beta, beta_a and alpha: same number of arguments must be specified for all 5, \
+        and section_days. Dependencies: config.py, utils.py, sair_erlang.py"
 
     parser = utils.ParserCommon(description)
     parser.n_sections()
@@ -141,9 +139,23 @@ def parsing():
 def parameters_init(args):
     """Initial parameters from argparse"""
     t_total, time_series = utils.parameters_init_common(args)
+    shapes = {"k_inf": args.k_inf, "k_rec": args.k_rec, "k_asym": args.k_asym}
 
-    n_sections = len(args.section_days) - 1
-    return t_total, time_series, n_sections
+    n_sections = len(args.section_days)
+    args.section_days.insert(0, 0)
+
+    if (
+        not len(args.beta)
+        == len(args.delta)
+        == len(args.beta_a)
+        == len(args.delta_a)
+        == len(args.alpha)
+        == n_sections
+        >= len(args.n)
+    ):
+        raise ValueError("All rates and n must have same dimension")
+
+    return t_total, time_series, n_sections, shapes
 
 
 # -------------------------
@@ -155,7 +167,6 @@ def parameters_section(args, section, rates_old=None, section_day_old=0, n_old=N
     """
     n = sum(args.n[: section + 1])
     n_ind = utils.n_individuals(n, n_old, section_day_old, args.transition_days)
-    shapes = {"k_inf": args.k_inf, "k_rec": args.k_rec, "k_asym": args.k_asym}
     rates = {
         "beta_a": args.beta_a[section] / n * args.k_inf,
         "beta": args.beta[section] / n * args.k_inf,
@@ -167,7 +178,7 @@ def parameters_section(args, section, rates_old=None, section_day_old=0, n_old=N
 
     # should return section_day_old , given that the input will be section_day.
     # but I want to add 2 to it for the tanh in rates_sir/n_individuals
-    return (n, rates, shapes, section_day, rates_old, section_day_old + 1, n_ind)
+    return (n, rates, section_day, rates_old, section_day_old + 1, n_ind)
 
 
 # -------------------------

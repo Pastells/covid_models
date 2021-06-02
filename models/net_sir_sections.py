@@ -95,8 +95,7 @@ def parsing():
 
     description = "Stochastic SIR model with a social network using the event-driven algorithm \
         It allows for different sections with different n, delta and beta: \
-        same number of arguments must be specified for all three, \
-        and one more for section_days. \
+        same number of arguments must be specified for all three, and section_days. \
             Dependencies: config.py, utils.py, utils_net.py, fast_sir_sections.py"
 
     parser = utils.ParserCommon(description)
@@ -115,7 +114,12 @@ def parameters_init(args):
     """initial parameters from argparse"""
     t_total, time_series = utils.parameters_init_common(args)
 
-    n_sections = len(args.section_days) - 1
+    n_sections = len(args.section_days)
+    args.section_days.insert(0, 0)
+
+    if not len(args.beta) == len(args.delta) == n_sections >= len(args.n):
+        raise ValueError("All rates and n must have same dimension")
+
     return t_total, time_series, n_sections
 
 

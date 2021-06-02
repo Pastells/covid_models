@@ -8,7 +8,7 @@ import networkx as nx
 
 def _truncated_exponential_(lambd, T):
     """returns a number between 0 and T from an
-    exponential distribution conditional on the outcome being between 0 and T"""
+    exponential distribution, conditional on the outcome being between 0 and T"""
     time = random.expovariate(lambd)
     L = int(time / T)
     return time - L * T
@@ -81,25 +81,27 @@ class MyQueue:
 def markovian_times(sus_neighbors, beta, delta, alpha=None):
     """Cycle through, find infection times and check it it is less than recovery time"""
 
-    duraten = random.expovariate(delta)
+    if delta != 0:
+        duration = random.expovariate(delta)
+    else:
+        duration = 1e20
 
     if alpha is not None:
-        duraten2 = random.expovariate(alpha)
-        if duraten < duraten2:
+        duration2 = random.expovariate(alpha)
+        if duration < duration2:
             pass
         else:
-            duraten = duraten2
+            duration = duration2
 
-    trans_prob = 1 - np.exp(-beta * duraten)
+    trans_prob = 1 - np.exp(-beta * duration)
     number_to_infect = np.random.binomial(len(sus_neighbors), trans_prob)
-    # print(len(suscep_neighbors),number_to_infect,trans_prob, beta, duraten)
     transmission_recipients = random.sample(sus_neighbors, number_to_infect)
     trans_delay = {}
     for recipient in transmission_recipients:
-        trans_delay[recipient] = _truncated_exponential_(beta, duraten)
+        trans_delay[recipient] = _truncated_exponential_(beta, duration)
 
     if alpha is not None:
-        if duraten < duraten2:
-            return (trans_delay, duraten, "recover")
-        return (trans_delay, duraten, "infect")
-    return trans_delay, duraten
+        if duration < duration2:
+            return trans_delay, duration, "recover"
+        return trans_delay, duration, "infect"
+    return trans_delay, duration
