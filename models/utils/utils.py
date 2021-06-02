@@ -403,6 +403,7 @@ def cost_func(time_series, var_m, metric=sum_sq):
     # Normalize with number of days
     # cost = cost / len(time_series) * 100
     print(f"GGA SUCCESS {cost}")
+    return cost
 
 
 # -------------------------
