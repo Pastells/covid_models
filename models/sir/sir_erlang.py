@@ -114,7 +114,9 @@ def gillespie_simulation(
     while comp.I[t_step, :-1].sum() > 0 and time < t_total:
         t_step, time = gillespie(t_step, time, comp, rates=rates, shapes=shapes)
 
-    day_max = utils.day_data(comp.T[:t_step], comp.I[:t_step].sum(axis=1), infected, day_max)
+    day_max = utils.day_data(
+        comp.T[:t_step], comp.I[:t_step, :-1].sum(axis=1), infected, day_max
+    )
 
     return Result(infected, day_max)
 

@@ -1,10 +1,11 @@
 from argparse import ArgumentParser
 
 from .utils import config
-from .sir import net_sir_sections, sir_erlang_sections
-from .sir.sir_erlang import main as sir_erlang_main
-from .sir.net_sir import main as net_sir_main
+from .sir import net_sir_sections
 from .sir.sir import main as sir_main
+from .sir.sir_erlang import main as sir_erlang_main
+from .sir.sir_erlang_sections import main as sir_erlang_sections_main
+from .sir.net_sir import main as net_sir_main
 from .sird.sird import main as sird_main
 from .seair.seair import main as seair_main
 from .sair import sair, net_sair, net_sair_sections, sair_erlang, sair_erlang_sections
@@ -593,7 +594,7 @@ def parse_args():
         ("sir-network", NetworkSirParser, net_sir_main),
         ("sir-network-sections", NetworkSirSectionsParser, net_sir_sections.main),
         ("sir-erlang", SirErlangParser, sir_erlang_main),
-        ("sir-erlang-sections", SirErlangSectionsParser, sir_erlang_sections.main),
+        ("sir-erlang-sections", SirErlangSectionsParser, sir_erlang_sections_main),
 
         ("sird", SirdParser, sird_main),
 

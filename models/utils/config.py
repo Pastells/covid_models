@@ -53,7 +53,7 @@ TIMEOUT = 1200
 DATA = "/home/pol/Documents/iiia_udl/programs/data/italy.dat"
 DAY_MIN = 30
 DAY_MAX = 54
-SECTIONS_DAYS = [0, DAY_MAX - DAY_MIN]
+SECTIONS_DAYS = [DAY_MAX - DAY_MIN]
 UNDIAGNOSED = 0  # 89.4, from Alex Arenas 2020 paper (Physical Review X, 10(4), 041055.)
 
 # Metrics
