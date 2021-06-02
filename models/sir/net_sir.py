@@ -114,12 +114,6 @@ def simulation(
     return Result(infected, day_max)
 
 
-# %%%%%%%%%%%%%%%%%%%%%%%%%
-# %%%%%%%%%%%%%%%%%%%%%%%%%
-# -------------------------
-# Parameters
-
-
 def parameters_init(args):
     """initial parameters from argparse"""
     t_total, time_series = utils.parameters_init_common(args)
