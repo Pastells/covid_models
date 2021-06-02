@@ -34,7 +34,7 @@ def main():
     if args.q < np.max(I + R + D) / args.n:
         raise ValueError("q is too small")
 
-    cost = 0
+    cost = np.zeros(4)
     day_range = 1 + args.day_max - args.day_min
     left = np.zeros([4, day_range])
     right = np.zeros([4, day_range])
@@ -45,9 +45,11 @@ def main():
         right[1, t] = r - (args.delta + args.nu) * I[t]
         right[2, t] = args.delta * I[t]
         right[3, t] = args.nu * I[t]
-        cost += args.w ** (day_range - t) * np.linalg.norm(left[:, t] - right[:, t])
+        cost += args.w ** (day_range - t) * (left[:, t] - right[:, t]) ** 2
 
-    cost /= day_range
+    cost *= 1 / (day_range * 1e3)
+    print(cost)
+    cost = cost.sum()
     sys.stdout.write(f"GGA SUCCESS {cost}\n")
 
     if args.plot:
