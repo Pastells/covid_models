@@ -33,27 +33,31 @@ def get_cost(time_series: np.ndarray, infected, t_total, day_max, n_seeds, metri
 
 
 @ac
-def sair(time_series: np.ndarray,
-         seed: int,
-         n_seeds: int,
-         t_total: int,
-         n_t_steps: int,
-         metric,
-         n: Int(70000, 90000) = 70000,
-         initial_infected: Int(410, 440) = 410,
-         initial_recovered: Int(4, 6) = 4,
-         initial_asymptomatic: Int(0, 100) = 0,
-         alpha: Real(0.05, 2.0) = 0.05,
-         delta_a: Real(0.05, 1.0) = 0.05,
-         delta: Real(0.03, 0.06) = 0.03,
-         beta_a: Real(0.05, 1.0) = 0.05,
-         beta: Real(0.3, 0.4) = 0.3):
+def sair(
+    time_series: np.ndarray,
+    seed: int,
+    n_seeds: int,
+    t_total: int,
+    n_t_steps: int,
+    metric,
+    n: Int(70000, 90000) = 70000,
+    initial_infected: Int(410, 440) = 410,
+    initial_recovered: Int(4, 6) = 4,
+    initial_asymptomatic: Int(0, 100) = 0,
+    alpha: Real(0.05, 2.0) = 0.05,
+    delta_a: Real(0.05, 1.0) = 0.05,
+    delta: Real(0.03, 0.06) = 0.03,
+    beta_a: Real(0.05, 1.0) = 0.05,
+    beta: Real(0.3, 0.4) = 0.3,
+):
     # Normalize beta and beta_a for the number of individuals
-    beta = beta / n
-    beta_a = beta_a / n
-
-    # results per day and seed
-    infected = np.zeros([n_seeds, t_total], dtype=int)
+    rates = {
+        "beta_a": beta_a / n,
+        "beta": beta / n,
+        "delta_a": delta_a,
+        "delta": delta,
+        "alpha": alpha,
+    }
 
     mc_step = 0
     day_max = 0
@@ -65,11 +69,14 @@ def sair(time_series: np.ndarray,
         current_seed += 1
         result = gillespie_simulation(
             current_seed,
-            n, n_t_steps,
-            initial_asymptomatic, initial_infected, initial_recovered,
+            n,
+            n_t_steps,
+            initial_asymptomatic,
+            initial_infected,
+            initial_recovered,
             t_total,
-            alpha, delta_a, delta, beta_a, beta,
-            day_max
+            rates,
+            day_max,
         )
         day_max = result.day_max
 
@@ -92,25 +99,24 @@ def sair(time_series: np.ndarray,
     return cost
 
 
-def gillespie_simulation(seed,
-                         n,
-                         n_t_steps,
-                         initial_asymptomatic,
-                         initial_infected,
-                         initial_recovered,
-                         t_total,
-                         alpha,
-                         delta_a,
-                         delta,
-                         beta_a,
-                         beta,
-                         day_max) -> Result:
+def gillespie_simulation(
+    seed: int,
+    n: int,
+    n_t_steps: int,
+    initial_asymptomatic: int,
+    initial_infected: int,
+    initial_recovered: int,
+    t_total: int,
+    rates: dict,
+    day_max: int,
+) -> Result:
     random.seed(seed)
     np.random.seed(seed)
 
     # initialization
-    comp = Compartments(n, n_t_steps, initial_asymptomatic,
-                        initial_infected, initial_recovered)
+    comp = Compartments(
+        n, n_t_steps, initial_asymptomatic, initial_infected, initial_recovered
+    )
 
     infected = np.zeros(t_total, dtype=int)
     asymptomatic = np.zeros(t_total, dtype=int)
@@ -123,15 +129,16 @@ def gillespie_simulation(seed,
     t_step, time = 0, 0
 
     while comp.I[t_step] > 0 and time < t_total:
-        t_step, time = gillespie(t_step, time, comp, alpha=alpha, beta=beta,
-                                 delta_a=delta_a, delta=delta, beta_a=beta_a)
+        t_step, time = gillespie(
+            t_step,
+            time,
+            comp,
+            rates=rates,
+        )
 
-    day_max = utils.day_data(comp.T[:t_step], comp.A[:t_step], asymptomatic,
-                             day_max)
-    day_max = utils.day_data(comp.T[:t_step], comp.R[:t_step], recovered,
-                             day_max)
-    day_max = utils.day_data(comp.T[:t_step], comp.I[:t_step], infected,
-                             day_max)
+    day_max = utils.day_data(comp.T[:t_step], comp.A[:t_step], asymptomatic, day_max)
+    day_max = utils.day_data(comp.T[:t_step], comp.R[:t_step], recovered, day_max)
+    day_max = utils.day_data(comp.T[:t_step], comp.I[:t_step], infected, day_max)
 
     return Result(infected, asymptomatic, recovered, day_max)
 
@@ -139,8 +146,9 @@ def gillespie_simulation(seed,
 class Compartments:
     """Compartments for SAIR model"""
 
-    def __init__(self, n, n_t_steps,
-                 initial_asymptomatic, initial_infected, initial_recovered):
+    def __init__(
+        self, n, n_t_steps, initial_asymptomatic, initial_infected, initial_recovered
+    ):
         """Initialization"""
         self.S = np.zeros(n_t_steps, dtype=int)
         self.A = np.zeros(n_t_steps, dtype=int)
@@ -188,22 +196,22 @@ class Compartments:
         self.I_cum[t_step] = self.I_cum[t_step - 1]
 
 
-def gillespie(t_step, time, comp, alpha, delta_a, delta, beta_a, beta):
+def gillespie(t_step, time, comp, rates):
     """
     Time elapsed for the next event
     Calls gillespie_step
     """
     lambda_sum = (
-        (alpha + delta_a) * comp.A[t_step]
-        + delta * comp.I[t_step]
-        + (beta_a * comp.A[t_step] + beta * comp.I[t_step])
+        (rates["alpha"] + rates["delta_a"]) * comp.A[t_step]
+        + rates["delta"] * comp.I[t_step]
+        + (rates["beta_a"] * comp.A[t_step] + rates["beta"] * comp.I[t_step])
         * comp.S[t_step]
     )
 
     probabilities = {
-        "heal_a": delta_a * comp.A[t_step] / lambda_sum,
-        "heal_i": delta * comp.I[t_step] / lambda_sum,
-        "asymptomatic": alpha * comp.A[t_step] / lambda_sum
+        "heal_a": rates["delta_a"] * comp.A[t_step] / lambda_sum,
+        "heal_i": rates["delta"] * comp.I[t_step] / lambda_sum,
+        "asymptomatic": rates["alpha"] * comp.A[t_step] / lambda_sum,
     }
 
     t_step += 1
@@ -224,8 +232,11 @@ def gillespie_step(t_step, comp, probabilities):
         comp.recover_a(t_step)
     elif random_value < (probabilities["heal_a"] + probabilities["heal_i"]):
         comp.recover_i(t_step)
-    elif random_value < (probabilities["heal_a"] + probabilities["heal_i"]
-                         + probabilities["asymptomatic"]):
+    elif random_value < (
+        probabilities["heal_a"]
+        + probabilities["heal_i"]
+        + probabilities["asymptomatic"]
+    ):
         comp.turn_infectious(t_step)
     else:
         comp.turn_asymptomatic(t_step)
@@ -234,20 +245,21 @@ def gillespie_step(t_step, comp, probabilities):
 def parameters_init(args):
     """initial parameters from argparse"""
     t_total, time_series = utils.parameters_init_common(args)
-
-    rates = {
-        "beta_a": args.beta_a,
-        "beta": args.beta,
-        "delta_a": args.delta_a,
-        "delta": args.delta,
-        "alpha": args.alpha,
-    }
-
-    return t_total, time_series, rates
+    return t_total, time_series
 
 
 def main(args):
-    t_total, time_series, rates = parameters_init(args)
-    sair(time_series, args.seed, args.mc_nseed, t_total, args.n_t_steps, args.metric,
-         alpha=rates["alpha"], delta_a=rates["delta_a"], delta=rates["delta"],
-         beta_a=rates["beta_a"], beta=rates["beta"])
+    t_total, time_series = parameters_init(args)
+    sair(
+        time_series,
+        args.seed,
+        args.mc_nseed,
+        t_total,
+        args.n_t_steps,
+        args.metric,
+        alpha=args.alpha,
+        delta_a=args.delta_a,
+        delta=args.delta,
+        beta_a=args.beta_a,
+        beta=args.beta,
+    )

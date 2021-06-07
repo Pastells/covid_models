@@ -13,64 +13,148 @@ dR(t)/dt =   delta * I(t)                          + delta_a * A(t)
 """
 
 import random
+from collections import namedtuple
+
 import numpy as np
+from optilog.autocfg import ac, Int, Real, Categorical
 
 from . import fast_sair
 from ..utils import utils, utils_net, config
 
 
-def main(args):
-    t_total, time_series, rates = parameters_init(args)
-    # print(args)
+Result = namedtuple("Result", "infected day_max")
+
+
+def check_successful_simulation(result: Result, time_total: int):
+    return not result.infected[time_total - 1] == 0
+
+
+def get_cost(time_series: np.ndarray, infected, t_total, day_max, n_seeds, metric):
+    var_m = utils.mean_alive(infected, t_total, day_max, n_seeds)
+    return utils.cost_func(time_series[:, 0], var_m, metric)
+
+
+@ac
+def net_sair(
+    time_series: np.ndarray,
+    seed: int,
+    n_seeds: int,
+    t_total: int,
+    metric: str,
+    network: Categorical("er", "ba") = "ba",
+    network_param: Int(1, 50) = 5,
+    n: Int(70000, 90000) = 70000,
+    initial_infected: Int(1, 1000) = 10,
+    initial_recovered: Int(0, 1000) = 4,
+    initial_asymptomatic: Int(0, 1000) = 0,
+    alpha: Real(0.05, 2.0) = 0.05,
+    delta_a: Real(0.05, 1.0) = 0.05,
+    delta: Real(0.03, 0.06) = 0.03,
+    beta_a: Real(0.05, 1.0) = 0.05,
+    beta: Real(0.3, 0.4) = 0.3,
+):
+    # TODO: check if beta must be divided by n
+    rates = {
+        "beta_a": beta_a,
+        "beta": beta,
+        "delta_a": delta_a,
+        "delta": delta,
+        "alpha": alpha,
+    }
 
     # results per day and seed
-    I_day = np.zeros([args.mc_nseed, t_total], dtype=int)
+    infected = np.zeros([n_seeds, t_total], dtype=np.uint32)
 
+    mc_step = 0
     day_max = 0
-    # =========================
-    # MC loop
-    # =========================
-    for mc_seed in range(args.seed, args.seed + args.mc_nseed):
-        random.seed(mc_seed)
-        np.random.seed(mc_seed)
-        mc_step = mc_seed - args.seed
+    current_seed = seed - 1  # we increase the seed at the start of the loop
 
-        G = utils_net.choose_network(args.n, args.network, args.network_param)
-        t, S, A, I, R = fast_sair.fast_SAIR(
-            G, rates, args.initial_asymptomatic, args.initial_infected, args.initial_recovered, tmax=t_total - 0.95
+    results = list()
+
+    while mc_step < n_seeds:
+        current_seed += 1
+        result = event_driven_simulation(
+            current_seed,
+            n,
+            network,
+            network_param,
+            initial_infected,
+            initial_recovered,
+            initial_asymptomatic,
+            t_total,
+            rates,
+            day_max,
         )
+        day_max = result.day_max
 
-        import matplotlib.pyplot as plt
+        if check_successful_simulation(result, t_total):
+            mc_step += 1
+            results.append(result)
 
-        plt.plot(t, S)
-        plt.plot(t, A)
-        plt.plot(t, I)
-        plt.plot(t, R)
+    for mc_step, result in enumerate(results):
+        infected[mc_step] = result.infected
 
-        I_day[mc_step, 0] = args.initial_infected
+    cost = get_cost(time_series, infected, t_total, day_max, n_seeds, metric)
+    print(f"GGA SUCCESS {cost}")
+    return cost
 
-        if config.CUMULATIVE is True:
-            i_var = I + R
-        else:
-            i_var = I
 
-        day_max = utils.day_data(t, i_var, I_day[mc_step], day_max)
+def event_driven_simulation(
+    seed: int,
+    n: int,
+    network: str,
+    network_param: int,
+    initial_infected: int,
+    initial_recovered: int,
+    initial_asymptomatic: int,
+    t_total: int,
+    rates: dict,
+    day_max: int,
+) -> Result:
+    random.seed(seed)
+    np.random.seed(seed)
 
-    # =========================
+    infected = np.zeros(t_total, dtype=int)
+    infected[0] = initial_infected
 
-    utils.cost_save_plot(I_day, t_total, day_max, args, time_series)
+    G = utils_net.choose_network(n, network, network_param)
+    t, I = fast_sair.fast_SAIR(
+        G,
+        rates,
+        initial_asymptomatic,
+        initial_infected,
+        initial_recovered,
+        tmax=t_total - 0.95,
+    )
+
+    day_max = utils.day_data(t, I, infected, day_max)
+    del t, I, G
+    return Result(infected, day_max)
 
 
 def parameters_init(args):
     """initial parameters from argparse"""
     t_total, time_series = utils.parameters_init_common(args)
+    return t_total, time_series
 
-    rates = {
-        "beta_a": args.beta_a,
-        "beta": args.beta,
-        "delta_a": args.delta_a,
-        "delta": args.delta,
-        "alpha": args.alpha,
-    }
 
-    return t_total, time_series, rates
+def main(args):
+    t_total, time_series = parameters_init(args)
+    net_sair(
+        time_series,
+        args.seed,
+        args.mc_nseed,
+        t_total,
+        args.metric,
+        args.network,
+        args.network_param,
+        n=args.n,  # due to a bug, naming the configurable parameters is mandatory
+        initial_infected=args.initial_infected,
+        initial_recovered=args.initial_recovered,
+        initial_asymptomatic=args.initial_asymptomatic,
+        alpha=args.alpha,
+        delta_a=args.delta_a,
+        delta=args.delta,
+        beta_a=args.beta_a,
+        beta=args.beta,
+    )

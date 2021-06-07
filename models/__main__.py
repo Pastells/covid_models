@@ -2,15 +2,10 @@ from argparse import ArgumentParser
 
 from .utils import config
 
-from .sir.sir import main as sir_main
-from .sir.sir_erlang import main as sir_erlang_main
-from .sir.sir_erlang_sections import main as sir_erlang_sections_main
-from .sir.net_sir import main as net_sir_main
-from .sir.net_sir_sections import main as net_sir_sections_main
-
-from .sird.sird import main as sird_main
-from .seair.seair import main as seair_main
+from .sir import sir, sir_erlang, sir_erlang_sections, net_sir, net_sir_sections
+from .sird import sird
 from .sair import sair, net_sair, net_sair_sections, sair_erlang, sair_erlang_sections
+from .seair import seair
 from .sidarthe import sidarthe, sidarthe2, sidarthe_comp
 
 # fmt: off
@@ -599,15 +594,15 @@ def parse_args():
         ("sair-erlang", SairErlangParser, sair_erlang.main),
         ("sair-erlang-sections", SairErlangSectionsParser, sair_erlang_sections.main),
 
-        ("seair", SeairParser, seair_main),
+        ("seair", SeairParser, seair.main),
 
-        ("sir", SirParser, sir_main),
-        ("sir-network", NetworkSirParser, net_sir_main),
-        ("sir-network-sections", NetworkSirSectionsParser, net_sir_sections_main),
-        ("sir-erlang", SirErlangParser, sir_erlang_main),
-        ("sir-erlang-sections", SirErlangSectionsParser, sir_erlang_sections_main),
+        ("sir", SirParser, sir.main),
+        ("sir-network", NetworkSirParser, net_sir.main),
+        ("sir-network-sections", NetworkSirSectionsParser, net_sir_sections.main),
+        ("sir-erlang", SirErlangParser, sir_erlang.main),
+        ("sir-erlang-sections", SirErlangSectionsParser, sir_erlang_sections.main),
 
-        ("sird", SirdParser, sird_main),
+        ("sird", SirdParser, sird.main),
 
         ("sidarthe", SidartheParser, sidarthe.main),
         ("sidarthe2", Sidarthe2Parser, sidarthe2.main),

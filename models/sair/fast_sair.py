@@ -1,7 +1,6 @@
 import random
 from collections import defaultdict
 import numpy as np
-
 from ..utils import utils_net
 
 
@@ -14,7 +13,7 @@ def _process_trans_SAIR_(
     A,
     I,
     R,
-    Q,
+    queue,
     status,
     rec_time,
     pred_inf_time,
@@ -36,7 +35,7 @@ def _process_trans_SAIR_(
             list of times at which events have happened
         S, A, I, R : lists
             lists of numbers of nodes of each status at each time
-        Q : MyQueue
+        queue : MyQueue
             the queue of events
         status : dict
             dictionary giving status of each node
@@ -59,7 +58,7 @@ def _process_trans_SAIR_(
         S : appends new S (reduced by 1 from last)
         I : appends new I (increased by 1)
         R : appends new R (same as last)
-        Q : adds recovery and transmission events for newly infected node.
+        queue : adds recovery and transmission events for newly infected node.
         pred_inf_time : updated for nodes that will receive transmission
 
     """
@@ -97,15 +96,15 @@ def _process_trans_SAIR_(
             recover_or_infect = "recover"
 
         rec_time[target] = time + rec_delay
-        if rec_time[target] <= Q.tmax:
+        if rec_time[target] <= queue.tmax:
             if recover_or_infect == "recover":
-                Q.add(
+                queue.add(
                     rec_time[target],
                     _process_rec_SAIR_,
                     args=(target, times, S, A, I, R, status, e_or_i),
                 )
             else:
-                Q.add(
+                queue.add(
                     rec_time[target],
                     _process_trans_SAIR_,
                     args=(
@@ -116,7 +115,7 @@ def _process_trans_SAIR_(
                         A,
                         I,
                         R,
-                        Q,
+                        queue,
                         status,
                         rec_time,
                         pred_inf_time,
@@ -130,9 +129,9 @@ def _process_trans_SAIR_(
             if (
                 inf_time <= rec_time[target]
                 and inf_time < pred_inf_time[v]
-                and inf_time <= Q.tmax
+                and inf_time <= queue.tmax
             ):
-                Q.add(
+                queue.add(
                     inf_time,
                     _process_trans_SAIR_,
                     args=(
@@ -143,7 +142,7 @@ def _process_trans_SAIR_(
                         A,
                         I,
                         R,
-                        Q,
+                        queue,
                         status,
                         rec_time,
                         pred_inf_time,
@@ -245,7 +244,7 @@ def _process_inf_SAIR_(time, node, times, S, A, I, R, status):
 def fast_SAIR(
     G,
     rates,
-    initial_exposed=0,
+    initial_asymptomatic=0,
     initial_infected=0,
     initial_recovered=0,
     tmin=0,
@@ -266,8 +265,8 @@ def fast_SAIR(
     **delta** number
         recovery rate per node
 
-    **initial_exposed** number
-        initially exposed nodes (NOT IMPLEMENTED)
+    **initial_asymptomatic** number
+        initially asymptomatic nodes (NOT IMPLEMENTED)
 
     **initial_infected** number
         initially infected nodes
@@ -311,7 +310,7 @@ def fast_SAIR(
     # infection time defaults to \infty  --- this could be set to tmax,
     # probably with a slight improvement to performance.
 
-    Q = utils_net.MyQueue(tmax)
+    queue = utils_net.MyQueue(tmax)
 
     """
     if initial_infected is None:  # create initial infecteds list if not given
@@ -322,20 +321,20 @@ def fast_SAIR(
     # else it is assumed to be a list of nodes.
     """
     # Just one sample, so there's no possible overlap
-    initial_infected = random.sample(G.nodes(), initial_infected + initial_exposed)
+    initial_infected = random.sample(G.nodes(), initial_infected + initial_asymptomatic)
 
     times, S, A, I, R = (
         [tmin],
-        [G.order() - len(initial_infected[initial_exposed:])],
-        [len(initial_infected[initial_exposed:])],
+        [G.order() - len(initial_infected[initial_asymptomatic:])],
+        [len(initial_infected[initial_asymptomatic:])],
         [0],
         [0],
     )
 
-    for u in initial_infected[:initial_exposed]:
+    for u in initial_infected[:initial_asymptomatic]:
         status[u] = "S"
         pred_inf_time[u] = tmin
-        Q.add(
+        queue.add(
             tmin,
             _process_trans_SAIR_,
             args=(
@@ -346,7 +345,7 @@ def fast_SAIR(
                 A,
                 I,
                 R,
-                Q,
+                queue,
                 status,
                 rec_time,
                 pred_inf_time,
@@ -354,10 +353,10 @@ def fast_SAIR(
                 "A",
             ),
         )
-    for u in initial_infected[initial_exposed:]:
+    for u in initial_infected[initial_asymptomatic:]:
         status[u] = "A"
         pred_inf_time[u] = tmin
-        Q.add(
+        queue.add(
             tmin,
             _process_trans_SAIR_,
             args=(
@@ -368,7 +367,7 @@ def fast_SAIR(
                 A,
                 I,
                 R,
-                Q,
+                queue,
                 status,
                 rec_time,
                 pred_inf_time,
@@ -377,8 +376,8 @@ def fast_SAIR(
             ),
         )
 
-    while Q:  # all the work is done in this while loop.
-        Q.pop_and_run()
+    while queue:  # all the work is done in this while loop.
+        queue.pop_and_run()
 
     # the initial infections were treated as ordinary infection events at
     # time 0.
@@ -390,4 +389,5 @@ def fast_SAIR(
     I = I[len(initial_infected) :]
     R = R[len(initial_infected) :]
 
-    return np.array(times), np.array(S), np.array(A), np.array(I), np.array(R) + initial_recovered
+    # return (np.array(times), np.array(S), np.array(A), np.array(I), np.array(R) + initial_recovered)
+    return times, I
