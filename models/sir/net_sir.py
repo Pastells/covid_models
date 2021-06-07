@@ -47,6 +47,7 @@ def net_sir(
     beta: Real(0.1, 1.0) = 0.5,
 ):
     # Normalize beta for the number of individuals
+    rates = {"beta": beta / n, "delta": delta}
     beta = beta / n
 
     # results per day and seed
@@ -60,7 +61,7 @@ def net_sir(
 
     while mc_step < n_seeds:
         current_seed += 1
-        result = simulation(
+        result = event_driven_simulation(
             current_seed,
             n,
             network,
@@ -68,8 +69,7 @@ def net_sir(
             initial_infected,
             initial_recovered,
             t_total,
-            beta,
-            delta,
+            rates,
             day_max,
         )
         day_max = result.day_max
@@ -86,17 +86,16 @@ def net_sir(
     return cost
 
 
-def simulation(
-    seed,
-    n,
-    network,
-    network_param,
-    initial_infected,
-    initial_recovered,
-    t_total,
-    beta,
-    delta,
-    day_max,
+def event_driven_simulation(
+    seed: int,
+    n: int,
+    network: str,
+    network_param: int,
+    initial_infected: int,
+    initial_recovered: int,
+    t_total: int,
+    rates: dict,
+    day_max: int,
 ) -> Result:
     random.seed(seed)
     np.random.seed(seed)
@@ -106,7 +105,7 @@ def simulation(
 
     G = utils_net.choose_network(n, network, network_param)
     t, I = fast_sir.fast_SIR(
-        G, beta, delta, initial_infected, initial_recovered, tmax=t_total - 0.95
+        G, rates, initial_infected, initial_recovered, tmax=t_total - 0.95
     )
 
     day_max = utils.day_data(t, I, infected, day_max)

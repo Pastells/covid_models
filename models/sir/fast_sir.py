@@ -1,9 +1,6 @@
 import random
 from collections import defaultdict
 import numpy as np
-
-import os.path
-import sys
 from ..utils import utils_net
 
 
@@ -19,8 +16,7 @@ def _process_trans_SIR_(
     status,
     rec_time,
     pred_inf_time,
-    beta,
-    delta,
+    rates,
 ):
     r"""
         From figure A.4 of Kiss, Miller, & Simon.  Please cite the book if
@@ -45,7 +41,7 @@ def _process_trans_SIR_(
             dictionary giving recovery time of each node
         pred_inf_time : dict
             dictionary giving predicted infeciton time of nodes
-        (beta,delta):
+        rates (beta,delta):
             rates of infection and recovery
 
         :Returns:
@@ -75,7 +71,7 @@ def _process_trans_SIR_(
         suscep_neighbors = [v for v in G.neighbors(target) if status[v] == "S"]
 
         trans_delay, rec_delay = utils_net.markovian_times(
-            suscep_neighbors, beta, delta
+            suscep_neighbors, rates["beta"], rates["delta"]
         )
 
         rec_time[target] = time + rec_delay
@@ -106,8 +102,7 @@ def _process_trans_SIR_(
                         status,
                         rec_time,
                         pred_inf_time,
-                        beta,
-                        delta,
+                        rates,
                     ),
                 )
                 pred_inf_time[v] = inf_time
@@ -156,8 +151,7 @@ def _process_rec_SIR_(time, node, times, S, I, R, status):
 
 def fast_SIR(
     G,
-    beta,
-    delta,
+    rates,
     initial_infected=None,
     initial_recovered=0,
     tmin=0,
@@ -172,7 +166,7 @@ def fast_SIR(
     **G** networkx Graph
         The underlying network
 
-    (beta,delta):
+    **rates** (beta,delta):
             rates of infection and recovery
 
     **initial_infected** number
@@ -248,8 +242,7 @@ def fast_SIR(
                 status,
                 rec_time,
                 pred_inf_time,
-                beta,
-                delta,
+                rates,
             ),
         )
 

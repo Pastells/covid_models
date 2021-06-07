@@ -122,18 +122,18 @@ def sir_erlang_sections(
 
 
 def gillespie_simulation(
-    seed,
-    n_vect,
-    beta_vect,
-    delta_vect,
-    section_days,
-    n_sections,
-    n_t_steps,
-    initial_infected,
-    initial_recovered,
-    t_total,
-    shapes,
-    day_max,
+    seed: int,
+    n_vect: list,
+    beta_vect: list,
+    delta_vect: list,
+    section_days: list,
+    n_sections: int,
+    n_t_steps: int,
+    initial_infected: int,
+    initial_recovered: int,
+    t_total: int,
+    shapes: dict,
+    day_max: int,
 ) -> Result:
     random.seed(seed)
     np.random.seed(seed)

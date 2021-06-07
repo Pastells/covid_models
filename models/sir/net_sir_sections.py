@@ -87,7 +87,7 @@ def net_sir_sections(
 
     while mc_step < n_seeds:
         current_seed += 1
-        result = simulation(
+        result = event_driven_simulation(
             current_seed,
             n_vect,
             beta_vect,
@@ -118,19 +118,19 @@ def net_sir_sections(
     return cost
 
 
-def simulation(
-    seed,
-    n_vect,
-    beta_vect,
-    delta_vect,
-    section_days,
-    n_sections,
-    network,
-    network_param,
-    initial_infected,
-    initial_recovered,
-    t_total,
-    day_max,
+def event_driven_simulation(
+    seed: int,
+    n_vect: list,
+    beta_vect: list,
+    delta_vect: list,
+    section_days: list,
+    n_sections: int,
+    network: str,
+    network_param: int,
+    initial_infected: int,
+    initial_recovered: int,
+    t_total: int,
+    day_max: int,
 ) -> Result:
     random.seed(seed)
     np.random.seed(seed)

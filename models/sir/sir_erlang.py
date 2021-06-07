@@ -90,15 +90,15 @@ def sir_erlang(
 
 
 def gillespie_simulation(
-    seed,
-    n,
-    n_t_steps,
-    initial_infected,
-    initial_recovered,
-    t_total,
-    rates,
-    shapes,
-    day_max,
+    seed: int,
+    n: int,
+    n_t_steps: int,
+    initial_infected: int,
+    initial_recovered: int,
+    t_total: int,
+    rates: dict,
+    shapes: dict,
+    day_max: int,
 ) -> Result:
     random.seed(seed)
     np.random.seed(seed)
