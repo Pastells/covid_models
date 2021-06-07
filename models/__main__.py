@@ -405,6 +405,7 @@ class SirdParser(SirParser):
     # + .dead()
     @classmethod
     def initialize_parameters_group(cls, group):
+        super().initialize_parameters_group(group)
         # Dead
         group.add_argument(
             "--initial_dead", type=int, default=config.initial_dead,

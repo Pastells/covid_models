@@ -48,19 +48,21 @@ def get_cost(time_series, infected, recovered, dead, metric):
 
 
 @ac
-def sird(time_series: np.ndarray,
-         seed: int,
-         n_seeds: int,
-         t_total: int,
-         n_t_steps: int,
-         metric,
-         n: Int(70000, 90000) = 70000,
-         initial_infected: Int(410, 440) = 410,
-         initial_recovered: Int(4, 6) = 4,
-         initial_dead: Int(1, 100) = 1,
-         delta: Real(0.03, 0.06) = 0.03,
-         beta: Real(0.3, 0.4) = 0.3,
-         theta: Real(0.004, 0.008) = 0.004):
+def sird(
+    time_series: np.ndarray,
+    seed: int,
+    n_seeds: int,
+    t_total: int,
+    n_t_steps: int,
+    metric,
+    n: Int(70000, 90000) = 70000,
+    initial_infected: Int(410, 440) = 410,
+    initial_recovered: Int(4, 6) = 4,
+    initial_dead: Int(1, 100) = 1,
+    delta: Real(0.03, 0.06) = 0.03,
+    beta: Real(0.3, 0.4) = 0.3,
+    theta: Real(0.004, 0.008) = 0.004,
+):
     # Normalize beta for the number of individuals
     beta = beta / n
 
@@ -73,11 +75,16 @@ def sird(time_series: np.ndarray,
         current_seed += 1
         result = gillespie_simulation(
             current_seed,
-            n, n_t_steps,
-            initial_infected, initial_recovered, initial_dead,
+            n,
+            n_t_steps,
+            initial_infected,
+            initial_recovered,
+            initial_dead,
             t_total,
-            delta, beta, theta,
-            day_max
+            delta,
+            beta,
+            theta,
+            day_max,
         )
 
         day_max = result.day_max
@@ -103,22 +110,23 @@ def sird(time_series: np.ndarray,
     return cost
 
 
-def gillespie_simulation(seed:int,
-                         n: int,
-                         n_t_steps: int,
-                         initial_infected: int,
-                         initial_recovered: int,
-                         initial_dead: int,
-                         t_total,  # TODO
-                         delta: float,
-                         beta: float,
-                         theta: float,
-                         day_max: int) -> Result:
+def gillespie_simulation(
+    seed: int,
+    n: int,
+    n_t_steps: int,
+    initial_infected: int,
+    initial_recovered: int,
+    initial_dead: int,
+    t_total: int,
+    delta: float,
+    beta: float,
+    theta: float,
+    day_max: int,
+) -> Result:
     random.seed(seed)
     np.random.seed(seed)
 
-    comp = Compartments(n, n_t_steps,
-                        initial_infected, initial_recovered, initial_dead)
+    comp = Compartments(n, n_t_steps, initial_infected, initial_recovered, initial_dead)
 
     infected = np.zeros(t_total, dtype=int)
     recovered = np.zeros(t_total, dtype=int)
@@ -145,8 +153,7 @@ def gillespie_simulation(seed:int,
 class Compartments:
     """Compartments for SIR model"""
 
-    def __init__(self, n, n_t_steps,
-                 initial_infected, initial_recovered, initial_dead):
+    def __init__(self, n, n_t_steps, initial_infected, initial_recovered, initial_dead):
         """Initialization"""
         self.S = np.zeros(n_t_steps, dtype=int)
         self.I = np.zeros(n_t_steps, dtype=int)
@@ -229,11 +236,18 @@ def main(args):
     print(f"r = {rates['beta']}")
     print(f"a = {rates['delta']*(1-rates['theta'])}")
     print(f"d = {rates['delta']*rates['theta']}")
-    sird(time_series, args.seed, args.mc_nseed, t_total, args.n_t_steps, args.metric,
-         n=args.n,  # due to a bug, naming the configurable parameters is mandatory
-         initial_infected=args.I_0,
-         initial_recovered=args.R_0,
-         initial_dead=args.D_0,
-         delta=rates["delta"],
-         beta=rates["beta"],
-         theta=rates["theta"])
+    sird(
+        time_series,
+        args.seed,
+        args.mc_nseed,
+        t_total,
+        args.n_t_steps,
+        args.metric,
+        n=args.n,  # due to a bug, naming the configurable parameters is mandatory
+        initial_infected=args.initial_infected,
+        initial_recovered=args.initial_recovered,
+        initial_dead=args.initial_dead,
+        delta=rates["delta"],
+        beta=rates["beta"],
+        theta=rates["theta"],
+    )
