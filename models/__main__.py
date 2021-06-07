@@ -209,11 +209,6 @@ class SirErlangParser(SirParser):
             "--k_inf", type=int, default=config.K_INF,
             help="k for the infection time erlang distribution [1, 5]",
         )
-        # TODO: k_asym shouldn't be available in sir_erlang, only on sair_erlang
-        group.add_argument(
-            "--k_asym", type=int, default=config.K_ASYM,
-            help="k for the infection time erlang distribution [1, 5]",
-        )
 
 
 class SirErlangSectionsParser(CommonParser):
@@ -257,10 +252,6 @@ class SirErlangSectionsParser(CommonParser):
             "--k_inf", type=int, default=config.K_INF,
             help="k for the infection time erlang distribution [1, 5]",
         )
-        group.add_argument(
-            "--k_asym", type=int, default=config.K_ASYM,
-            help="k for the infection time erlang distribution [1, 5]",
-        )
 
 
 # SAIR versions:
@@ -269,12 +260,6 @@ class SairParser(SirParser):
     @classmethod
     def initialize_parameters_group(cls, group):
         super().initialize_parameters_group(group)
-        # Asymptomatic
-        group.add_argument(
-            "--initial_asymptomatic", type=int, default=config.initial_asymptomatic,
-            help="initial number of asymptomatic individuals, if None is"
-                 "specified is set to first day of input data",
-        )
         group.add_argument(
             "--delta_a", type=float, default=config.DELTA_A,
             help="rate of recovery from asymptomatic phase (a->r) [0.05,1.0]",
@@ -286,6 +271,15 @@ class SairParser(SirParser):
         group.add_argument(
             "--alpha", type=float, default=config.ALPHA,
             help="asymptomatic rate (a->i) [0.05,2.0]",
+        )
+
+    @classmethod
+    def initialize_initial_conditions_group(cls, group):
+        super().initialize_initial_conditions_group(group)
+        group.add_argument(
+            "--initial_asymptomatic", type=int, default=config.initial_asymptomatic,
+            help="initial number of asymptomatic individuals, if None is"
+                 "specified is set to first day of input data",
         )
 
 
@@ -294,12 +288,6 @@ class NetworkSairParser(NetworkSirParser):
     @classmethod
     def initialize_parameters_group(cls, group):
         super().initialize_parameters_group(group)
-        # Asymptomatic
-        group.add_argument(
-            "--initial_asymptomatic", type=int, default=config.initial_asymptomatic,
-            help="initial number of asymptomatic individuals, if None is"
-                 "specified is set to first day of input data",
-        )
         group.add_argument(
             "--delta_a", type=float, default=config.DELTA_A,
             help="rate of recovery from asymptomatic phase (a->r) [0.05,1.0]",
@@ -313,17 +301,20 @@ class NetworkSairParser(NetworkSirParser):
             help="asymptomatic rate (a->i) [0.05,2.0]",
         )
 
+    @classmethod
+    def initialize_initial_conditions_group(cls, group):
+        super().initialize_initial_conditions_group(group)
+        group.add_argument(
+            "--initial_asymptomatic", type=int, default=config.initial_asymptomatic,
+            help="initial number of asymptomatic individuals, if None is"
+                 "specified is set to first day of input data",
+        )
+
 
 class NetworkSairSectionsParser(NetworkSirSectionsParser):
     # + asymptomatic_sections()
     @classmethod
     def initialize_parameters_group(cls, group):
-        # Asymptomatic sections
-        group.add_argument(
-            "--initial_asymptomatic", type=int, default=config.initial_asymptomatic,
-            help="initial number of asymptomatic individuals if None is"
-                 "specified is set to first day of input data",
-        )
         group.add_argument(
             "--delta_a", type=float, default=[config.DELTA_A], nargs="*",
             help="rate of recovery from asymptomatic phase (a->r) [0.05,1.0]",
@@ -337,13 +328,21 @@ class NetworkSairSectionsParser(NetworkSirSectionsParser):
             help="asymptomatic rate (a->i) [0.05,1]",
         )
 
+    @classmethod
+    def initialize_initial_conditions_group(cls, group):
+        super().initialize_initial_conditions_group(group)
+        group.add_argument(
+            "--initial_asymptomatic", type=int, default=config.initial_asymptomatic,
+            help="initial number of asymptomatic individuals if None is"
+                 "specified is set to first day of input data",
+        )
+
 
 class SairErlangParser(SairParser):
     # + .erlang(True)
     @classmethod
     def initialize_parameters_group(cls, group):
         super().initialize_parameters_group(group)
-        # Erlang
         group.add_argument(
             "--k_rec", type=int, default=config.K_REC,
             help="k for the recovery time erlang distribution [1, 5]"
@@ -354,7 +353,7 @@ class SairErlangParser(SairParser):
         )
         group.add_argument(
             "--k_asym", type=int, default=config.K_ASYM,
-            help="k for the infection time erlang distribution [1, 5]",
+            help="k for the asymptomatic time erlang distribution [1, 5]",
         )
 
 
@@ -362,12 +361,6 @@ class SairErlangSectionsParser(SirErlangSectionsParser):
     # + asymptomatic_sections()
     @classmethod
     def initialize_parameters_group(cls, group):
-        # Asymptomatic sections
-        group.add_argument(
-            "--initial_asymptomatic", type=int, default=config.initial_asymptomatic,
-            help="initial number of asymptomatic individuals if None is"
-                 "specified is set to first day of input data",
-        )
         group.add_argument(
             "--delta_a", type=float, default=[config.DELTA_A], nargs="*",
             help="rate of recovery from asymptomatic phase (a->r) [0.05,1.0]",
@@ -381,6 +374,15 @@ class SairErlangSectionsParser(SirErlangSectionsParser):
             help="asymptomatic rate (a->i) [0.05,1]",
         )
 
+    @classmethod
+    def initialize_initial_conditions_group(cls, group):
+        super().initialize_initial_conditions_group(group)
+        group.add_argument(
+            "--initial_asymptomatic", type=int, default=config.initial_asymptomatic,
+            help="initial number of asymptomatic individuals if None is"
+                 "specified is set to first day of input data",
+        )
+
 
 # SEAIR versions:
 class SeairParser(SairParser):
@@ -388,15 +390,18 @@ class SeairParser(SairParser):
     @classmethod
     def initialize_parameters_group(cls, group):
         super().initialize_parameters_group(group)
-        # Exposed
+        group.add_argument(
+            "--epsilon", type=float, default=config.EPSILON,
+            help="latency rate (e->a) [0.2,1.0]",
+        )
+
+    @classmethod
+    def initialize_initial_conditions_group(cls, group):
+        super().initialize_initial_conditions_group(group)
         group.add_argument(
             "--initial_exposed", type=int, default=config.initial_exposed,
             help="initial number of latent individuals if None is specified"
                  "is set to first day of input data",
-        )
-        group.add_argument(
-            "--epsilon", type=float, default=config.EPSILON,
-            help="latency rate (e->a) [0.2,1.0]",
         )
 
 
@@ -406,14 +411,17 @@ class SirdParser(SirParser):
     @classmethod
     def initialize_parameters_group(cls, group):
         super().initialize_parameters_group(group)
-        # Dead
-        group.add_argument(
-            "--initial_dead", type=int, default=config.initial_dead,
-            help="initial number of dead individuals",
-        )
         group.add_argument(
             "--theta", type=float, default=config.THETA,
             help="death probability [0.001,0.1]",
+        )
+
+    @classmethod
+    def initialize_initial_conditions_group(cls, group):
+        super().initialize_initial_conditions_group(group)
+        group.add_argument(
+            "--initial_dead", type=int, default=config.initial_dead,
+            help="initial number of dead individuals",
         )
 
 
