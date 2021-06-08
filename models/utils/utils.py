@@ -804,9 +804,14 @@ class ParserCommon:
 
 def get_time_series(args):
     """Time_series from input file"""
-    time_series = np.loadtxt(args.data, delimiter=",", dtype=int, usecols=(0, 1, 2, 3))[
-        args.day_min : args.day_max
-    ]
+    if hasattr(args, "section_days"):
+        time_series = np.loadtxt(
+            args.data, delimiter=",", dtype=int, usecols=(0, 1, 2, 3)
+        )[args.day_min : args.day_min + args.section_days[-1]]
+    else:
+        time_series = np.loadtxt(
+            args.data, delimiter=",", dtype=int, usecols=(0, 1, 2, 3)
+        )[args.day_min : args.day_max]
 
     # Scale for undiagnosed cases
     if hasattr(args, "undiagnosed") and args.undiagnosed != 0:
