@@ -55,7 +55,7 @@ The following models are ready to be used with Optilog:
   - [ ] Sidarthe 2 (todo: more descriptive name?)
   - [ ] Sidarthe comp (todo: more descriptive name?)
 - MMCAcovid19 (todo)
-- SIR (TODO: fix net-sir-sections [when running 2 sections in cost])
+- SIR
   - [x] SIR
   - [x] Network SIR (todo: check if beta must be divided by n)
   - [x] Network SIR with sections

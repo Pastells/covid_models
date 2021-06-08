@@ -402,6 +402,7 @@ def cost_func(time_series, var_m, metric=sum_sq):
     cost = cost_return(time_series, var_m, metric)
     # Normalize with number of days
     # cost = cost / len(time_series) * 100
+    # TODO: borrar aquest print un cop estigui tot amb optilog
     print(f"GGA SUCCESS {cost}")
     return cost
 
@@ -785,9 +786,14 @@ class ParserCommon:
 
 def get_time_series(args):
     """Time_series from input file"""
-    time_series = np.loadtxt(args.data, delimiter=",", dtype=int, usecols=(0, 1, 2, 3))[
-        args.day_min : args.day_max
-    ]
+    if hasattr(args, "section_days"):
+        time_series = np.loadtxt(
+            args.data, delimiter=",", dtype=int, usecols=(0, 1, 2, 3)
+        )[args.day_min : args.day_min + args.section_days[-1]]
+    else:
+        time_series = np.loadtxt(
+            args.data, delimiter=",", dtype=int, usecols=(0, 1, 2, 3)
+        )[args.day_min : args.day_max]
 
     # Scale for undiagnosed cases
     if args.undiagnosed != 0:
