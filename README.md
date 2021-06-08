@@ -44,10 +44,10 @@ The following models are ready to be used with Optilog:
 
 - SAIR
   - [x] SAIR
-  - [ ] Network SAIR
+  - [x] Network SAIR
   - [ ] Network SAIR with sections
-  - [ ] Erlang SAIR
-  - [ ] Erlang SAIR with sections
+  - [x] Erlang SAIR
+  - [x] Erlang SAIR with sections
 - SEAIR
   - [x] SEAIR
 - SIDARTHE
@@ -57,9 +57,9 @@ The following models are ready to be used with Optilog:
 - MMCAcovid19 (todo)
 - SIR (TODO: fix net-sir-sections [when running 2 sections in cost])
   - [x] SIR
-  - [x] Network SIR
+  - [x] Network SIR (todo: check if beta must be divided by n)
   - [x] Network SIR with sections
   - [x] Erlang SIR
   - [x] Erlang SIR with sections
-- SIRD (TODO: remove old sird.py)
+- SIRD
   - [x] SIRD
