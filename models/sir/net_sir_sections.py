@@ -175,7 +175,7 @@ def event_driven_simulation(
             initial_recovered = R[-1]
 
     day_max = utils.day_data(t, I, infected, day_max)
-    del t, I, G
+    del t, I, R, G
     return Result(infected, day_max)
 
 

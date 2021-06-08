@@ -310,6 +310,7 @@ class NetworkSairSectionsParser(NetworkSirSectionsParser):
     # + asymptomatic_sections()
     @classmethod
     def initialize_parameters_group(cls, group):
+        super().initialize_parameters_group(group)
         group.add_argument(
             "--delta_a", type=float, default=[config.DELTA_A], nargs="*",
             help="rate of recovery from asymptomatic phase (a->r) [0.05,1.0]",

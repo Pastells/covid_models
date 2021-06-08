@@ -45,7 +45,7 @@ The following models are ready to be used with Optilog:
 - SAIR
   - [x] SAIR
   - [x] Network SAIR
-  - [ ] Network SAIR with sections
+  - [x] Network SAIR with sections
   - [x] Erlang SAIR
   - [x] Erlang SAIR with sections
 - SEAIR
