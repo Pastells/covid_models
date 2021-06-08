@@ -842,8 +842,8 @@ def parameters_init_common(args):
             "initial_infected cannot be 0. Change given initial condition or check day_min data"
         )
 
-    if (hasattr(args, "E_0")) and (args.E_0 is None):
-        args.E_0 = int(time_series[0, 0])
+    if (hasattr(args, "initial_exposed")) and (args.initial_exposed is None):
+        args.initial_exposed = int(time_series[0, 0])
 
     if (hasattr(args, "initial_asymptomatic")) and (args.initial_asymptomatic is None):
         args.initial_asymptomatic = int(time_series[0, 0])
