@@ -20,7 +20,7 @@ from optilog.autocfg import ac, Int, Real
 from ..utils import utils, config
 
 
-Result = namedtuple("Result", "infected asymptomatic recovered day_max")
+Result = namedtuple("Result", "infected day_max")
 
 
 def check_successful_simulation(result: Result, time_total: int):
@@ -86,13 +86,9 @@ def sair(
 
     # results per day and seed
     infected = np.zeros([n_seeds, t_total], dtype=int)
-    recovered = np.zeros([n_seeds, t_total], dtype=int)
-    asymptomatic = np.zeros([n_seeds, t_total], dtype=int)
 
     for mc_step, result in enumerate(results):
         infected[mc_step] = result.infected
-        recovered[mc_step] = result.recovered
-        asymptomatic[mc_step] = result.asymptomatic
 
     cost = get_cost(time_series, infected, t_total, day_max, n_seeds, metric)
     print(f"GGA SUCCESS {cost}")
@@ -119,12 +115,7 @@ def gillespie_simulation(
     )
 
     infected = np.zeros(t_total, dtype=int)
-    asymptomatic = np.zeros(t_total, dtype=int)
-    recovered = np.zeros(t_total, dtype=int)
-
     infected[0] = initial_infected
-    asymptomatic[0] = initial_asymptomatic
-    recovered[0] = initial_recovered
 
     t_step, time = 0, 0
 
@@ -136,11 +127,9 @@ def gillespie_simulation(
             rates=rates,
         )
 
-    day_max = utils.day_data(comp.T[:t_step], comp.A[:t_step], asymptomatic, day_max)
-    day_max = utils.day_data(comp.T[:t_step], comp.R[:t_step], recovered, day_max)
     day_max = utils.day_data(comp.T[:t_step], comp.I[:t_step], infected, day_max)
 
-    return Result(infected, asymptomatic, recovered, day_max)
+    return Result(infected, day_max)
 
 
 class Compartments:
@@ -257,6 +246,10 @@ def main(args):
         t_total,
         args.n_t_steps,
         args.metric,
+        n=args.n,
+        initial_infected=args.initial_infected,
+        initial_recovered=args.initial_recovered,
+        initial_asymptomatic=args.initial_asymptomatic,
         alpha=args.alpha,
         delta_a=args.delta_a,
         delta=args.delta,

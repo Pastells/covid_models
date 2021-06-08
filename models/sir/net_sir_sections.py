@@ -15,7 +15,7 @@ import random
 from collections import namedtuple
 
 import numpy as np
-from optilog.autocfg import ac, Int, Real
+from optilog.autocfg import ac, Int, Real, Categorical
 
 from . import fast_sir_sections
 from ..utils import utils, utils_net, config
@@ -40,8 +40,8 @@ def net_sir_sections(
     t_total: int,
     metric: str,
     n_sections: int,
-    network: str,
-    network_param: int,
+    network: Categorical("er", "ba") = "ba",
+    network_param: Int(1, 50) = 5,
     initial_infected: Int(1, 1000) = 10,
     initial_recovered: Int(0, 1000) = 4,
     section_day1: Int(0, 1000) = 10,

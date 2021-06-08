@@ -78,8 +78,8 @@ def sir_erlang_sections(
     ]
 
     n_vect = [n1, n2, n3, n4, n5]
-    beta_vect = [beta1, beta2, beta3, beta4, beta5]
-    delta_vect = [delta1, delta2, delta3, delta4, delta5]
+    beta_vect = np.array([beta1, beta2, beta3, beta4, beta5]) * k_inf
+    delta_vect = np.array([delta1, delta2, delta3, delta4, delta5]) * k_rec
     shapes = {"k_inf": k_inf, "k_rec": k_rec}
 
     mc_step = 0
@@ -156,7 +156,6 @@ def gillespie_simulation(
     infected[0] = initial_infected
 
     t_step, time = 0, 0
-
     index_n = 1  # just to avoid pylint complaining
 
     # Sections
@@ -266,7 +265,6 @@ def pad(var, length=5):
 def parameters_init(args):
     """Initial parameters from argparse"""
     t_total, time_series = utils.parameters_init_common(args)
-    shapes = {"k_inf": args.k_inf, "k_rec": args.k_rec}
 
     n_sections = len(args.section_days)
 
@@ -278,11 +276,11 @@ def parameters_init(args):
     args.delta = pad(args.delta)
     args.n = pad(args.n)
 
-    return t_total, time_series, n_sections, shapes
+    return t_total, time_series, n_sections
 
 
 def main(args):
-    t_total, time_series, n_sections, shapes = parameters_init(args)
+    t_total, time_series, n_sections = parameters_init(args)
     sir_erlang_sections(
         time_series,
         args.seed,
@@ -293,8 +291,8 @@ def main(args):
         n_sections,
         initial_infected=args.initial_infected,
         initial_recovered=args.initial_recovered,
-        k_rec=shapes["k_rec"],
-        k_inf=shapes["k_inf"],
+        k_rec=args.k_rec,
+        k_inf=args.k_inf,
         section_day1=args.section_days[0],
         section_day2=args.section_days[1],
         section_day3=args.section_days[2],

@@ -186,13 +186,11 @@ def gillespie_step(t_step, comp, prob_heal):
 def parameters_init(args):
     """initial parameters from argparse"""
     t_total, time_series = utils.parameters_init_common(args)
-
-    rates = {"beta": args.beta, "delta": args.delta}
-    return t_total, time_series, rates
+    return t_total, time_series
 
 
 def main(args):
-    t_total, time_series, rates = parameters_init(args)
+    t_total, time_series = parameters_init(args)
     sir(
         time_series,
         args.seed,
@@ -203,6 +201,6 @@ def main(args):
         n=args.n,  # due to a bug, naming the configurable parameters is mandatory
         initial_infected=args.initial_infected,
         initial_recovered=args.initial_recovered,
-        delta=rates["delta"],
-        beta=rates["beta"],
+        delta=args.delta,
+        beta=args.beta,
     )

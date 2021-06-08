@@ -14,7 +14,7 @@ import random
 from collections import namedtuple
 
 import numpy as np
-from optilog.autocfg import ac, Int, Real
+from optilog.autocfg import ac, Int, Real, Categorical
 
 from . import fast_sir
 from ..utils import utils, utils_net
@@ -38,8 +38,8 @@ def net_sir(
     n_seeds: int,
     t_total: int,
     metric: str,
-    network: str,
-    network_param: int,
+    network: Categorical("er", "ba") = "ba",
+    network_param: Int(1, 50) = 5,
     n: Int(70000, 90000) = 70000,
     initial_infected: Int(1, 1000) = 10,
     initial_recovered: Int(0, 1000) = 4,
@@ -48,7 +48,6 @@ def net_sir(
 ):
     # Normalize beta for the number of individuals
     rates = {"beta": beta / n, "delta": delta}
-    beta = beta / n
 
     # results per day and seed
     infected = np.zeros([n_seeds, t_total], dtype=np.uint32)
@@ -116,13 +115,11 @@ def event_driven_simulation(
 def parameters_init(args):
     """initial parameters from argparse"""
     t_total, time_series = utils.parameters_init_common(args)
-
-    rates = {"beta": args.beta, "delta": args.delta}
-    return t_total, time_series, rates
+    return t_total, time_series
 
 
 def main(args):
-    t_total, time_series, rates = parameters_init(args)
+    t_total, time_series = parameters_init(args)
     net_sir(
         time_series,
         args.seed,
@@ -134,6 +131,6 @@ def main(args):
         n=args.n,  # due to a bug, naming the configurable parameters is mandatory
         initial_infected=args.initial_infected,
         initial_recovered=args.initial_recovered,
-        delta=rates["delta"],
-        beta=rates["beta"],
+        delta=args.delta,
+        beta=args.beta,
     )

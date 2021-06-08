@@ -231,14 +231,11 @@ def gillespie_step(t_step, comp, probs, shapes):
 def parameters_init(args):
     """Initial parameters from argparse"""
     t_total, time_series = utils.parameters_init_common(args)
-
-    shapes = {"k_inf": args.k_inf, "k_rec": args.k_rec}
-    rates = {"beta": args.beta, "delta": args.delta}
-    return t_total, time_series, rates, shapes
+    return t_total, time_series
 
 
 def main(args):
-    t_total, time_series, rates, shapes = parameters_init(args)
+    t_total, time_series = parameters_init(args)
     sir_erlang(
         time_series,
         args.seed,
@@ -249,8 +246,8 @@ def main(args):
         n=args.n,  # due to a bug, naming the configurable parameters is mandatory
         initial_infected=args.initial_infected,
         initial_recovered=args.initial_recovered,
-        delta=rates["delta"],
-        beta=rates["beta"],
-        k_rec=shapes["k_rec"],
-        k_inf=shapes["k_inf"],
+        delta=args.delta,
+        beta=args.beta,
+        k_rec=args.k_rec,
+        k_inf=args.k_inf,
     )
