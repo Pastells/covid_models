@@ -1,3 +1,5 @@
+import sys
+import traceback
 from argparse import ArgumentParser
 
 from .utils import config
@@ -102,7 +104,11 @@ class CommonParser:
         )
         group.add_argument(
             "--save", type=str, default=None,
-            help="specify a name for outputfile"
+            help="specify a name for outputfile",
+        )
+        group.add_argument(
+            "--limit_memory", action="store_true",
+            help="specify to limit process memory in order to avoid memory errors.",
         )
 
 
@@ -626,7 +632,22 @@ def parse_args():
 
 def main():
     args = parse_args()
-    args.run_fn(args)
+    if args.limit_memory:
+        import resource
+
+        soft, hard = resource.getrlimit(resource.RLIMIT_AS)
+        resource.setrlimit(resource.RLIMIT_AS, (int(1024 ** 3 * 5.5), hard))
+
+    try:
+        args.run_fn(args)
+    except MemoryError as ex:
+        sys.stderr.write(f"{repr(ex)}\n")
+        sys.stdout.write("MemoryError in python\n")
+        sys.stdout.write(f"GGA MEMOUT {1e20}\n")
+    except Exception as ex:
+        sys.stderr.write(f"{repr(ex)}\n")
+        sys.stdout.write(f"GGA CRASHED {1e20}\n")
+        traceback.print_exc(ex)
 
 
 if __name__ == "__main__":

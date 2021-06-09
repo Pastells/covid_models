@@ -197,8 +197,7 @@ def mean_alive(var_day, t_total, day_max, mc_nseed):
     if mc_nseed - alive_realizations > mc_nseed * 0.1:
         sys.stderr.write("The initial number of infected may be too low\n")
         sys.stderr.write(
-            f"Alive realizations after {check_realization_alive} days = {alive_realizations},\
-              out of {mc_nseed}\n"
+            f"Alive realizations after {check_realization_alive} days = {alive_realizations}, out of {mc_nseed}\n"
         )
     # return var_m, var_std
     return np.column_stack([var_m, var_std])
@@ -582,8 +581,7 @@ class ParserCommon:
             type=int,
             default=config.SECTIONS_DAYS,
             nargs="*",
-            help="starting day for each section, first one must be 0,\
-                            and final day for last one",
+            help="ending day for each section",
         )
         self.parser_params.add_argument(
             "--transition_days",
@@ -741,9 +739,9 @@ class ParserCommon:
     def dead(self):
         """Add dead compartment: initial and transition rate"""
         self.parser_init.add_argument(
-            "--inital_dead",
+            "--initial_dead",
             type=int,
-            default=config.inital_dead,
+            default=config.initial_dead,
             help="initial number of dead individuals",
         )
         self.parser_params.add_argument(
@@ -777,7 +775,7 @@ class ParserCommon:
         self.parser_act.add_argument(
             "--sequential",
             action="store_true",
-            help="specify for sequential execution, by default is parallal",
+            help="specify for sequential execution, by default is parallel",
         )
 
 
@@ -796,7 +794,7 @@ def get_time_series(args):
         )[args.day_min : args.day_max]
 
     # Scale for undiagnosed cases
-    if args.undiagnosed != 0:
+    if hasattr(args, "undiagnosed") and args.undiagnosed != 0:
         time_series[:, 0] = (time_series[:, 0] * 100 / (100 - args.undiagnosed)).astype(
             int
         )
