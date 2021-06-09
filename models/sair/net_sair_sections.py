@@ -95,8 +95,10 @@ def net_sair_sections(
 
     n_vect = [n1, n2, n3, n4, n5]
     alpha_vect = [alpha1, alpha2, alpha3, alpha4, alpha5]
-    beta_a_vect = [beta_a1, beta_a2, beta_a3, beta_a4, beta_a5]
-    beta_vect = [beta1, beta2, beta3, beta4, beta5]
+    beta_a_vect = (
+        np.array([beta_a1, beta_a2, beta_a3, beta_a4, beta_a5]) / network_param
+    )
+    beta_vect = np.array([beta1, beta2, beta3, beta4, beta5]) / network_param
     delta_a_vect = [delta_a1, delta_a2, delta_a3, delta_a4, delta_a5]
     delta_vect = [delta1, delta2, delta3, delta4, delta5]
 

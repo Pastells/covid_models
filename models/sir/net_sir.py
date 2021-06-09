@@ -47,7 +47,7 @@ def net_sir(
     beta: Real(0.1, 1.0) = 0.5,
 ):
     # Normalize beta for the number of individuals
-    rates = {"beta": beta / n, "delta": delta}
+    rates = {"beta": beta / network_param, "delta": delta}
 
     # results per day and seed
     infected = np.zeros([n_seeds, t_total], dtype=np.uint32)

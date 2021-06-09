@@ -76,7 +76,7 @@ def net_sir_sections(
     ]
 
     n_vect = [n1, n2, n3, n4, n5]
-    beta_vect = [beta1, beta2, beta3, beta4, beta5]
+    beta_vect = np.array([beta1, beta2, beta3, beta4, beta5]) / network_param
     delta_vect = [delta1, delta2, delta3, delta4, delta5]
 
     mc_step = 0

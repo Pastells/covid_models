@@ -55,8 +55,8 @@ def net_sair(
 ):
     # TODO: check if beta must be divided by n
     rates = {
-        "beta_a": beta_a,
-        "beta": beta,
+        "beta_a": beta_a / network_param,
+        "beta": beta / network_param,
         "delta_a": delta_a,
         "delta": delta,
         "alpha": alpha,
