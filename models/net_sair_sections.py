@@ -82,7 +82,7 @@ def main():
                 args.initial_recovered = R[-1]
 
         day_max = utils.day_data(t, I, I_day[mc_step], day_max)
-        del t, I, G
+        del t, A, I, R, G
 
     # =========================
 
@@ -144,8 +144,8 @@ def parameters_section(args, section, rates_old=None, section_day_old=0):
     """
     n = sum(args.n[: section + 1])
     rates = {
-        "beta_a": args.beta_a[section],
-        "beta": args.beta[section],
+        "beta_a": args.beta_a[section] / args.network_param,
+        "beta": args.beta[section] / args.network_param,
         "delta_a": args.delta_a[section],
         "delta": args.delta[section],
         "alpha": args.alpha[section],

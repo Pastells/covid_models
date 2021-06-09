@@ -75,7 +75,7 @@ def parameters_init(args):
     """initial parameters from argparse"""
     t_total, time_series = utils.parameters_init_common(args)
 
-    rates = {"beta": args.beta, "delta": args.delta}
+    rates = {"beta": args.beta / args.network_param, "delta": args.delta}
     return t_total, time_series, rates
 
 
@@ -89,7 +89,7 @@ if __name__ == "__main__":
     except MemoryError as ex:
         sys.stderr.write(f"{repr(ex)}\n")
         sys.stdout.write("MemoryError in python\n")
-        sys.stdout.write(f"GGA CRASHED {1e20}\n")
+        sys.stdout.write(f"GGA MEMOUT {1e20}\n")
     except Exception as ex:
         sys.stderr.write(f"{repr(ex)}\n")
         sys.stdout.write(f"GGA CRASHED {1e20}\n")

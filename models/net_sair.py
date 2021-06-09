@@ -84,8 +84,8 @@ def parameters_init(args):
     t_total, time_series = utils.parameters_init_common(args)
 
     rates = {
-        "beta_a": args.beta_a,
-        "beta": args.beta,
+        "beta_a": args.beta_a / args.network_param,
+        "beta": args.beta / args.network_param,
         "delta_a": args.delta_a,
         "delta": args.delta,
         "alpha": args.alpha,

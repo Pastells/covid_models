@@ -22,7 +22,6 @@ from utils import utils, utils_net, config
 def main():
     args = parsing()
     t_total, time_series, n_sections = parameters_init(args)
-    # print(args)
 
     # results per day and seed
     I_day = np.zeros([args.mc_nseed, t_total], dtype=int)
@@ -79,7 +78,7 @@ def main():
                 args.initial_recovered = R[-1]
 
         day_max = utils.day_data(t, I, I_day[mc_step], day_max)
-        del t, I, G
+        del t, I, R, G
 
     # =========================
 
@@ -131,7 +130,10 @@ def parameters_section(args, section, rates_old=None, section_day_old=0):
     Section dependent parameters from argparse
     """
     n = sum(args.n[: section + 1])
-    rates = {"beta": args.beta[section], "delta": args.delta[section]}
+    rates = {
+        "beta": args.beta[section] / args.network_param,
+        "delta": args.delta[section],
+    }
     section_day = args.section_days[section + 1]
     return (
         n,
