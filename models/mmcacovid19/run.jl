@@ -38,7 +38,7 @@ function parsing()
             help= "household permeability"
         "--mobility_data"
             arg_type = String
-            default = "/home/pol/Documents/iiia_udl/programs/models/arenas/data.jld"
+            default = "data.jld"
             help = "file with julia variables from ine data"
         "--data"
             arg_type = String
@@ -73,6 +73,7 @@ end
 try
     global args
     args = parsing()
+    args["mobility_data"] = normpath(joinpath(@__FILE__,"..",args["mobility_data"]))
 catch e
     println("Error parsing arguments:\n$e")
     println("GGA CRASHED ", 1e20)
@@ -193,7 +194,8 @@ function cost_function(epi_params::Epidemic_Params,
 
 
     @printf("GGA SUCCESS %.2f\n", cost/1e6)
-    CSV.write("output/output.csv", df)
+    out_file = normpath(joinpath(@__FILE__,"..", "output/output.csv"))
+    CSV.write(out_file, df)
 end
 
 ## -----------------------------------------------------------------------------
@@ -220,40 +222,6 @@ catch e
     println("GGA CRASHED ", 1e20)
     rethrow()
 end
-
-# number of regions (municipalities)
-
-#=
-M = 5
-# populations for region and stratta
-nᵢᵍ = [ 4995.0   9875.0  14970.0   30010.0   40326.0
-       30107.0  59630.0  90009.0  179745.0  239983.0
-       15145.0  29827.0  45086.0   90266.0  120026.0]
-
-# region surface
-sᵢ = [10.6, 23.0, 26.6, 5.7, 61.6]
-
-edgelist = [1  1; 1  2; 1  3; 1  5; 2  1; 2  2; 2  3; 2  4;
-            2  5; 3  1; 3  2; 3  3; 3  4; 3  5; 4  1; 4  3;
-            4  4; 4  5; 5  1; 5  2; 5  3; 5  5]
-
-# Mobility matrix
-#   assumption Rᵢⱼ = δᵢⱼ for Y and O
-Rᵢⱼ = [0.3288; 0.0905; 0.0995; 0.4812; 0.3916; 0.2213; 0.1052; 0.2775;
-       0.0044; 0.0233; 0.5205; 0.0117; 0.0807; 0.3638; 0.5156; 0.0579;
-       0.0218; 0.4047; 0.3081; 0.2862; 0.0621; 0.3436]
-
-println(typeof(nᵢᵍ))
-println(typeof(Rᵢⱼ))
-println(typeof(edgelist))
-println(typeof(sᵢ))
-println(size(nᵢᵍ))
-println(size(Rᵢⱼ))
-println(size(edgelist))
-println(size(sᵢ))
-=#
-
-## .............................................................................
 
 # contacts matrix
 C = [0.5980 0.3849 0.0171
@@ -399,13 +367,3 @@ if args["save"]
     store_compartment(epi_params, population, "R", suffix, output_path)
     store_compartment(epi_params, population, "D", suffix, output_path)
 end
-
-
-# Optional kernel length
-# τ = 21
-
-# Calculate effective reproduction number R
-# Rᵢᵍ_eff, R_eff = compute_R_eff(epi_params, population, τ)
-
-# Calculate and store effective reproduction number R
-# store_R_eff(epi_params, population, suffix, output_path; τ=τ)
