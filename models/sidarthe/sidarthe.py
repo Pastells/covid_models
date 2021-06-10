@@ -13,12 +13,12 @@ def parsing():
         hence they are NOT optional,
         -- is just necessary for the automatic configurator.
         They are the following:
-        --alfa1 0.57 --beta1 0.0114 --gamma1 0.456 --epsilon1 0.171
-        --theta1 0.3705 --zeta1 0.1254 --mu1 0.0171 --nu1 0.0274
-        --tau1 0.01 --lambda1 0.0342 --kappa1 0.0171 --alfa2 0.4218
-        --beta2 0.0057 --gamma2 0.285 --epsilon3 0.1425 --alfa4 0.36
-        --beta4 0.005 --gamma4 0.2 --mu4 0.008 --nu4 0.015 --zeta4 0.034
-        --lambda4 0.08 --rho4 0.0171 --alfa5 0.21 --gamma5 0.11
+        --alfa1 0.57 --beta1 0.0114 --gamma1 0.456 --epsilon1 0.171 \
+        --theta1 0.3705 --zeta1 0.1254 --mu1 0.0171 --nu1 0.0274 \
+        --tau1 0.01 --lambda1 0.0342 --kappa1 0.0171 --alfa2 0.4218 \
+        --beta2 0.0057 --gamma2 0.285 --epsilon3 0.1425 --alfa4 0.36 \
+        --beta4 0.005 --gamma4 0.2 --mu4 0.008 --nu4 0.015 --zeta4 0.034 \
+        --lambda4 0.08 --rho4 0.0171 --alfa5 0.21 --gamma5 0.11 \
         --epsilon6 0.2 --rho6 0.02 --sigma6 0.01 --zeta6 0.025
         """,
         formatter_class=argparse.MetavarTypeHelpFormatter,
@@ -167,6 +167,7 @@ def main():
     cost_days = [args.day_min, args.day_max]
 
     oc = Oct2Py()
+    oc.addpath("models/sidarthe")
     cost = oc.sidarthe(params1, params2, params3, params4, params5, params6, cost_days)
 
     with open("costs.dat", "a") as f:

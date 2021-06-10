@@ -1,7 +1,8 @@
-"""Create train/test cost comparison plot"""
+"""Create train/test cost comparison plot
+Execution example
+`python scripts/sidarthe/data_cleaning.py results/sidarthe/41_46 41 46`
+"""
 
-import sys, os
-from copy import deepcopy
 from functools import reduce
 from itertools import compress
 import argparse
@@ -12,11 +13,8 @@ import seaborn as sns
 
 sns.set()
 
-sys.path.append(os.path.abspath(os.path.join(sys.path[0], os.pardir, "models")))
-from utils.utils import get_time_series
-
-N_GENERATIONS = 100
-N_SEEDS = 12
+N_GENERATIONS = 500
+N_SEEDS = 20
 
 
 # --------------------------------------------------------
@@ -30,7 +28,7 @@ def main():
     results_df, results_df_vec = get_dataframe(args.results_file)
     results_df_vec = reduce(lambda x, y: pd.merge(x, y, how="outer"), results_df_vec)
 
-    data = get_data()
+    data = sidarthe_data()
 
     if args.day_mid is False:
         # cost for average
@@ -60,7 +58,6 @@ def parsing():
     parser.add_argument("folder", type=str)
     parser.add_argument("day_min", type=int)
     parser.add_argument("day_max", type=int)
-    parser.add_argument("data", type=str, help="file with time series")
 
     parser.add_argument("--folder2", type=str, default=False)
     parser.add_argument("--day_mid", type=int, default=False)
@@ -112,8 +109,8 @@ def val_test_split(df):
 
 def val_test(results_df_vec):
     # Split data and results
-    data_val = get_data("validation")
-    data_test = get_data("test")
+    data_val = sidarthe_data("validation")
+    data_test = sidarthe_data("test")
     df_val, df_test = val_test_split(results_df_vec)
 
     cost_val_vect = compute_cost(data_val, df_val, which="validation", columns=2)
@@ -168,7 +165,6 @@ def get_dataframe(file, std=False) -> pd.DataFrame:
 
     # Average over seeds
     df = reduce(lambda x, y: pd.merge(x, y, how="outer"), df_vec)
-
     if std is True:
         df = df.groupby("gen").agg(["mean", "std"])
     else:
@@ -181,23 +177,35 @@ def get_dataframe(file, std=False) -> pd.DataFrame:
 # --------------------------------------------------------
 
 
-def get_data(which="test") -> list:
+def sidarthe_data(which="test") -> list:
     """Filter wanted days from original data"""
 
-    args2 = deepcopy(args)
     if which == "validation":
-        args2.day_min, args2.day_max = args.day_min, args.day_mid
+        day_min, day_max = args.day_min, args.day_mid
     elif which == "test":
-        args2.day_min = (args.day_mid is not False) * args.day_mid + (
+        day_min = (args.day_mid is not False) * args.day_mid + (
             args.day_mid is False
         ) * args.day_min
-        args2.day_max = args.day_max
+        day_max = args.day_max
     elif which == "all":
-        args2.day_min, args2.day_max = 0, args.day_max
+        day_min, day_max = 0, args.day_max
     else:
         raise ValueError("Choose 'validation' or 'test' in `compute_cost`")
 
-    data = get_time_series(args2)
+    start = (day_min <= 4) * 0 + (day_min > 4) * (day_min - 3)
+    # fmt: off
+    Guariti = np.array([0, 0, 0, 1, 1, 1, 3, 45, 46, 50, 83, 149, 160, 276, 414, 523, 589, 622, 724, 1004, 1045, 1258, 1439, 1966, 2335, 2749, 2941, 4025, 4440, 5129, 6072, 7024, 7432, 8326, 9362, 10361, 10950, 12384, 13030, 14620, 15729, 16847, 18278, 19758, 20996, 21815])
+    Isolamento_domiciliare = np.array([49, 91, 162, 221, 284, 412, 543, 798, 927, 1000, 1065, 1155, 1060, 1843, 2180, 2936, 2599, 3724, 5036, 6201, 7860, 9268, 10197, 11108, 12090, 14935, 19185, 22116, 23783, 26522, 28697, 30920, 33648, 36653, 39533, 42588, 43752, 45420, 48134, 50456, 52579, 55270, 58320])
+    Ricoverati_sintomi = np.array([54, 99, 114, 128, 248, 345, 401, 639, 742, 1034, 1346, 1790, 2394, 2651, 3557, 4316, 5038, 5838, 6650, 7426, 8372, 9663, 11025, 12894, 14363, 15757, 16020, 17708, 19846, 20692, 21937, 23112, 24753, 26029, 26676, 27386, 27795, 28192, 28403, 28540, 28741, 29010, 28949])
+    Terapia_intensiva = np.array([26, 23, 35, 36, 56, 64, 105, 140, 166, 229, 295, 351, 462, 567, 650, 733, 877, 1028, 1153, 1328, 1518, 1672, 1851, 2060, 2257, 2498, 2655, 2857, 3009, 3204, 3396, 3489, 3612, 3732, 3856, 3906, 3981, 4023, 4035, 4053, 4068, 3994, 3977])
+    # fmt: on
+
+    data = [
+        Guariti[day_min:day_max],
+        Isolamento_domiciliare[start:day_max],
+        Ricoverati_sintomi[start:day_max],
+        Terapia_intensiva[start:day_max],
+    ]
 
     return data
 
@@ -215,15 +223,14 @@ def compute_cost(data, df, which="test", columns=0) -> np.array:
             args.day_max
             - (args.day_mid is not False) * args.day_mid
             - (args.day_mid is False) * args.day_min
-            - 1
         )
     else:
         raise ValueError("Choose 'validation' or 'test' in `compute_cost`")
 
     cost = np.zeros(len(df))
-    for comp in range(3):
+    for comp in range(4):
         for day in range(dt):
-            cost += (df.iloc[:, columns + comp * dt + day] - data[day][comp]) ** 2
+            cost += (df.iloc[:, columns + comp * dt + day] - data[comp][day]) ** 2
 
     return cost / 1e6
 
@@ -234,10 +241,10 @@ def compute_cost(data, df, which="test", columns=0) -> np.array:
 def title_labels(save=False):
     """Add title, labels and show figure
     Specify save name if wanted"""
-    plt.title("SIRD")
+    plt.title("SIDARTHE")
     plt.xlabel("generations")
     plt.ylabel("cost")
-    plt.ylim(None, args.ylim)
+    plt.ylim([0, args.ylim])
     plt.legend()
     if save is not False:
         save = args.folder + "/" + save
@@ -261,27 +268,15 @@ def plotting(costs_df, costs_df_vec):
     alpha_seeds = 0.4
     if args.day_mid is not False:
         dt_str = f"(days {args.day_mid+1}-{args.day_max})"
+        sf = 1  # scale factor
+        sf_str = ""
     else:
         dt_str = f"(days {args.day_min+1}-{args.day_max})"
+        sf = 2  # scale factor
+        sf_str = f"/{sf} "
 
-    sf_str = "(scaled)"
-
-    # Scale costs relative to training
-    av_cost_scaling = (
-        costs_df["train_cost"]["mean"].iloc[-1]
-        / costs_df["test_av_cost"]["mean"].iloc[-1]
-    )
-
-    costs_df["test_av_cost"] *= av_cost_scaling
-    for df_i in costs_df_vec:
-        df_i["test_av_cost"] *= av_cost_scaling
-
-    costs_df["test_av_curve"] *= (
-        costs_df["train_cost"]["mean"].iloc[-1] / costs_df["test_av_curve"].iloc[-1]
-    )
-    costs_df["test_of_best_val"] *= (
-        costs_df["train_cost"]["mean"].iloc[-1] / costs_df["test_of_best_val"].iloc[-1]
-    )
+    costs_df["test_av_cost"] /= sf
+    costs_df["test_av_curve"] /= sf
 
     # -----------
     # main plot
@@ -297,13 +292,13 @@ def plotting(costs_df, costs_df_vec):
 
     if args.day_mid is not False:
         dt_str2 = f"(days {args.day_mid+1}-{args.day_max})"
-        costs_df["test_of_best_val"]
+        costs_df["test_of_best_val"] /= sf
         plt.plot(
             costs_df["test_of_best_val"],
             label=f"test (best validation seed) {sf_str}{dt_str2}",
         )
 
-    title_labels("sird_train_test")
+    title_labels("sidarthe_train_test")
 
     # -----------
     # training seeds
@@ -332,7 +327,7 @@ def plotting(costs_df, costs_df_vec):
         c=colors[0],
         lw=2,
     )
-    title_labels("sird_train")
+    title_labels("sidarthe_train")
 
     # -----------
     # test seeds
@@ -345,13 +340,13 @@ def plotting(costs_df, costs_df_vec):
         alpha=alpha_fill,
     )
     plt.plot(
-        costs_df_vec[0]["test_av_cost"],
+        costs_df_vec[0]["test_av_cost"] / sf,
         alpha=alpha_seeds,
         lw=1,
         label=f"test (individual seeds) {sf_str}{dt_str}",
     )
     for df_i in costs_df_vec[1:]:
-        plt.plot(df_i["test_av_cost"], alpha=alpha_seeds, lw=1)
+        plt.plot(df_i["test_av_cost"] / sf, alpha=alpha_seeds, lw=1)
     plt.plot(
         costs_df["test_av_cost"]["mean"],
         label=f"test (cost average) {sf_str}{dt_str}",
@@ -371,7 +366,7 @@ def plotting(costs_df, costs_df_vec):
             c=colors[3],
             lw=2,
         )
-    title_labels("sird_test")
+    title_labels("sidarthe_test")
 
 
 # --------------------------------------------------------
