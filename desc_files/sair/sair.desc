@@ -2,21 +2,23 @@
 ./data/italy.dat
 
 %PARAMS
---a real [-100.0,100.0]
---b real [-100.0,100.0]
---c real [0.01,100.0]
---d real [0.01,1.0]
+--n integer [10000,10000000]
+--beta real [0.05,1.0]
+--beta_a real [0.01,1.0]
+--delta real [0.05,1.0]
+--delta_a real [0.01,1.0]
+--alpha real [0.05,2.0]
 
 %MODULES
 python/3.6.5
 
 %META
-%%SEED 42
+%%SEED 44
 %%TIMEOUT 1200
 %%COST_MIN 0
 %%COST_MAX 100000000000000000000
-%%GENERATIONS 70
-%%MIN_GENERATIONS 60
+%%GENERATIONS 500
+%%MIN_GENERATIONS 100
 %%POPULATION 50
 
 %ENVIRONMENT-SETUP
@@ -24,10 +26,11 @@ python3 -m venv ./venv
 ./venv/bin/pip install numpy
 
 %EXECUTION
-./venv/bin/python -u ./models/cost.py \
+./venv/bin/python -u ./models/sair.py \
 --data ${instance} \
 --seed ${seed} \
 --timeout ${timeout} \
---lambd 0 \
---t0 0 \
+--day_min 20 \
+--day_max 54 \
+--mc_nseed 10 \
 ${@}

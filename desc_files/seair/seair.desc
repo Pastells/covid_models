@@ -1,5 +1,5 @@
 %DATA
-./data/china.dat
+./data/italy.dat
 
 %PARAMS
 --n integer [10000,10000000]
@@ -8,6 +8,7 @@
 --delta real [0.05,1.0]
 --delta_a real [0.01,1.0]
 --alpha real [0.05,2.0]
+--epsilon real [0.2,1.0]
 
 %MODULES
 python/3.6.5
@@ -18,20 +19,19 @@ python/3.6.5
 %%COST_MIN 0
 %%COST_MAX 100000000000000000000
 %%GENERATIONS 500
-%%MIN_GENERATIONS 400
+%%MIN_GENERATIONS 100
 %%POPULATION 50
-%%INSTANCES_GEN_MAX 20
 
 %ENVIRONMENT-SETUP
 python3 -m venv ./venv
 ./venv/bin/pip install numpy
 
 %EXECUTION
-./venv/bin/python -u ./models/sair.py \
+./venv/bin/python -u ./models/seair.py \
 --data ${instance} \
 --seed ${seed} \
 --timeout ${timeout} \
---day_min 0 \
+--day_min 20 \
 --day_max 54 \
 --mc_nseed 10 \
 ${@}
