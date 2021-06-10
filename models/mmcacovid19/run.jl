@@ -38,7 +38,7 @@ function parsing()
             help= "household permeability"
         "--mobility_data"
             arg_type = String
-            default = "/home/pol/Documents/iiia_udl/programs/models/arenas/data.jld"
+            default = "data.jld"
             help = "file with julia variables from ine data"
         "--data"
             arg_type = String
@@ -73,6 +73,7 @@ end
 try
     global args
     args = parsing()
+    args["mobility_data"] = normpath(joinpath(@__FILE__,"..",args["mobility_data"]))
 catch e
     println("Error parsing arguments:\n$e")
     println("GGA CRASHED ", 1e20)
@@ -193,7 +194,9 @@ function cost_function(epi_params::Epidemic_Params,
 
 
     @printf("GGA SUCCESS %.2f\n", cost/1e6)
-    CSV.write("output/output.csv", df)
+    out_file = normpath(joinpath(@__FILE__,"..", "output/output.csv"))
+    CSV.write(out_file, df)
+
 end
 
 ## -----------------------------------------------------------------------------
