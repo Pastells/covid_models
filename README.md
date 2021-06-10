@@ -57,7 +57,7 @@ The following models are ready to be used with Optilog:
 - MMCAcovid19 (todo)
 - SIR
   - [x] SIR
-  - [x] Network SIR (todo: check if beta must be divided by n)
+  - [x] Network SIR
   - [x] Network SIR with sections
   - [x] Erlang SIR
   - [x] Erlang SIR with sections
