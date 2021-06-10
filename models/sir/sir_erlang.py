@@ -47,6 +47,10 @@ def sir_erlang(
     k_rec: Int(1, 5) = 1,
     k_inf: Int(1, 5) = 1,
 ):
+    assert n - (initial_infected - initial_recovered) > 0, \
+        f"Insuficient individuals ({n}) for this initial settings" \
+        f" ({initial_infected}, {initial_recovered})"
+
     # Create shapes and rates dictionaries
     # Normalize beta for the number of individuals
     # Scale beta and delta with the Erlang shapes

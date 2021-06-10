@@ -54,6 +54,9 @@ def sair_erlang(
     k_inf: Int(1, 5) = 1,
     k_asym: Int(1, 5) = 1,
 ):
+    assert n - (initial_infected - initial_recovered - initial_asymptomatic) > 0, \
+        f"Insuficient individuals ({n}) for this initial settings" \
+        f" ({initial_asymptomatic} {initial_infected}, {initial_recovered})"
     rates = {
         "beta_a": beta_a / n * k_inf,
         "beta": beta / n * k_inf,

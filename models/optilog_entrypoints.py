@@ -66,3 +66,7 @@ _entrypoints = {
 
 def get_entrypoint_for_model(model):
     return _entrypoints[model]
+
+
+def get_available_models():
+    return _entrypoints.keys()

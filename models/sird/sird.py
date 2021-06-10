@@ -63,6 +63,10 @@ def sird(
     beta: Real(0.3, 0.4) = 0.3,
     theta: Real(0.004, 0.008) = 0.004,
 ):
+    assert n - (initial_infected - initial_recovered - initial_dead) > 0, \
+        f"Insuficient individuals ({n}) for this initial settings" \
+        f" ({initial_infected}, {initial_recovered}, {initial_dead})"
+
     # Normalize beta for the number of individuals
     beta = beta / n
 
@@ -139,8 +143,10 @@ def gillespie_simulation(
     t_step, time = 0, 0
 
     # Time loop
+    print(t_total)
     while comp.I[t_step] > 0 and time < t_total:
         t_step, time = gillespie(t_step, time, comp, delta, beta, theta)
+        print(t_step, time)
     # -------------------------
 
     day_max = utils.day_data(comp.T[:t_step], comp.I[:t_step], infected, day_max)
@@ -195,6 +201,7 @@ def gillespie(t_step, time, comp, delta, beta, theta):
     """
 
     lambda_sum = (delta + beta * comp.S[t_step]) * comp.I[t_step]
+    print(comp.S[t_step], comp.I[t_step])
     probs = {}
     probs["heal"] = delta * comp.I[t_step] / lambda_sum
     probs["die"] = theta

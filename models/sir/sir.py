@@ -44,6 +44,10 @@ def sir(
     delta: Real(0.1, 1.0) = 0.2,
     beta: Real(0.1, 1.0) = 0.5,
 ):
+    assert n - (initial_infected - initial_recovered) > 0, \
+        f"Insuficient individuals ({n}) for this initial settings" \
+        f" ({initial_infected}, {initial_recovered})"
+
     # Normalize beta for the number of individuals
     beta = beta / n
 

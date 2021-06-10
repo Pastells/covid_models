@@ -48,6 +48,9 @@ def seair(time_series: np.ndarray,
           beta_a: Real(0.0, 1.0) = 0.1,  # TODO
           beta: Real(0.0, 1.0) = 0.1,  # TODO
           ):
+    assert n - (initial_exposed - initial_asymptomatic - initial_infected - initial_recovered) > 0, \
+        f"Insuficient individuals ({n}) for this initial settings" \
+        f" ({initial_exposed}, {initial_asymptomatic}, {initial_infected}, {initial_recovered})"
     # results per day and seed
     infected = np.zeros([n_seeds, t_total], dtype=int)
 
