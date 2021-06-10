@@ -197,8 +197,7 @@ def mean_alive(var_day, t_total, day_max, mc_nseed):
     if mc_nseed - alive_realizations > mc_nseed * 0.1:
         sys.stderr.write("The initial number of infected may be too low\n")
         sys.stderr.write(
-            f"Alive realizations after {check_realization_alive} days = {alive_realizations},\
-              out of {mc_nseed}\n"
+            f"Alive realizations after {check_realization_alive} days = {alive_realizations}, out of {mc_nseed}\n"
         )
     # return var_m, var_std
     return np.column_stack([var_m, var_std])
@@ -842,15 +841,24 @@ def parameters_init_common(args):
     if args.initial_infected is None:
         args.initial_infected = int(time_series[0, 0])
 
-    if args.initial_infected == 0:
+    if args.initial_infected <= 0:
         raise ValueError(
-            "initial_infected cannot be 0. Change given initial condition or check day_min data"
+            "initial_infected must be a positive integer. \
+            Change given initial condition or check day_min data"
         )
+
+    initial_ind = args.initial_infected + args.initial_recovered
 
     if (hasattr(args, "initial_exposed")) and (args.initial_exposed is None):
         args.initial_exposed = int(time_series[0, 0])
+        initial_ind += args.initial_exposed
 
     if (hasattr(args, "initial_asymptomatic")) and (args.initial_asymptomatic is None):
         args.initial_asymptomatic = int(time_series[0, 0])
+        initial_ind += args.initial_asymptomatic
+
+    assert (
+        args.n - initial_ind > 0
+    ), f"Insuficient individuals ({args.n}) for this initial settings"
 
     return t_total, time_series

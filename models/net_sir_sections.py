@@ -14,6 +14,7 @@ dR(t)/dt =                      delta * I(t)
 import random
 import sys
 import traceback
+import resource
 import numpy as np
 from event_driven import fast_sir_sections
 from utils import utils, utils_net, config
@@ -147,9 +148,15 @@ def parameters_section(args, section, rates_old=None, section_day_old=0):
 # -------------------------
 
 if __name__ == "__main__":
+    soft, hard = resource.getrlimit(resource.RLIMIT_AS)
+    resource.setrlimit(resource.RLIMIT_AS, (int(1024 ** 3 * 5.5), hard))
     try:
         main()
+    except MemoryError as ex:
+        sys.stderr.write(f"{repr(ex)}\n")
+        sys.stdout.write("MemoryError in python\n")
+        sys.stdout.write(f"GGA MEMOUT {1e20}\n")
     except Exception as ex:
         sys.stderr.write(f"{repr(ex)}\n")
         sys.stdout.write(f"GGA CRASHED {1e20}\n")
-        traceback.print_exc(ex)
+        traceback.print_exc()
