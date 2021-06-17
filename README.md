@@ -43,16 +43,6 @@ python -m models sird --help
 
 The following models are ready to be used with Optilog:
 
-- SAIR
-  - [x] SAIR
-  - [x] Network SAIR
-  - [x] Network SAIR with sections
-  - [x] Erlang SAIR
-  - [x] Erlang SAIR with sections
-- SEAIR
-  - [x] SEAIR
-- SIDARTHE [ ] (todo)
-- MMCAcovid19 [ ] (todo)
 - SIR
   - [x] SIR
   - [x] Network SIR
@@ -61,3 +51,13 @@ The following models are ready to be used with Optilog:
   - [x] Erlang SIR with sections
 - SIRD
   - [x] SIRD
+- SAIR
+  - [x] SAIR
+  - [x] Network SAIR
+  - [x] Network SAIR with sections
+  - [x] Erlang SAIR
+  - [x] Erlang SAIR with sections
+- SEAIR
+  - [x] SEAIR
+- SIDARTHE [x]
+- MMCAcovid19 [ ] (todo)
