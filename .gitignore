@@ -11,3 +11,6 @@ results/*
 data/ine/
 **/__pycache__
 **.swp
+.idea/
+.python-version
+smac3-output_*/
