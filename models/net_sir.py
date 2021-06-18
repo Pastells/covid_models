@@ -25,7 +25,7 @@ def main():
     print(args)
 
     # results per day and seed
-    I_day = np.zeros([args.mc_nseed, t_total], dtype=np.uint32)
+    I_day = np.zeros([args.mc_nseed, t_total], dtype=int)
 
     day_max = 0
     # =========================
@@ -46,7 +46,6 @@ def main():
         del t, I, G
 
     # =========================
-
     utils.cost_save_plot(I_day, t_total, day_max, args, time_series)
 
 

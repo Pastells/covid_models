@@ -857,8 +857,12 @@ def parameters_init_common(args):
         args.initial_asymptomatic = int(time_series[0, 0])
         initial_ind += args.initial_asymptomatic
 
+    if np.array(args.n).size > 1:
+        n0 = args.n[0]
+    else:
+        n0 = args.n
     assert (
-        args.n - initial_ind > 0
+        n0 - initial_ind > 0
     ), f"Insuficient individuals ({args.n}) for this initial settings"
 
     return t_total, time_series
