@@ -8,6 +8,11 @@ from . import config
 # -------------------------
 
 
+def transition_weight(time, transition_days=config.TRANSITION_DAYS):
+    """tanh to transition between two values, used in section models"""
+    return 0.5 * (1 + np.tanh((time - transition_days / 2) * 5.33 / transition_days))
+
+
 def n_individuals(
     number,
     n_old,
@@ -21,29 +26,24 @@ def n_individuals(
     if (n_old is None) or (number == n_old):
         return None
 
-    def weight(time):
-        return 0.5 * (
-            1 + np.tanh((time - transition_days / 2) * 5.33 / transition_days)
-        )
-
     points = points_per_day * transition_days
     n_ind = np.zeros([points + 1, 2])
     for time in range(points):
-        n_ind[time, 0] = int((number - n_old) * weight(time / 4))
+        n_ind[time, 0] = int(
+            (number - n_old) * transition_weight(time / 4, transition_days)
+        )
         n_ind[time, 1] = t_0 + time / 4
     n_ind[-1, 0] = number - n_old
     n_ind[-1, 1] = t_0 + 4
     return n_ind
 
 
-# -------------------------
-
-
-def rates_sir(
+def section_rates(
     time, rates, rates_old=None, t_0=0, transition_days=config.TRANSITION_DAYS
 ):
-    """returns beta and delta as a function of time:
-    interpolates between the two given values using a tanh"""
+    """returns rates as a function of time:
+    interpolates between the two given values using a tanh
+    works for both sir and sair models"""
 
     if rates_old is None:
         return rates
@@ -52,48 +52,10 @@ def rates_sir(
         return rates
 
     rates_eval = {}
-    weight = 0.5 * (1 + np.tanh((time - transition_days / 2) * 5.33 / transition_days))
-    rates_eval["delta"] = (
-        rates_old["delta"] + (rates["delta"] - rates_old["delta"]) * weight
-    )
-    rates_eval["beta"] = (
-        rates_old["beta"] + (rates["beta"] - rates_old["beta"]) * weight
-    )
-    return rates_eval
+    weight = transition_weight(time, transition_days)
+    for rate in rates:
+        rates_eval[rate] = rates_old[rate] + (rates[rate] - rates_old[rate]) * weight
 
-
-# -------------------------
-
-
-def rates_sair(
-    time, rates, rates_old=None, t_0=0, transition_days=config.TRANSITION_DAYS
-):
-    """returns beta_a/2, delta_a/2 and alpha as a function of time:
-    interpolates between the two given values using a tanh"""
-
-    if rates_old is None:
-        return rates
-
-    if time > t_0 + 4:
-        return rates
-
-    rates_eval = {}
-    weight = 0.5 * (1 + np.tanh((time - transition_days / 2) * 5.33 / transition_days))
-    rates_eval["delta_a"] = (
-        rates_old["delta_a"] + (rates["delta_a"] - rates_old["delta_a"]) * weight
-    )
-    rates_eval["delta"] = (
-        rates_old["delta"] + (rates["delta"] - rates_old["delta"]) * weight
-    )
-    rates_eval["beta_a"] = (
-        rates_old["beta_a"] + (rates["beta_a"] - rates_old["beta_a"]) * weight
-    )
-    rates_eval["beta"] = (
-        rates_old["beta"] + (rates["beta"] - rates_old["beta"]) * weight
-    )
-    rates_eval["alpha"] = (
-        rates_old["alpha"] + (rates["alpha"] - rates_old["alpha"]) * weight
-    )
     return rates_eval
 
 

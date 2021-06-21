@@ -230,7 +230,7 @@ def parameters_section(
     section_day = section_days[section + 1]
 
     # should return section_day_old , given that the input will be section_day.
-    # but I want to add 2 to it for the tanh in rates_sir/n_individuals
+    # but I want to add 2 to it for the tanh in section_rates/n_individuals
     # TODO: aclarar aquest comentari ^^
     return (n, rates, section_day, rates_old, section_day_old + 1, n_ind)
 
@@ -243,7 +243,7 @@ def gillespie(t_step, time, section_day_old, comp, rates, rates_old, shapes):
     stot = comp.S[t_step, :-1].sum()
     itot = comp.I[t_step, :-1].sum()
 
-    rates_eval = utils.rates_sir(time, rates, rates_old, section_day_old)
+    rates_eval = utils.section_rates(time, rates, rates_old, section_day_old)
 
     lambda_sum = (rates_eval["delta"] + rates_eval["beta"] * stot) * itot
     probs = {}

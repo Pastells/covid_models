@@ -74,7 +74,7 @@ def _process_trans_SAIR_(
 
         suscep_neighbors = [v for v in G.neighbors(target) if status[v] == "S"]
 
-        rates_eval = utils.rates_sair(time, rates, rates_old, section_day_old)
+        rates_eval = utils.section_rates(time, rates, rates_old, section_day_old)
 
         if e_or_i == "A":
             status[target] = "A"
