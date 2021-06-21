@@ -37,7 +37,7 @@ POINTS_PER_DAY = 4
 
 # Monte Carlo
 MC_SEED0 = 1
-MC_NSEED = 5
+MC_NSEED = 10
 
 # Size of arrays
 N_T_STEPS = int(1e7)

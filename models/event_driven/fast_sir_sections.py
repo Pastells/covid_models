@@ -72,7 +72,7 @@ def _process_trans_SIR_(
 
         suscep_neighbors = [v for v in G.neighbors(target) if status[v] == "S"]
 
-        rates_eval = utils.rates_sir(time, rates, rates_old, section_day_old)
+        rates_eval = utils.section_rates(time, rates, rates_old, section_day_old)
 
         trans_delay, rec_delay = utils_net.markovian_times(
             suscep_neighbors, rates_eval["beta"], rates_eval["delta"]

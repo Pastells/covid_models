@@ -205,7 +205,7 @@ def gillespie(
     etot_inf = comp.A[t_step, :-1, 1].sum()
     etot = etot_inf + etot_rec - comp.A[t_step, 0, 0]
 
-    rates_eval = utils.rates_sair(time, rates, rates_old, section_day_old)
+    rates_eval = utils.section_rates(time, rates, rates_old, section_day_old)
     lambda_sum = (
         rates_eval["alpha"] * etot_inf
         + rates_eval["delta_a"] * etot_rec
