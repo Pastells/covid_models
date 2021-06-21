@@ -62,19 +62,6 @@ def section_rates(
 # -------------------------
 
 
-def monotonically_increasing(array):
-    """Check if array is monotonically increasing
-    Use:
-    if not utils.monotonically_increasing(args.n):
-        raise ValueError("n should be monotonically increasing")
-    """
-
-    return all(x <= y for x, y in zip(array, array[1:]))
-
-
-# -------------------------
-
-
 def time_dist(lambd):
     """Time intervals of a Poisson process follow an exponential distribution"""
     return random.expovariate(lambd)
@@ -102,7 +89,8 @@ def day_data(times, var, var_day, day_max):
 
 
 def mean_std(var_day):
-    """Returns mean and std in a 2-dim array"""
+    """Returns mean and std in a 2-dim array
+    Used in SIRD model"""
     return np.column_stack([np.mean(var_day, axis=0), np.std(var_day, axis=0)])
 
 
@@ -127,8 +115,8 @@ def mean_alive(var_day, t_total, day_max, mc_nseed):
     var_day : adds the infected number for day (before updating), if several days have
             elapsed they all get the same value as the previous
     """
-    # check_realization_alive = day_max // 2
-    check_realization_alive = t_total - 1
+    # check_realization_alive = day_max // 2  # a)
+    check_realization_alive = t_total - 1  # b)
     alive_realizations = 0
 
     # first mc_nseed alive
@@ -160,7 +148,6 @@ def mean_alive(var_day, t_total, day_max, mc_nseed):
         sys.stderr.write(
             f"Alive realizations after {check_realization_alive} days = {alive_realizations}, out of {mc_nseed}\n"
         )
-    # return var_m, var_std
     return np.column_stack([var_m, var_std])
 
 
@@ -171,8 +158,8 @@ def mean_alive_rd(var_day, t_total, day_max, mc_nseed, var2_day=False, var3_day=
     """Same as above, except it computes means for two other variables,
     usually R and D"""
 
-    # check_realization_alive = day_max // 2
-    check_realization_alive = day_max - 1
+    # check_realization_alive = day_max // 2  # a)
+    check_realization_alive = day_max - 1  # b)
     alive_realizations = 0
 
     # first mc_nseed alive
@@ -306,9 +293,6 @@ class StrCallable:
         return output
 
 
-# -------------------------
-
-
 def sum_sq(var_m, time_series):
     """Sum of squared differences"""
     cost = 0
@@ -347,9 +331,6 @@ def sum_sq_scaled(var_m, time_series, *day):
     return cost
 
 
-# -------------------------
-
-
 def cost_func(time_series, var_m, metric=sum_sq):
     """compute cost function with a selected metric
     comparing with data from input file
@@ -374,9 +355,6 @@ def cost_func(time_series, var_m, metric=sum_sq):
     sys.stdout.write(f"GGA SUCCESS {cost}\n")
 
 
-# -------------------------
-
-
 def cost_return(time_series, var_m, metric=sum_sq):
     """Same as above, but returns cost instead of
     printing GGA success, useful for adding multiple costs"""
@@ -386,9 +364,6 @@ def cost_return(time_series, var_m, metric=sum_sq):
     metric_func = StrCallable(metric)
     cost = metric_func.call(var_m, time_series)
     return cost / len(time_series) * 100
-
-
-# -------------------------
 
 
 def cost_save_plot(var_day, t_total, day_max, args, time_series):
@@ -521,19 +496,13 @@ class ParserCommon:
             "--save", type=str, default=None, help="specify a name for outputfile"
         )
 
-    # -------------------------
-
     def parse_args(self):
         """Return parsed args object"""
         return self.parser.parse_args()
 
-    # -------------------------
-
     def add_argument(self, *args, **kwargs):
         """Add argument"""
         self.parser.add_argument(*args, **kwargs)
-
-    # -------------------------
 
     def n(self):
         """Number of individuals"""
@@ -543,8 +512,6 @@ class ParserCommon:
             default=config.N,
             help="fixed number of (effecitve) individuals [1000,1000000]",
         )
-
-    # -------------------------
 
     def n_sections(self):
         """Number of individuals and days for different sections"""
@@ -571,8 +538,6 @@ class ParserCommon:
                     to the next [1,10]",
         )
 
-    # -------------------------
-
     def sir(self):
         """Arguments for SIR model"""
         self.parser_params.add_argument(
@@ -587,8 +552,6 @@ class ParserCommon:
             default=config.BETA,
             help="infectivity due to infected [0.05,1.0]",
         )
-
-    # -------------------------
 
     def sir_sections(self):
         """Arguments for SIR model with sections"""
@@ -606,8 +569,6 @@ class ParserCommon:
             nargs="*",
             help="infectivity due to infected [0.05,1.0]",
         )
-
-    # -------------------------
 
     def asymptomatic(self):
         """Add asymptomatic compartment: initial and all transition rates"""
@@ -636,8 +597,6 @@ class ParserCommon:
             default=config.ALPHA,
             help="asymptomatic rate (a->i) [0.05,2.0]",
         )
-
-    # -------------------------
 
     def asymptomatic_sections(self):
         """Add asymptomatic compartment for model with sections: \
@@ -671,8 +630,6 @@ class ParserCommon:
             help="asymptomatic rate (a->i) [0.05,1]",
         )
 
-    # -------------------------
-
     def erlang(self, k_asym=False):
         """Arguments for Erlang model"""
 
@@ -696,8 +653,6 @@ class ParserCommon:
                 help="k for the asymptomatic time erlang distribution [1,5]",
             )
 
-    # -------------------------
-
     def exposed(self):
         """Add exposed compartment: initial and transition rate"""
         self.parser_init.add_argument(
@@ -714,8 +669,6 @@ class ParserCommon:
             help="latency rate (e->a) [0.2,1.0]",
         )
 
-    # -------------------------
-
     def dead(self):
         """Add dead compartment: initial and transition rate"""
         self.parser_init.add_argument(
@@ -730,8 +683,6 @@ class ParserCommon:
             default=config.THETA,
             help="death probability [0.001,0.1]",
         )
-
-    # -------------------------
 
     def network(self):
         """Network type and parameter"""
@@ -748,8 +699,6 @@ class ParserCommon:
             default=config.NETWORK_PARAM,
             help="mean number of edges [1,50]",
         )
-
-        # -------------------------
 
     def parallel(self):
         self.parser_act.add_argument(

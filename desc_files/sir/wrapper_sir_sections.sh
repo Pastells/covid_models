@@ -41,5 +41,5 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-./scenario/venv/bin/python -u ./scenario/sir_erlang_sections.py \
+./scenario/venv/bin/python -u ./scenario/models/sir_erlang_sections.py \
     $var_beta $var_delta $var_n $other

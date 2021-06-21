@@ -81,6 +81,7 @@ class MyQueue:
 def markovian_times(sus_neighbors, beta, delta, alpha=None):
     """Cycle through, find infection times and check it it is less than recovery time"""
 
+    # Handle delta_a = 0 in SAIR model
     if delta != 0:
         duration = random.expovariate(delta)
     else:
