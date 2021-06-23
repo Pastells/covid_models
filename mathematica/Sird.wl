@@ -12,25 +12,25 @@ Begin["Private`"];
 (* match pattern, when SirdEquations[...] is found, replace with the equations *)
 (* rates = {infection rate, recovery rate, dead rate} *)
 SirdEquations[rates_List, n_, initialInfected_, initialRecovered_, initialDeaths_] := {
-	Derivative[1][Succeptible][t] == -rates[[1]] Infected[t] Succeptible[t],
+	Derivative[1][Susceptible][t] == -rates[[1]] Infected[t] Susceptible[t],
 	Derivative[1][Infected][t] == -(rates[[3]] + rates[[2]]) Infected[t]
-		+ rates[[1]] Infected[t] Succeptible[t],
+		+ rates[[1]] Infected[t] Susceptible[t],
 	Derivative[1][Recovered][t] == rates[[2]] Infected[t],
 	Derivative[1][Deaths][t] == rates[[3]] Infected[t],
-	Succeptible[0] == n - initialInfected - initialRecovered - initialDeaths,
+	Susceptible[0] == n - initialInfected - initialRecovered - initialDeaths,
 	Infected[0] == initialInfected,
 	Recovered[0] == initialRecovered,
 	Deaths[0] == initialDeaths
 };
 
-SolveSird[ode_, tmin_, tmax_] := NDSolve[ode, {Deaths, Infected, Recovered, Succeptible}, {t, tmin, tmax}]
+SolveSird[ode_, tmin_, tmax_] := NDSolve[ode, {Deaths, Infected, Recovered, Susceptible}, {t, tmin, tmax}]
 
 OptFunc[data_, ode_] := Module[{nsol1, nsol2, nsol3, infteo, deadteo, recoteo, phi,
-		nsucc, ninf, ndead, nreco,
+		nsusc, ninf, ndead, nreco,
 		y1valtemp, y2valtemp, y3valtemp, y4valtemp,
 		days, tmax, param, nsolall},
-	{days, nsucc, ninf, ndead, nreco} = Transpose[data];
-	y1valtemp = nsucc /. {0 -> 1};
+	{days, nsusc, ninf, ndead, nreco} = Transpose[data];
+	y1valtemp = nsusc /. {0 -> 1};
 	y2valtemp = ninf /. {0 -> 1};
 	y3valtemp = ndead /. {0 -> 1};
 	y4valtemp = nreco /. {0 -> 1};

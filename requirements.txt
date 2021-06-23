@@ -4,3 +4,4 @@ matplotlib
 oct2py
 optilog
 joblib
+wolframclient
