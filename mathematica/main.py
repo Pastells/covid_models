@@ -1,9 +1,12 @@
 from argparse import ArgumentParser
 import os.path
+import shutil
 
 import pandas
 from wolframclient.evaluation import WolframLanguageSession
 from wolframclient.language import wl, wlexpr
+
+WOLFRAM_KERNEL_PATH = os.path.realpath(shutil.which("WolframKernel"))
 
 
 def sird(data, n, initial_infected, initial_recovered, initial_dead, p1, p2, p3):
@@ -19,7 +22,7 @@ def sird(data, n, initial_infected, initial_recovered, initial_dead, p1, p2, p3)
 
     rates = [p1, p2, p3]
 
-    with WolframLanguageSession("/usr/local/bin/WolframKernel") as session:
+    with WolframLanguageSession(WOLFRAM_KERNEL_PATH) as session:
         session.evaluate(wl.Needs("Sird`"))
         cost = session.evaluate(
             wl.Sird.Score(*rates,
