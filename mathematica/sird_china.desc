@@ -1,0 +1,35 @@
+%DATA
+data.csv
+
+%PARAMS
+--p1 real [0.0,1.0]
+--p2 real [0.0,1.0]
+--p3 real [0.0,1.0]
+
+
+%MODULES
+python/3.6.5
+mathematica/12.1.1
+
+%META
+%%SEED 42
+%%TIMEOUT 1200
+%%COST_MIN 0
+%%COST_MAX 100000000000000000000
+%%MIN_GENERATIONS 100
+%%GENERATIONS 400
+%%POPULATION 200
+%%MUTATION_PROBABILITY 0.3
+%%COST_TOLERANCE 0.0
+%%ELITE False
+%%CROSSOVER_PROBABILITY 0.2
+
+
+%ENVIRONMENT-SETUP
+python3 -m venv ./venv
+./venv/bin/pip install pandas wolframclient
+
+%EXECUTION
+./venv/bin/python -u ./main.py \
+--data ${instance} \
+${@}
