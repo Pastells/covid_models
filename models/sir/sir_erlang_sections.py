@@ -153,8 +153,6 @@ def gillespie_simulation(
     )
 
     infected = np.zeros(t_total, dtype=int)
-    infected[0] = initial_infected
-
     t_step, time = 0, 0
     index_n = 1  # just to avoid pylint complaining
 

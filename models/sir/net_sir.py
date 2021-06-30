@@ -46,10 +46,6 @@ def net_sir(
     delta: Real(0.1, 1.0) = 0.2,
     beta: Real(0.1, 1.0) = 0.5,
 ):
-    assert n - (initial_infected - initial_recovered) > 0, \
-        f"Insuficient individuals ({n}) for this initial settings" \
-        f" ({initial_infected}, {initial_recovered})"
-
     # Normalize beta for the number of individuals
     rates = {"beta": beta / network_param, "delta": delta}
 
@@ -104,7 +100,6 @@ def event_driven_simulation(
     np.random.seed(seed)
 
     infected = np.zeros(t_total, dtype=int)
-    infected[0] = initial_infected
 
     G = utils_net.choose_network(n, network, network_param)
     t, I = fast_sir.fast_SIR(

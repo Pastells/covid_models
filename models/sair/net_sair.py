@@ -53,10 +53,6 @@ def net_sair(
     beta_a: Real(0.05, 1.0) = 0.05,
     beta: Real(0.3, 0.4) = 0.3,
 ):
-    assert n - (initial_infected - initial_recovered - initial_asymptomatic) > 0, (
-        f"Insuficient individuals ({n}) for this initial settings"
-        f" ({initial_asymptomatic} {initial_infected}, {initial_recovered})"
-    )
     rates = {
         "beta_a": beta_a / network_param,
         "beta": beta / network_param,
@@ -118,7 +114,6 @@ def event_driven_simulation(
     np.random.seed(seed)
 
     infected = np.zeros(t_total, dtype=int)
-    infected[0] = initial_infected
 
     G = utils_net.choose_network(n, network, network_param)
     t, I = fast_sair.fast_SAIR(

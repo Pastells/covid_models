@@ -44,10 +44,6 @@ def sir(
     delta: Real(0.1, 1.0) = 0.2,
     beta: Real(0.1, 1.0) = 0.5,
 ):
-    assert n - (initial_infected - initial_recovered) > 0, \
-        f"Insuficient individuals ({n}) for this initial settings" \
-        f" ({initial_infected}, {initial_recovered})"
-
     # Normalize beta for the number of individuals
     beta = beta / n
 
@@ -106,10 +102,6 @@ def gillespie_simulation(
 
     infected = np.zeros(t_total, dtype=int)
     recovered = np.zeros(t_total, dtype=int)
-
-    infected[0] = initial_infected
-    recovered[0] = initial_recovered
-
     t_step, time = 0, 0
 
     while comp.I[t_step] > 0 and time < t_total:

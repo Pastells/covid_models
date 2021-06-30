@@ -44,7 +44,8 @@ python -m models sird --help
 The following models are ready to be used with Optilog:
 
 - SIR
-  - [x] SIR
+  - [x] SIR (Gillespie + ODEs)
+  - [x] SIR with sections (ODEs)
   - [x] Network SIR
   - [x] Network SIR with sections
   - [x] Erlang SIR

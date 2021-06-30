@@ -50,9 +50,6 @@ def sair(
     beta_a: Real(0.05, 1.0) = 0.05,
     beta: Real(0.3, 0.4) = 0.3,
 ):
-    assert n - (initial_infected - initial_recovered - initial_asymptomatic) > 0, \
-        f"Insuficient individuals ({n}) for this initial settings" \
-        f" ({initial_asymptomatic} {initial_infected}, {initial_recovered})"
     # Normalize beta and beta_a for the number of individuals
     rates = {
         "beta_a": beta_a / n,
@@ -118,8 +115,6 @@ def gillespie_simulation(
     )
 
     infected = np.zeros(t_total, dtype=int)
-    infected[0] = initial_infected
-
     t_step, time = 0, 0
 
     while comp.I[t_step] > 0 and time < t_total:

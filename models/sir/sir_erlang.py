@@ -47,10 +47,6 @@ def sir_erlang(
     k_rec: Int(1, 5) = 1,
     k_inf: Int(1, 5) = 1,
 ):
-    assert n - (initial_infected - initial_recovered) > 0, \
-        f"Insuficient individuals ({n}) for this initial settings" \
-        f" ({initial_infected}, {initial_recovered})"
-
     # Create shapes and rates dictionaries
     # Normalize beta for the number of individuals
     # Scale beta and delta with the Erlang shapes
@@ -111,8 +107,6 @@ def gillespie_simulation(
     comp = Compartments(n, n_t_steps, initial_infected, initial_recovered, shapes)
 
     infected = np.zeros(t_total, dtype=int)
-    infected[0] = initial_infected
-
     t_step, time = 0, 0
 
     while comp.I[t_step, :-1].sum() > 0 and time < t_total:

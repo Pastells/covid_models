@@ -5,6 +5,7 @@ from argparse import ArgumentParser
 from .utils import config
 
 from .sir import sir, sir_erlang, sir_erlang_sections, net_sir, net_sir_sections
+from .sir import sir_ode, sir_sections_ode
 from .sird import sird
 from .sair import sair, net_sair, net_sair_sections, sair_erlang, sair_erlang_sections
 from .seair import seair
@@ -492,6 +493,8 @@ def parse_args():
         ("sir-network-sections", NetworkSirSectionsParser, net_sir_sections.main),
         ("sir-erlang", SirErlangParser, sir_erlang.main),
         ("sir-erlang-sections", SirErlangSectionsParser, sir_erlang_sections.main),
+        ("sir-ode", SirParser, sir_ode.main),
+        ("sir-sections-ode", SirErlangSectionsParser, sir_sections_ode.main),
 
         ("sird", SirdParser, sird.main),
 

@@ -63,10 +63,6 @@ def sird(
     beta: Real(0.3, 0.4) = 0.3,
     theta: Real(0.004, 0.008) = 0.004,
 ):
-    assert n - (initial_infected - initial_recovered - initial_dead) > 0, \
-        f"Insuficient individuals ({n}) for this initial settings" \
-        f" ({initial_infected}, {initial_recovered}, {initial_dead})"
-
     # Normalize beta for the number of individuals
     beta = beta / n
 
@@ -135,10 +131,6 @@ def gillespie_simulation(
     infected = np.zeros(t_total, dtype=int)
     recovered = np.zeros(t_total, dtype=int)
     dead = np.zeros(t_total, dtype=int)
-
-    infected[0] = initial_infected
-    recovered[0] = initial_recovered
-    dead[0] = initial_dead
 
     t_step, time = 0, 0
 

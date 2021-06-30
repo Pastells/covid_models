@@ -182,7 +182,6 @@ def event_driven_simulation(
     G = utils_net.choose_network(n, network, network_param)
 
     infected = np.zeros(t_total, dtype=int)
-    infected[0] = initial_infected
 
     # Sections
     while section < n_sections:
