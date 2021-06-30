@@ -3,12 +3,14 @@ import datetime
 import logging
 import pandas
 import sys
+import os.path
+
+_base_path = os.path.dirname(os.path.realpath(__file__))
 
 BASE_URL = "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series"
 GLOBAL_CONFIRMED_URL = f"{BASE_URL}/time_series_covid19_confirmed_global.csv"
 GLOBAL_RECOVERED_URL = f"{BASE_URL}/time_series_covid19_recovered_global.csv"
 GLOBAL_DEATHS_URL = f"{BASE_URL}/time_series_covid19_deaths_global.csv"
-
 
 global_confirmed = pandas.read_csv(GLOBAL_CONFIRMED_URL)
 available_countries = global_confirmed["Country/Region"].unique()
@@ -18,17 +20,21 @@ if len(countries) == 0:
     print("At least one country should be specified", file=sys.stderr)
     print(f"Usage: {sys.argv[0]} country1 country2 ...", file=sys.stderr)
     print("\nAvailable countries are:", file=sys.stderr)
-    print(', '.join(available_countries))
+    print(", ".join(available_countries))
     sys.exit(-1)
 
+logging.info("Creating countries directory if not found...")
+target_directory = os.path.join(_base_path, "countries")
+os.makedirs(target_directory, exist_ok=True)
+
 logging.basicConfig(level=logging.INFO)
-logging.info("Parsing countries %s", ', '.join(countries))
+logging.info("Parsing countries %s", ", ".join(countries))
 
 global_confirmed = pandas.read_csv(GLOBAL_CONFIRMED_URL)
 global_recovered = pandas.read_csv(GLOBAL_RECOVERED_URL)
 global_deaths = pandas.read_csv(GLOBAL_DEATHS_URL)
 
-logging.debug("Available countries: %s", ', '.join(available_countries))
+logging.debug("Available countries: %s", ", ".join(available_countries))
 
 
 def filter_data(df, country):
@@ -38,7 +44,6 @@ def filter_data(df, country):
 def change_dateformat(day):
     date = datetime.datetime.strptime(day, "%m/%d/%y")
     return date.strftime("%Y/%m/%d")
-    
 
 
 def parse_country(country):
@@ -53,18 +58,19 @@ def parse_country(country):
     confirmed = filter_data(global_confirmed, country).sum(axis=0)[days]
     recovered = filter_data(global_recovered, country).sum(axis=0)[days]
     deaths = filter_data(global_deaths, country).sum(axis=0)[days]
-    
+
     infected = confirmed - recovered - deaths
 
     df = pandas.DataFrame(
         [infected, recovered, deaths, confirmed],
-        index=["#infected", "recovered", "dead", "cumulative"]
+        index=["#infected", "recovered", "dead", "cumulative"],
     ).transpose()
     df["date"] = list(map(change_dateformat, days))
 
     first_day_str = first_day.replace("/", "_")
     last_day_str = last_day.replace("/", "_")
-    out_file = f"countries/{country}__{first_day_str}__{last_day_str}.csv"
+    out_file = f"{country}__{first_day_str}__{last_day_str}.csv"
+    out_file = os.path.join(target_directory, out_file)
     df.to_csv(out_file, index=False)
     logging.info("Stored data at %s", out_file)
 
