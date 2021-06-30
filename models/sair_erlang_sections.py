@@ -153,7 +153,7 @@ def parameters_init(args):
         == n_sections
         >= len(args.n)
     ):
-        raise ValueError("All rates and n must have same dimension")
+        raise ValueError("All rates, n and section_days must have same dimension")
 
     return t_total, time_series, n_sections, shapes
 

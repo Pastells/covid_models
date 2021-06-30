@@ -1,8 +1,8 @@
 #!/bin/bash
 
 var_beta="--beta"
-var_beta="--beta"
-var_delta_a="--delta_a"
+var_beta_a="--beta_a"
+var_delta="--delta"
 var_delta_a="--delta_a"
 var_alpha="--alpha"
 var_n="--n"
@@ -12,35 +12,35 @@ while [[ $# -gt 0 ]]; do
     key="$1"
 
     case $key in
-        --beta1*)
-        shift
-        while [[ $1 != --* ]] && [[ $# -gt 0 ]]; do
-            var_beta+=" $1"
-            shift
-        done
-        ;;
-        --beta2*)
+        --beta_a*)
         shift
         while [[ $1 != --* ]] && [[ $# -gt 0 ]]; do
             var_beta_a+=" $1"
             shift
         done
         ;;
-        --delta1*)
+        --beta*)
         shift
         while [[ $1 != --* ]] && [[ $# -gt 0 ]]; do
-            var_delta+=" $1"
+            var_beta+=" $1"
             shift
         done
         ;;
-        --delta2*)
+        --delta_a*)
         shift
         while [[ $1 != --* ]] && [[ $# -gt 0 ]]; do
             var_delta_a+=" $1"
             shift
         done
         ;;
-        --epsilon*)
+        --delta*)
+        shift
+        while [[ $1 != --* ]] && [[ $# -gt 0 ]]; do
+            var_delta+=" $1"
+            shift
+        done
+        ;;
+        --alpha*)
         shift
         while [[ $1 != --* ]] && [[ $# -gt 0 ]]; do
             var_alpha+=" $1"
@@ -65,5 +65,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-./scenario/venv/bin/python -u ./scenario/models/seir_erlang_sections.py \
+# To run locally uncomment and move line below (remember to add --section_days)
+# python ./models/sair_erlang_sections.py \
+./venv/bin/python -u ./models/sair_erlang_sections.py \
     $var_beta $var_beta_a $var_delta $var_delta_a $var_alpha $var_n $other

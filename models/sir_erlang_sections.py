@@ -24,7 +24,7 @@ from utils import utils, config
 # %%%%%%%%%%%%%%%%%%%%%%%%%
 def main():
     args = parsing()
-    # print(args)
+    print(args)
     t_total, time_series, n_sections, shapes = parameters_init(args)
 
     # results per day and seed
@@ -145,7 +145,7 @@ def parameters_init(args):
     args.section_days.insert(0, 0)
 
     if not len(args.beta) == len(args.delta) == n_sections >= len(args.n):
-        raise ValueError("All rates and n must have same dimension")
+        raise ValueError("All rates, n and section_days must have same dimension")
     return t_total, time_series, n_sections, shapes
 
 

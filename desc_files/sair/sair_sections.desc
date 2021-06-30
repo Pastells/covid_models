@@ -6,10 +6,17 @@
 --n02 integer [0,1000000]
 --beta01 real [0.05,1.0]
 --beta02 real [0.05,1.0]
+--beta_a01 real [0.05,1.0]
+--beta_a02 real [0.05,1.0]
 --delta01 real [0.05,1.0]
 --delta02 real [0.05,1.0]
+--delta_a01 real [0.05,1.0]
+--delta_a02 real [0.05,1.0]
+--alpha01 real [0.1,1.0]
+--alpha02 real [0.1,1.0]
 --k_inf integer [1,5]
 --k_rec integer [1,5]
+--k_asym integer [1,5]
 
 %MODULES
 python/3.6.5
@@ -26,11 +33,11 @@ python/3.6.5
 %ENVIRONMENT-SETUP
 python3 -m venv ./venv
 ./venv/bin/pip install numpy
-mv ./desc_files/sir/wrapper_sir_sections.sh ./
-chmod +x ./wrapper_sir_sections.sh
+mv ./desc_files/sair/wrapper_sair_sections.sh ./
+chmod +x ./wrapper_sair_sections.sh
 
 %EXECUTION
-./wrapper_sir_sections.sh \
+./wrapper_sair_sections.sh \
 --data ${instance} \
 --seed ${seed} \
 --timeout ${timeout} \

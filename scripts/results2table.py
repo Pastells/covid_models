@@ -5,8 +5,17 @@ import pandas as pd
 RESULTS = "results/ac/"
 
 # List of configurator problems and their name
-get_list = [1361, 1366, 1374, 1367, 1384, 1377]
-names = ["SIR", "SIR-Erlang", "SEIR", "SAIR", "SAIR-Erlang", "SEAIR"]
+get_list = [1361, 1366, 1374, 1388, 1367, 1384, 1377, 1390]
+names = [
+    "SIR",
+    "SIR-Erlang",
+    "SEIR",
+    "SEIR-Erlang",
+    "SAIR",
+    "SAIR-Erlang",
+    "SEAIR",
+    "SIR-Network",
+]
 
 args = {"delimiter": "|", "header": 0, "names": ["params", "values"]}
 df_vec = []
