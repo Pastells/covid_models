@@ -35,6 +35,7 @@ def n_individuals(
         n_ind[time, 1] = t_0 + time / 4
     n_ind[-1, 0] = number - n_old
     n_ind[-1, 1] = t_0 + 4
+    n_ind[1:, 0] = np.diff(n_ind[:, 0])
     return n_ind
 
 
@@ -52,7 +53,7 @@ def section_rates(
         return rates
 
     rates_eval = {}
-    weight = transition_weight(time, transition_days)
+    weight = transition_weight(time - t_0, transition_days)
     for rate in rates:
         rates_eval[rate] = rates_old[rate] + (rates[rate] - rates_old[rate]) * weight
 
