@@ -2,8 +2,11 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+import seaborn as sns
 from . import config
 from .utils import get_time_series
+
+sns.set()
 
 
 def error_plot(var_m, day_max, label):
@@ -21,11 +24,11 @@ def error_plot(var_m, day_max, label):
 def show_save(save=None, name=None, metric="sum of squares"):
     """Add legend, save if wanted and show"""
     metric = metric.split(".")[-1]
-    plt.ylabel(f"Cost ({metric})")
+    plt.ylabel("Infected")
     plt.xlabel("Days")
-    plt.legend(loc="best")
+    plt.legend()
     if save is not None:
-        plt.savefig(save + name)
+        plt.savefig(save + name, dpi=300, bbox_inches="tight")
     plt.show()
 
 
@@ -38,7 +41,7 @@ def plotting(
     comp=None,
     t_step=None,
 ):
-    """ If --plot is added makes some plots"""
+    """If --plot is added makes some plots"""
 
     time_series = get_time_series(args)
 
@@ -75,7 +78,7 @@ def plotting(
         i_label = "Daily infected cases"
 
     error_plot(I_m, day_max, i_label)
-    show_save(metric=args.metric)
+    show_save(args.save, "", metric=args.metric)
     # show_save(args.save, "_trajectories")
 
     if config.CUMULATIVE is True:

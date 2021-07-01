@@ -14,3 +14,4 @@ data/ine/
 .idea/
 .python-version
 smac3-output_*/
+*.ipynb_checkpoints

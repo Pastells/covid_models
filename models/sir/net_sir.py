@@ -125,8 +125,8 @@ def main(args):
         args.mc_nseed,
         t_total,
         args.metric,
-        args.network,
-        args.network_param,
+        network=args.network,
+        network_param=args.network_param,
         n=args.n,  # due to a bug, naming the configurable parameters is mandatory
         initial_infected=args.initial_infected,
         initial_recovered=args.initial_recovered,

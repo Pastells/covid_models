@@ -6,7 +6,7 @@ from .utils import config
 
 from .sir import sir, sir_erlang, sir_erlang_sections, net_sir, net_sir_sections
 from .sir import sir_ode, sir_sections_ode
-from .sird import sird
+from .sird import sird, sird_discrete, sird_parallel
 from .sair import sair, net_sair, net_sair_sections, sair_erlang, sair_erlang_sections
 from .seair import seair
 from .sidarthe import sidarthe
@@ -433,6 +433,45 @@ class SirdParser(SirParser):
         )
 
 
+class SirdDiscreteParser(SirdParser):
+    @classmethod
+    def initialize_parameters_group(cls, group):
+        super().initialize_parameters_group(group)
+        group.add_argument(
+            "--q",
+            type=float,
+            default=0.1,
+            help="Ratio of the real population that is effective [0.002,1]",
+        )
+        group.add_argument(
+            "--w",
+            type=float,
+            default=0.9,
+            help="Forgetting factor, weight for cost sum (0,1]",
+        )
+
+
+class SirdParallelParser(SirdParser):
+    @classmethod
+    def initialize_configuration_group(cls, group):
+        super().initialize_configuration_group(group)
+        group.add_argument(
+            "--sequential",
+            action="store_true",
+            help="specify for sequential execution, by default is parallel",
+        )
+
+    @classmethod
+    def initialize_data_group(cls, group):
+        super().initialize_data_group(group)
+        group.add_argument(
+            "--cost_day",
+            type=int,
+            default=None,
+            help="At which day start computing the cost",
+        )
+
+
 # SIDARTHE
 class SidartheParser(CommonParser):
     @classmethod
@@ -472,6 +511,10 @@ class SidartheParser(CommonParser):
         parser.add_argument("--seed", type=int)
         parser.add_argument("--timeout", type=int)
         parser.add_argument("--limit_memory", action="store_true")
+        parser.add_argument("--day_min", type=int, default=config.DAY_MIN,
+                            help="first day to consider of the data series")
+        parser.add_argument("--day_max", type=int, default=config.DAY_MAX,
+                            help="last day to consider of the data series")
 
 
 def parse_args():
@@ -497,6 +540,8 @@ def parse_args():
         ("sir-sections-ode", SirErlangSectionsParser, sir_sections_ode.main),
 
         ("sird", SirdParser, sird.main),
+        ("sird-discrete", SirdDiscreteParser, sird_discrete.main),
+        ("sird-parallel", SirdParallelParser, sird_parallel.main),
 
         ("sidarthe", SidartheParser, sidarthe.main),
     ]

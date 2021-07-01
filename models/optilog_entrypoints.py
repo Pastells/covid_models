@@ -33,7 +33,7 @@ def _auto_sird(dataset, seed):
         n_seeds=mc_nseed,
         t_total=t_total,
         n_t_steps=config.N_T_STEPS,
-        metric="models.utils.utils.sum_sq"
+        metric="models.utils.utils.sum_sq",
     )
     _report_result(cost)
 
@@ -53,7 +53,7 @@ def _auto_sair(dataset, seed):
         n_seeds=mc_nseed,
         t_total=t_total,
         n_t_steps=config.N_T_STEPS,
-        metric="models.utils.utils.sum_sq"
+        metric="models.utils.utils.sum_sq",
     )
     _report_result(cost)
 
@@ -72,7 +72,7 @@ def _auto_net_sair(dataset, seed):
         seed=seed,
         n_seeds=mc_nseed,
         t_total=t_total,
-        metric="models.utils.utils.sum_sq"
+        metric="models.utils.utils.sum_sq",
     )
     _report_result(cost)
 
@@ -80,7 +80,7 @@ def _auto_net_sair(dataset, seed):
 _entrypoints = {
     "sird": (_auto_sird, [sird.sird]),
     "sair": (_auto_sair, [sair.sair]),
-    "net_sair": (_auto_net_sair, [net_sair.net_sair])
+    "net_sair": (_auto_net_sair, [net_sair.net_sair]),
 }
 
 

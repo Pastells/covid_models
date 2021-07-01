@@ -1,6 +1,8 @@
 """
 Stochastic SAIR model with a social network using the event-driven algorithm.
-It allows for different sections with different n, delta and beta
+It allows for different sections with different n, delta, delta_a, beta,
+beta_a and alpha:
+same number of arguments must be specified for all 5, and section_days.
 
 Pol Pastells, 2020
 
@@ -177,6 +179,7 @@ def event_driven_simulation(
         beta_vect,
         section_days,
         section,
+        network_param,
     )
 
     G = utils_net.choose_network(n, network, network_param)
@@ -207,6 +210,7 @@ def event_driven_simulation(
                 beta_vect,
                 section_days,
                 section,
+                network_param,
                 rates_old=rates,
                 section_day_old=section_day,
             )
@@ -235,6 +239,7 @@ def parameters_section(
     beta_vect,
     section_days,
     section,
+    network_param,
     rates_old=None,
     section_day_old=0,
     n_old=None,
@@ -244,8 +249,8 @@ def parameters_section(
     """
     n = sum(n_vect[: section + 1])
     rates = {
-        "beta_a": beta_a_vect[section],
-        "beta": beta_vect[section],
+        "beta_a": beta_a_vect[section] / network_param,
+        "beta": beta_vect[section] / network_param,
         "delta_a": delta_a_vect[section],
         "delta": delta_vect[section],
         "alpha": alpha_vect[section],
@@ -294,8 +299,8 @@ def main(args):
         t_total,
         args.metric,
         n_sections,
-        args.network,
-        args.network_param,
+        network=args.network,
+        network_param=args.network_param,
         initial_infected=args.initial_infected,
         initial_recovered=args.initial_recovered,
         initial_asymptomatic=args.initial_asymptomatic,

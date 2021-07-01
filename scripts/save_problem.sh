@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # save a given number of problems to result folder
-# saves stdout and get output, and adds number and name to list
+# saves 'stdout' and 'get' outputs, and adds number and name to list
 
 results="results/ac"  # results folder
 list="$results/LIST.dat"
@@ -36,4 +36,4 @@ while [[ $# -gt 0 ]]; do
     echo "$number $name" >> $list
 done
 
-sort -no $list $list
+sort -nuo $list $list

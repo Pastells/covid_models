@@ -1,4 +1,5 @@
 """ Common functions for network models """
+
 import heapq
 import random
 import numpy as np
@@ -17,7 +18,7 @@ def _truncated_exponential_(lambd, T):
 
 
 def choose_network(n, network_type, network_param, seed=None):
-    """ select network type to create a graph using networkx"""
+    """select network type to create a graph using networkx"""
     if network_type == "er":
         G = nx.erdos_renyi_graph(n, network_param / n, seed)
     elif network_type == "ba":
@@ -70,7 +71,7 @@ class MyQueue:
         function(time, *args)
 
     def __len__(self):
-        r"""this will allow us to use commands like ``while Q:`` """
+        r"""this will allow us to use commands like ``while Q:``"""
         return len(self._Q_)
 
 
@@ -80,6 +81,7 @@ class MyQueue:
 def markovian_times(sus_neighbors, beta, delta, alpha=None):
     """Cycle through, find infection times and check it it is less than recovery time"""
 
+    # Handle delta_a = 0 in SAIR model
     if delta != 0:
         duration = random.expovariate(delta)
     else:

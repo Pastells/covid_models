@@ -137,13 +137,9 @@ def event_driven_simulation(
 
     # initialization
     section = 0
-    (
-        n,
-        rates,
-        section_day,
-        rates_old,
-        section_day_old,
-    ) = parameters_section(n_vect, beta_vect, delta_vect, section_days, section)
+    (n, rates, section_day, rates_old, section_day_old,) = parameters_section(
+        n_vect, beta_vect, delta_vect, section_days, section, network_param
+    )
 
     G = utils_net.choose_network(n, network, network_param)
 
@@ -164,7 +160,14 @@ def event_driven_simulation(
         section += 1
         if section < n_sections:
             (n, rates, section_day, rates_old, section_day_old,) = parameters_section(
-                n_vect, beta_vect, delta_vect, section_days, section, rates, section_day
+                n_vect,
+                beta_vect,
+                delta_vect,
+                section_days,
+                section,
+                network_param,
+                rates,
+                section_day,
             )
             if section == n_sections - 1:
                 section_day -= 0.9
@@ -184,6 +187,7 @@ def parameters_section(
     delta_vect,
     section_days,
     section,
+    network_param,
     rates_old=None,
     section_day_old=0,
 ):
@@ -191,7 +195,7 @@ def parameters_section(
     Section dependent parameters from argparse
     """
     n = sum(n_vect[: section + 1])
-    rates = {"beta": beta_vect[section], "delta": delta_vect[section]}
+    rates = {"beta": beta_vect[section] / network_param, "delta": delta_vect[section]}
     section_day = section_days[section + 1]
     return (
         n,
@@ -232,8 +236,8 @@ def main(args):
         t_total,
         args.metric,
         n_sections,
-        args.network,
-        args.network_param,
+        network=args.network,
+        network_param=args.network_param,
         initial_infected=args.initial_infected,
         initial_recovered=args.initial_recovered,
         section_day1=args.section_days[0],

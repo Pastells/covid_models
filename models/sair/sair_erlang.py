@@ -2,7 +2,7 @@
 Stochastic mean-field SAIR model.
 Uses the Gillespie algorithm and Erlang distribution transition times
 
-Pol Pastells, 2020
+Pol Pastells, 2020-2021
 
 Equations of the deterministic system:
 
@@ -159,10 +159,10 @@ class Compartments:
         shapes,
     ):
         """Initialization
-        S and I are vectors, with one dimension more than the
+        S, A and I are vectors, with one dimension more than the Erlang shape.
         This extra dimension is used to facilitate notation.
-        E.g.: both infection and advance in S remove an indiv
-        dimension and add one to the k+1 in S. In case where
+        E.g.: both infection and advance in S remove an individual from the k
+        dimension and add one to the k+1 in S. In case where k+1 is the last entry,
         the individual is added to the first I compartment."""
         self.S = np.zeros([n_t_steps, shapes["k_inf"] + 1])
         self.A = np.zeros([n_t_steps, shapes["k_asym"] + 1, 2])
