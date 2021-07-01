@@ -1,21 +1,24 @@
 %DATA
-./data/italy.dat
+./data/china.dat
 
 %PARAMS
---n integer [10000,1000000]
---beta real [0.1,1.0]
---delta real [0.02,0.3]
---theta real [0.001,0.5]
+--initial_infected integer [410,440]
+--initial_recovered integer [4,6]
+--initial_dead integer [1,100]
+--n integer [70000,90000]
+--beta real [0.3,0.4]
+--delta real [0.03,0.06]
+--theta real [0.004,0.008]
 
 %MODULES
 python/3.6.5
 
 %META
-%%SEED 42
+%%SEED 53
 %%TIMEOUT 1200
 %%COST_MIN 0
 %%COST_MAX 100000000000000000000
-%%GENERATIONS 60
+%%GENERATIONS 100
 %%MIN_GENERATIONS 50
 %%POPULATION 50
 
@@ -28,7 +31,7 @@ python3 -m venv ./venv
 --data ${instance} \
 --seed ${seed} \
 --timeout ${timeout} \
---day_min 20 \
---day_max 54 \
---mc_nseed 100 \
+--day_min 0 \
+--day_max 50 \
+--mc_nseed 10 \
 ${@}

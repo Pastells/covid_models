@@ -41,5 +41,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-./scenario/venv/bin/python -u ./scenario/sir_erlang_sections.py \
+# To run locally uncomment and move line below (remember to add --section_days)
+# python ./models/sir_erlang_sections.py \
+./venv/bin/python -u ./models/sir_erlang_sections.py \
     $var_beta $var_delta $var_n $other

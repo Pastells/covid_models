@@ -1,0 +1,48 @@
+%DATA
+./data/italy.dat
+
+%PARAMS
+--n01 integer [10000,1000000]
+--n02 integer [0,1000000]
+--beta01 real [0.05,1.0]
+--beta02 real [0.05,1.0]
+--beta_a01 real [0.05,1.0]
+--beta_a02 real [0.05,1.0]
+--delta01 real [0.05,1.0]
+--delta02 real [0.05,1.0]
+--delta_a01 real [0.05,1.0]
+--delta_a02 real [0.05,1.0]
+--alpha01 real [0.1,1.0]
+--alpha02 real [0.1,1.0]
+--k_inf integer [1,5]
+--k_rec integer [1,5]
+--k_asym integer [1,5]
+
+%MODULES
+python/3.6.5
+
+%META
+%%SEED 42
+%%TIMEOUT 1200
+%%COST_MIN 0
+%%COST_MAX 100000000000000000000
+%%GENERATIONS 500
+%%MIN_GENERATIONS 100
+%%POPULATION 50
+
+%ENVIRONMENT-SETUP
+python3 -m venv ./venv
+./venv/bin/pip install numpy
+mv ./desc_files/sair/wrapper_sair_sections.sh ./
+chmod +x ./wrapper_sair_sections.sh
+
+%EXECUTION
+./wrapper_sair_sections.sh \
+--data ${instance} \
+--seed ${seed} \
+--timeout ${timeout} \
+--day_min 20 \
+--day_max 54 \
+--mc_nseed 10 \
+--section_days 17 35 \
+${@}
