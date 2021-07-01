@@ -1,4 +1,5 @@
 output/
+!output/.gitignore
 !output/.gitkeep
 input/
 todo.md

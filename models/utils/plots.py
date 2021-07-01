@@ -28,7 +28,7 @@ def show_save(save=None, name=None, metric="sum of squares"):
     plt.xlabel("Days")
     plt.legend()
     if save is not None:
-        plt.savefig(save + name, dpi=300, bbox_inches='tight')
+        plt.savefig(save + name, dpi=300, bbox_inches="tight")
     plt.show()
 
 
@@ -41,7 +41,7 @@ def plotting(
     comp=None,
     t_step=None,
 ):
-    """ If --plot is added makes some plots"""
+    """If --plot is added makes some plots"""
 
     time_series = get_time_series(args)
 

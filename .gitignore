@@ -11,4 +11,7 @@ results/*
 data/ine/
 **/__pycache__
 **.swp
+.idea/
+.python-version
+smac3-output_*/
 *.ipynb_checkpoints

@@ -1,7 +1,7 @@
 import random
 from collections import defaultdict
 import numpy as np
-from utils import utils_net
+from ..utils import utils_net
 
 
 def _process_trans_SAIR_(

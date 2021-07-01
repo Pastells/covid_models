@@ -2,3 +2,5 @@ numpy
 networkx
 matplotlib
 oct2py
+optilog
+joblib

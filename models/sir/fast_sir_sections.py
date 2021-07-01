@@ -1,7 +1,8 @@
 import random
 from collections import defaultdict
 import numpy as np
-from utils import utils_net
+
+from ..utils import utils, utils_net
 
 
 def _process_trans_SIR_(
@@ -17,6 +18,8 @@ def _process_trans_SIR_(
     rec_time,
     pred_inf_time,
     rates,
+    rates_old,
+    section_day_old,
 ):
     r"""
         From figure A.4 of Kiss, Miller, & Simon.  Please cite the book if
@@ -70,8 +73,10 @@ def _process_trans_SIR_(
 
         suscep_neighbors = [v for v in G.neighbors(target) if status[v] == "S"]
 
+        rates_eval = utils.section_rates(time, rates, rates_old, section_day_old)
+
         trans_delay, rec_delay = utils_net.markovian_times(
-            suscep_neighbors, rates["beta"], rates["delta"]
+            suscep_neighbors, rates_eval["beta"], rates_eval["delta"]
         )
 
         rec_time[target] = time + rec_delay
@@ -103,6 +108,8 @@ def _process_trans_SIR_(
                         rec_time,
                         pred_inf_time,
                         rates,
+                        rates_old,
+                        section_day_old,
                     ),
                 )
                 pred_inf_time[v] = inf_time
@@ -152,6 +159,8 @@ def _process_rec_SIR_(time, node, times, S, I, R, status):
 def fast_SIR(
     G,
     rates,
+    rates_old,
+    section_day_old,
     initial_infected=None,
     initial_recovered=0,
     tmin=0,
@@ -243,6 +252,8 @@ def fast_SIR(
                 rec_time,
                 pred_inf_time,
                 rates,
+                rates_old,
+                section_day_old,
             ),
         )
 
@@ -259,4 +270,4 @@ def fast_SIR(
     R = R[len(initial_infected) :]
 
     # return np.array(times), np.array(S), np.array(I), np.array(R) + initial_recovered
-    return times, I
+    return times, I, R
