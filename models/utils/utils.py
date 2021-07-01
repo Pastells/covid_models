@@ -356,8 +356,7 @@ def cost_return(time_series, var_m, metric=sum_sq):
 
     warnings.filterwarnings("error")
     metric_func = StrCallable(metric)
-    cost = metric_func.call(var_m, time_series)
-    return cost / len(time_series) * 100
+    return metric_func.call(var_m, time_series)
 
 
 def cost_save_plot(var_day, t_total, day_max, args, time_series):
