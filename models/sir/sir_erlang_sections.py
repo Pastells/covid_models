@@ -226,10 +226,6 @@ def parameters_section(
     n_ind = utils.n_individuals(n, n_old, section_day_old)
     rates = {"beta": beta_vect[section] / n, "delta": delta_vect[section]}
     section_day = section_days[section + 1]
-
-    # should return section_day_old , given that the input will be section_day.
-    # but I want to add 2 to it for the tanh in section_rates/n_individuals
-    # TODO: aclarar aquest comentari ^^
     return (n, rates, section_day, rates_old, section_day_old + 1, n_ind)
 
 

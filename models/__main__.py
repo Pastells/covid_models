@@ -4,10 +4,24 @@ from argparse import ArgumentParser
 
 from .utils import config
 
-from .sir import sir, sir_erlang, sir_erlang_sections, net_sir, net_sir_sections
-from .sir import sir_ode, sir_sections_ode
+from .sir import (
+    sir,
+    sir_erlang,
+    sir_erlang_sections,
+    net_sir,
+    net_sir_sections,
+    sir_ode,
+    sir_sections_ode,
+)
 from .sird import sird, sird_discrete, sird_parallel
-from .sair import sair, net_sair, net_sair_sections, sair_erlang, sair_erlang_sections
+from .sair import (
+    sair,
+    net_sair,
+    net_sair_sections,
+    sair_erlang,
+    sair_erlang_sections,
+    sair_sections_ode,
+)
 from .seair import seair
 from .sidarthe import sidarthe
 
@@ -528,6 +542,7 @@ def parse_args():
         ("sair-network-sections", NetworkSairSectionsParser, net_sair_sections.main),
         ("sair-erlang", SairErlangParser, sair_erlang.main),
         ("sair-erlang-sections", SairErlangSectionsParser, sair_erlang_sections.main),
+        ("sair-sections-ode", SairErlangSectionsParser, sair_sections_ode.main),
 
         ("seair", SeairParser, seair.main),
 
