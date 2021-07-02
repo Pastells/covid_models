@@ -12,13 +12,16 @@ dR(t)/dt =                      delta * I(t)
 
 import random
 from collections import namedtuple
+from typing import Tuple
 
 import numpy as np
+import pandas
 from optilog.autocfg import ac, Int, Real
 
 from ..utils import utils
 
 Result = namedtuple("Result", "infected recovered day_max")
+
 
 # TODO: maybe put this in the utils or a common file
 def check_successful_simulation(result: Result, time_total: int):
@@ -43,7 +46,7 @@ def sir(
     initial_recovered: Int(0, 1000) = 4,
     delta: Real(0.1, 1.0) = 0.2,
     beta: Real(0.1, 1.0) = 0.5,
-):
+) -> Tuple[float, pandas.DataFrame]:
     # Normalize beta for the number of individuals
     beta = beta / n
 
@@ -51,7 +54,8 @@ def sir(
     day_max = 0
     current_seed = seed - 1  # we increase the seed at the start of the loop
 
-    results = list()
+    seeds = list()
+    evolution = np.zeros([3, n_seeds, t_total])
 
     while mc_step < n_seeds:
         current_seed += 1
@@ -69,18 +73,31 @@ def sir(
         day_max = result.day_max
 
         if check_successful_simulation(result, t_total):
+            seeds.append(current_seed)
+            susceptible = n - result.infected - result.recovered
+            evolution[0, mc_step, :] = susceptible
+            evolution[1, mc_step, :] = result.infected
+            evolution[2, mc_step, :] = result.recovered
             mc_step += 1
-            results.append(result)
 
-    # results per day and seed
-    infected = np.zeros([n_seeds, t_total], dtype=int)
+    evolution_df = pandas.DataFrame(
+        [],
+        columns=pandas.MultiIndex.from_product(
+            [["susceptible", "infected", "recovered"], seeds]
+        ),
+    )
+    for step, seed in enumerate(seeds):
+        evolution_df[("susceptible", seed)] = evolution[0, step]
+        evolution_df[("infected", seed)] = evolution[1, step]
+        evolution_df[("recovered", seed)] = evolution[2, step]
 
-    for mc_step, result in enumerate(results):
-        infected[mc_step] = result.infected
+    print(evolution_df)
 
-    cost = get_cost(time_series, infected, t_total, day_max, n_seeds, metric)
+    cost = get_cost(time_series, evolution[1], t_total, day_max, n_seeds, metric)
+    # Report to optilog the cost
     print(f"GGA SUCCESS {cost}")
-    return cost
+
+    return cost, evolution_df
 
 
 def gillespie_simulation(
@@ -185,9 +202,9 @@ def parameters_init(args):
     return t_total, time_series
 
 
-def main(args):
+def main(args) -> pandas.DataFrame:
     t_total, time_series = parameters_init(args)
-    sir(
+    _, evolution = sir(
         time_series,
         args.seed,
         args.mc_nseed,
@@ -200,3 +217,4 @@ def main(args):
         delta=args.delta,
         beta=args.beta,
     )
+    return evolution

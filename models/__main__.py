@@ -101,9 +101,6 @@ class CommonParser:
     @classmethod
     def initialize_actions_group(cls, group):
         group.add_argument(
-            "--plot", action="store_true", help="specify for plots"
-        )
-        group.add_argument(
             "--save", type=str, default=None,
             help="specify a name for outputfile",
         )
@@ -520,7 +517,7 @@ class SidartheParser(CommonParser):
 def parse_args():
     parser = ArgumentParser(allow_abbrev=False)
 
-    model_parser = parser.add_subparsers(help="model to use")
+    model_parser = parser.add_subparsers(help="model to use", dest="model")
 
     models = [
         ("sair", SairParser, sair.main),
@@ -564,7 +561,15 @@ def main():
         resource.setrlimit(resource.RLIMIT_AS, (int(1024 ** 3 * 5.5), hard))
 
     try:
-        args.run_fn(args)
+        evolution = args.run_fn(args)
+
+        if args.save:
+            try:
+                evolution.to_csv(args.save)
+                print(f"Saved evolution at {args.save}", file=sys.stderr)
+            except AttributeError:
+                print(f"Model {args.model} does not support saving", file=sys.stderr)
+
     except MemoryError as ex:
         sys.stderr.write(f"{repr(ex)}\n")
         sys.stdout.write("MemoryError in python\n")
