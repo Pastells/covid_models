@@ -13,17 +13,13 @@ dD(t)/dt =   delta*theta * I(t)
 
 import random
 from collections import namedtuple
+from typing import Tuple
 
 import numpy as np
+import pandas
 from optilog.autocfg import ac, Int, Real
 
 from ..utils import utils
-
-
-# Renamed:
-# - main -> sird
-# - main_loop -> gillespie_simulation
-
 
 Result = namedtuple("Result", "infected recovered dead day_max")
 
@@ -62,7 +58,7 @@ def sird(
     delta: Real(0.03, 0.06) = 0.03,
     beta: Real(0.3, 0.4) = 0.3,
     theta: Real(0.004, 0.008) = 0.004,
-):
+) -> Tuple[float, pandas.DataFrame]:
     # Normalize beta for the number of individuals
     beta = beta / n
 
@@ -70,7 +66,9 @@ def sird(
     mc_step = 0
     current_seed = seed - 1  # we increase the seed at the start of the loop
 
-    results = []
+    seeds = list()
+    evolution = np.zeros([4, n_seeds, t_total])
+
     while mc_step < n_seeds:
         current_seed += 1
         result = gillespie_simulation(
@@ -90,24 +88,31 @@ def sird(
         day_max = result.day_max
 
         if check_successful_simulation(result, t_total):
+            seeds.append(current_seed)
+            susceptible = n - result.infected - result.recovered - result.dead
+            evolution[0, mc_step, :] = susceptible
+            evolution[1, mc_step, :] = result.infected
+            evolution[2, mc_step, :] = result.recovered
+            evolution[3, mc_step, :] = result.dead
             mc_step += 1
-            results.append(result)
-    # =========================
 
-    # results per day and seed
-    infected = np.zeros([n_seeds, t_total], dtype=int)
-    recovered = np.zeros([n_seeds, t_total], dtype=int)
-    dead = np.zeros([n_seeds, t_total], dtype=int)
-    for mc_step, result in enumerate(results):
-        infected[mc_step] = result.infected
-        recovered[mc_step] = result.recovered
-        dead[mc_step] = result.dead
+    evolution_df = pandas.DataFrame(
+        [],
+        columns=pandas.MultiIndex.from_product(
+            [["susceptible", "infected", "recovered", "dead"], seeds]
+        ),
+    )
+    for step, seed in enumerate(seeds):
+        evolution_df[("susceptible", seed)] = evolution[0, step]
+        evolution_df[("infected", seed)] = evolution[1, step]
+        evolution_df[("recovered", seed)] = evolution[2, step]
+        evolution_df[("dead", seed)] = evolution[3, step]
 
-    cost = get_cost(time_series, infected, recovered, dead, metric)
-
+    cost = get_cost(time_series, evolution[1], evolution[2], evolution[3], metric)
+    # Report to optilog the cost
     print(f"GGA SUCCESS {cost}")
 
-    return cost
+    return cost, evolution_df
 
 
 def gillespie_simulation(
@@ -232,7 +237,7 @@ def main(args):
     print(f"r = {rates['beta']}")
     print(f"a = {rates['delta']*(1-rates['theta'])}")
     print(f"d = {rates['delta']*rates['theta']}")
-    sird(
+    _, evolution = sird(
         time_series,
         args.seed,
         args.mc_nseed,
@@ -247,3 +252,4 @@ def main(args):
         beta=rates["beta"],
         theta=rates["theta"],
     )
+    return evolution
