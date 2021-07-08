@@ -61,4 +61,5 @@ The following models are ready to be used with Optilog:
 - SEAIR
   - [x] SEAIR
 - SIDARTHE [x]
+- SIDARTHE with sections [x] (wip)
 - MMCAcovid19 [ ] (todo)

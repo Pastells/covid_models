@@ -23,7 +23,7 @@ from .sair import (
     sair_sections_ode,
 )
 from .seair import seair
-from .sidarthe import sidarthe
+from .sidarthe import sidarthe, sidarthe_sections
 
 # fmt: off
 
@@ -531,6 +531,60 @@ class SidartheParser(CommonParser):
                             help="last day to consider of the data series")
 
 
+# SIDARTHE sections
+class SidartheSectionsParser(CommonParser):
+    @classmethod
+    def add_arguments(cls, parser, function_to_run):
+        # noqa: E241
+        parser.set_defaults(run_fn=function_to_run)
+        parser.add_argument("--n", type=int, default=int(60e6))
+        parser.add_argument("--n_old", type=int, default=0)
+        parser.add_argument("--initial_infected", type=int, default=100)
+        parser.add_argument("--initial_diagnosed", type=int, default=100)
+        parser.add_argument("--initial_ailing", type=int, default=100)
+        parser.add_argument("--initial_recovered", type=int, default=100)
+        parser.add_argument("--alfa",    type=float, default=0.5)
+        parser.add_argument("--beta",    type=float, default=0.5)
+        parser.add_argument("--gamma",   type=float, default=0.5)
+        parser.add_argument("--delta",   type=float, default=0.5)
+        parser.add_argument("--epsilon", type=float, default=0.2)
+        parser.add_argument("--theta",   type=float, default=0.2)
+        parser.add_argument("--zeta",    type=float, default=0.2)
+        parser.add_argument("--eta",     type=float, default=0.2)
+        parser.add_argument("--mu",      type=float, default=0.02)
+        parser.add_argument("--nu",      type=float, default=0.02)
+        parser.add_argument("--tau",     type=float, default=0.02)
+        parser.add_argument("--lambd",   type=float, default=0.2)
+        parser.add_argument("--rho",     type=float, default=0.02)
+        parser.add_argument("--kappa",   type=float, default=0.02)
+        parser.add_argument("--xi",      type=float, default=0.02)
+        parser.add_argument("--sigma",   type=float, default=0.02)
+        parser.add_argument("--alfa_old",    type=float)
+        parser.add_argument("--beta_old",    type=float)
+        parser.add_argument("--gamma_old",   type=float)
+        parser.add_argument("--delta_old",   type=float)
+        parser.add_argument("--epsilon_old", type=float)
+        parser.add_argument("--theta_old",   type=float)
+        parser.add_argument("--zeta_old",    type=float)
+        parser.add_argument("--eta_old",     type=float)
+        parser.add_argument("--mu_old",      type=float)
+        parser.add_argument("--nu_old",      type=float)
+        parser.add_argument("--tau_old",     type=float)
+        parser.add_argument("--lambda_old",  type=float)
+        parser.add_argument("--rho_old",     type=float)
+        parser.add_argument("--kappa_old",   type=float)
+        parser.add_argument("--xi_old",      type=float)
+        parser.add_argument("--sigma_old",   type=float)
+        parser.add_argument("--data",     type=str)
+        parser.add_argument("--seed", type=int)
+        parser.add_argument("--timeout", type=int)
+        parser.add_argument("--limit_memory", action="store_true")
+        parser.add_argument("--day_min", type=int, default=config.DAY_MIN,
+                            help="first day to consider of the data series")
+        parser.add_argument("--day_max", type=int, default=config.DAY_MAX,
+                            help="last day to consider of the data series")
+
+
 def parse_args():
     parser = ArgumentParser(allow_abbrev=False)
 
@@ -559,6 +613,7 @@ def parse_args():
         ("sird-parallel", SirdParallelParser, sird_parallel.main),
 
         ("sidarthe", SidartheParser, sidarthe.main),
+        ("sidarthe-sections", SidartheSectionsParser, sidarthe_sections.main),
     ]
 
     for model_name, parser_class, run_fn in models:
