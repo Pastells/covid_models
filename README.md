@@ -60,6 +60,6 @@ The following models are ready to be used with Optilog:
   - [x] Erlang SAIR with sections
 - SEAIR
   - [x] SEAIR
-- SIDARTHE [x]
-- SIDARTHE with sections [x] (wip)
+- SIDARTHE (Original in Matlab) [x]
+- SIDARTHE with sections (Python) [x]
 - MMCAcovid19 [ ] (todo)

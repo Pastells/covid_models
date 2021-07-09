@@ -1,3 +1,10 @@
+"""
+Adaptation of the SIDARTHE model
+If n_old = 0:
+    no previous section is assumed and the _old parameters are ignored
+otherwise:
+    n is the **increase** in population
+"""
 import sys
 import numpy as np
 import pandas as pd
@@ -5,11 +12,6 @@ from scipy.integrate import odeint
 from optilog.autocfg import ac, Int, Real
 import matplotlib.pyplot as plt
 from ..utils import utils, config
-
-
-N = 60e6
-
-# fmt: off
 
 
 @ac
@@ -56,21 +58,25 @@ def sidarthe(
     xi_old: Real(0.001, 0.5) = 0.005,
     sigma_old: Real(0.001, 0.5) = 0.005,
 ):
-    df = get_data(data, day_min, day_max)
+    # fmt: off
+    if n_old == 0:
+        n_init = n
+    else:
+        n_init = n_old
+
     initial_cond = (
-        n - initial_infected - initial_diagnosed - initial_ailing - initial_recovered,
+        n_init - initial_infected - initial_diagnosed - initial_ailing - initial_recovered,
         initial_infected,
         initial_diagnosed,
         initial_ailing,
         initial_recovered,
-        0, 0, 0,
+        0, 0, 0, 0,
+        initial_infected + initial_diagnosed + initial_ailing + initial_recovered,
     )
+    assert initial_cond[0] > 0, f"Insuficient individuals ({n_init}) for this initial settings"
 
-    rates = [
-        alfa / n, beta / n, gamma / n, delta / n, epsilon,
-        theta, zeta, eta, mu, nu, tau,
-        lambd, rho, kappa, xi, sigma,
-    ]
+    rates = [ alfa, beta, gamma, delta, epsilon, theta, zeta,
+              eta, mu, nu, tau, lambd, rho, kappa, xi, sigma]
 
     if n_old == 0:
         rates_old = rates
@@ -80,47 +86,90 @@ def sidarthe(
             theta_old, zeta_old, eta_old, mu_old, nu_old, tau_old,
             lambda_old, rho_old, kappa_old, xi_old, sigma_old,
         ]
+    # fmt: on
 
-    params = (rates, rates_old, n, n_old)
-    time = np.linspace(day_min, day_max, num=(day_max-day_min) * 1000)
+    params = (rates, rates_old, n, n_old, day_min)
+    time = np.linspace(day_min, day_max, num=(day_max - day_min + 1) * 1000)
 
     solution = odeint(SIDARTHE_ODE, initial_cond, time, args=tuple(params))
     plt.plot(time, solution)
     plt.show()
 
-    # sys.stdout.write(f"GGA SUCCESS {cost}\n")
+    time_series = get_data(data, day_min, day_max)
+    infected = np.zeros(day_max - day_min + 1, dtype=int)
+    day_max = utils.day_data(time, solution[:, 1], infected, day_max)
+    cost = get_cost(time_series, solution)
 
+    # last values as input for next section
+    print(np.array(solution[-1, 1:5], dtype=int))
+
+    sys.stdout.write(f"GGA SUCCESS {cost}\n")
 
 
 def get_data(data, day_min, day_max):
     df = pd.read_csv(data)
-    df = df.loc[day_min : day_max + 1]
+    df = df.loc[day_min:day_max]
+    guariti = df.dimessi_guariti.values
+    isol = df.isolamento_domiciliare.values
+    ricov = df.ricoverati_con_sintomi.values
+    terapia = df.terapia_intensiva.values
+    data = np.array([guariti, isol, ricov, terapia])
+    return data
 
-    # df.totale_casi.values
-    # df.deceduti.values
-    # df.dimessi_guariti.values
-    # df.totale_positivi.values
-    # df.isolamento_domiciliare.values
-    # df.ricoverati_con_sintomi.values
-    # df.terapia_intensiva.values
 
-    # I = df.totale_positivi.values
-    # R = df.dimessi_guariti.values
-    # D = df.deceduti.values
-    return df
+def get_cost(time_series, solution):
+    cost = 0
+    cost += np.linalg.norm(time_series[0] - solution[:, 8::1000])
+    cost += np.linalg.norm(time_series[1] - solution[:, 2::1000])
+    cost += np.linalg.norm(time_series[2] - solution[:, 4::1000])
+    cost += np.linalg.norm(time_series[3] - solution[:, 5::1000])
+    return cost / 1e6
+
 
 def SIDARTHE_ODE(x, time, *params, transition_days=config.TRANSITION_DAYS):
-    rates, rates_old, n, n_old = params
+    rates, rates_old, n, n_old, day_min = params
+
+    # If this is not the first section
+    if n_old != 0:
+        rates_eval = []
+        weight = utils.transition_weight(time - day_min, transition_days)
+        for i in range(len(rates)):
+            rates_eval.append(rates_old[i] + (rates[i] - rates_old[i]) * weight)
+    else:
+        rates_eval = rates
+        n_eval = n
+
+    dS = 0
+    if n_old != 0:
+        # If we increment the population
+        if n != 0:
+            transition_weight = 0.5 * (
+                5.33
+                / transition_days
+                / np.cosh(
+                    (time - day_min - transition_days / 2) * 5.33 / transition_days
+                )
+                ** 2
+            )
+            n_increment = n * transition_weight
+            n_eval = n_old + n_increment
+            dS += n_increment
+        else:
+            n_eval = n_old
+
+    # fmt: off
     (
         alfa, beta, gamma, delta, epsilon,
-        theta, zeta, eta, mu, nu, tau,
-        lambd, rho, kappa, xi, sigma,
-    ) = rates
+        theta, zeta, eta, mu, nu, tau, lambd, rho, kappa, xi, sigma,
+    ) = rates_eval
+    # fmt: on
+    alfa = alfa / n_eval
+    beta = beta / n_eval
+    gamma = gamma / n_eval
+    delta = delta / n_eval
 
-    # rates_eval = utils.section_rates(time, rates, rates_old, section_day_old)
-    # alpha, delta_a, delta, beta_a, beta = rates_eval.values()
-    S, I, D, A, R, T, H, E = x
-    dS = -(alfa * I + beta * D + gamma * A + delta * R) * S
+    S, I, D, A, R, T, H, E, H_diag, I_real = x
+    dS -= (alfa * I + beta * D + gamma * A + delta * R) * S
     dI = (alfa * I + beta * D + gamma * A + delta * R) * S - (
         epsilon + zeta + lambd
     ) * I
@@ -130,10 +179,9 @@ def SIDARTHE_ODE(x, time, *params, transition_days=config.TRANSITION_DAYS):
     dT = mu * A + nu * R - (sigma + tau) * T
     dH = lambd * I + rho * D + kappa * A + xi * R + sigma * T
     dE = tau * T
-    return dS, dI, dD, dA, dR, dT, dH, dE
-
-
-# fmt: on
+    dH_diag = rho * D + xi * R + sigma * T
+    dI_real = (alfa * I + beta * D + gamma * A + delta * R) * S
+    return dS, dI, dD, dA, dR, dT, dH, dE, dH_diag, dI_real
 
 
 def main(args):
