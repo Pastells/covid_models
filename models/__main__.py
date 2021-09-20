@@ -2,6 +2,7 @@ import sys
 import traceback
 from argparse import ArgumentParser
 
+from models.seipahrf import seipahrf
 from .utils import config
 
 from .sir import (
@@ -585,6 +586,38 @@ class SidartheSectionsParser(CommonParser):
                             help="last day to consider of the data series")
 
 
+class SeipahrfParser(CommonParser):
+    @classmethod
+    def initialize_parameters_group(cls, group):
+        super().initialize_parameters_group(group)
+
+        group.add_argument(
+            "--n", type=int, default=config.N,
+            help="fixed number of (effective) individuals [1000, 1000000]",
+        )
+
+        group.add_argument("--initial-exposed", type=int, default=0)
+        group.add_argument("--initial-infected", type=int, default=1)
+        group.add_argument("--initial-superspreader", type=int, default=6)
+        group.add_argument("--initial-asymptomatic", type=int, default=0)
+        group.add_argument("--initial-hospitalized", type=int, default=0)
+        group.add_argument("--initial-recovered", type=int, default=0)
+        group.add_argument("--initial-dead", type=int, default=0)
+
+        group.add_argument("--beta", type=float, default=0.4)
+        group.add_argument("--beta_p", type=float, default=0.4)
+        group.add_argument("--l", type=float, default=0.4)
+        group.add_argument("--k", type=float, default=0.4)
+        group.add_argument("--rho1", type=float, default=0.4)
+        group.add_argument("--rho2", type=float, default=0.4)
+        group.add_argument("--gamma_a", type=float, default=0.4)
+        group.add_argument("--gamma_i", type=float, default=0.4)
+        group.add_argument("--gamma_r", type=float, default=0.4)
+        group.add_argument("--delta_i", type=float, default=0.4)
+        group.add_argument("--delta_p", type=float, default=0.4)
+        group.add_argument("--delta_h", type=float, default=0.4)
+
+
 def parse_args():
     parser = ArgumentParser(allow_abbrev=False)
 
@@ -614,6 +647,8 @@ def parse_args():
 
         ("sidarthe", SidartheParser, sidarthe.main),
         ("sidarthe-sections", SidartheSectionsParser, sidarthe_sections.main),
+
+        ("seipahrf", SeipahrfParser, seipahrf.main),
     ]
 
     for model_name, parser_class, run_fn in models:
