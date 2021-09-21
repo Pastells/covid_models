@@ -259,4 +259,4 @@ def fast_SIR(
     R = R[len(initial_infected) :]
 
     # return np.array(times), np.array(S), np.array(I), np.array(R) + initial_recovered
-    return times, I
+    return times, S, I, R

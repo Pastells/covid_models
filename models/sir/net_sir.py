@@ -12,14 +12,16 @@ dR(t)/dt =                      delta * I(t)
 
 import random
 from collections import namedtuple
+from typing import Tuple
 
 import numpy as np
+import pandas
 from optilog.autocfg import ac, Int, Real, Categorical
 
 from . import fast_sir
 from ..utils import utils, utils_net
 
-Result = namedtuple("Result", "infected day_max")
+Result = namedtuple("Result", "susceptible infected recovered day_max")
 
 
 def check_successful_simulation(result: Result, time_total: int):
@@ -45,18 +47,16 @@ def net_sir(
     initial_recovered: Int(0, 1000) = 4,
     delta: Real(0.1, 1.0) = 0.2,
     beta: Real(0.1, 1.0) = 0.5,
-):
+) -> Tuple[float, pandas.DataFrame]:
     # Normalize beta for the number of individuals
     rates = {"beta": beta / network_param, "delta": delta}
-
-    # results per day and seed
-    infected = np.zeros([n_seeds, t_total], dtype=np.uint32)
 
     mc_step = 0
     day_max = 0
     current_seed = seed - 1  # we increase the seed at the start of the loop
 
-    results = list()
+    seeds = list()
+    evolution = np.zeros([3, n_seeds, t_total])
 
     while mc_step < n_seeds:
         current_seed += 1
@@ -74,13 +74,13 @@ def net_sir(
         day_max = result.day_max
 
         if check_successful_simulation(result, t_total):
+            seeds.append(current_seed)
+            evolution[0, mc_step, :] = result.susceptible
+            evolution[1, mc_step, :] = result.infected
+            evolution[2, mc_step, :] = result.recovered
             mc_step += 1
-            results.append(result)
 
-    for mc_step, result in enumerate(results):
-        infected[mc_step] = result.infected
-
-    cost = get_cost(time_series, infected, t_total, day_max, n_seeds, metric)
+    cost = get_cost(time_series, evolution[1], t_total, day_max, n_seeds, metric)
     print(f"GGA SUCCESS {cost}")
     return cost
 
@@ -99,16 +99,20 @@ def event_driven_simulation(
     random.seed(seed)
     np.random.seed(seed)
 
+    susceptible = np.zeros(t_total, dtype=int)
     infected = np.zeros(t_total, dtype=int)
+    recovered = np.zeros(t_total, dtype=int)
 
     G = utils_net.choose_network(n, network, network_param)
-    t, I = fast_sir.fast_SIR(
+    t, S, I, R = fast_sir.fast_SIR(
         G, rates, initial_infected, initial_recovered, tmax=t_total - 0.95
     )
 
     day_max = utils.day_data(t, I, infected, day_max)
-    del t, I, G
-    return Result(infected, day_max)
+    utils.day_data(t, S, susceptible, day_max)
+    utils.day_data(t, R, recovered, day_max)
+    del t, R, I, S, G
+    return Result(susceptible, infected, recovered, day_max)
 
 
 def parameters_init(args):

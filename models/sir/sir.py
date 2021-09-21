@@ -91,8 +91,6 @@ def sir(
         evolution_df[("infected", seed)] = evolution[1, step]
         evolution_df[("recovered", seed)] = evolution[2, step]
 
-    print(evolution_df)
-
     cost = get_cost(time_series, evolution[1], t_total, day_max, n_seeds, metric)
     # Report to optilog the cost
     print(f"GGA SUCCESS {cost}")
@@ -217,4 +215,7 @@ def main(args) -> pandas.DataFrame:
         delta=args.delta,
         beta=args.beta,
     )
+    print(evolution)
+
+    print(evolution.mean(level=0, axis=1))
     return evolution
