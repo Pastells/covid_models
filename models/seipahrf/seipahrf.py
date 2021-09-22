@@ -2,6 +2,7 @@ import numpy
 import numpy as np
 from matplotlib import pyplot as plt
 from scipy.integrate import solve_ivp
+from optilog.autocfg import ac, Int, Real
 
 from models.utils import utils
 
@@ -13,9 +14,22 @@ python -m models seipahrf --data data/wuhan.csv --beta 2.55 --l 1.56 \
     --n 44000 --day_max 66 --day_min 0
 """
 
+
 def ode(t, x, *rates):
-    beta, beta_p, l, k, rho1, rho2, gamma_a, gamma_i, \
-        gamma_r, delta_i, delta_p, delta_h = rates
+    (
+        beta,
+        beta_p,
+        l,
+        k,
+        rho1,
+        rho2,
+        gamma_a,
+        gamma_i,
+        gamma_r,
+        delta_i,
+        delta_p,
+        delta_h,
+    ) = rates
 
     S, E, I, P, A, H, R, F = x
     N = sum(x)
@@ -27,11 +41,11 @@ def ode(t, x, *rates):
     delta_p = delta_p / N
     delta_h = delta_h / N
 
-    dS_dt = - beta * I * S - l * beta * H * S - beta_p * P * S
+    dS_dt = -beta * I * S - l * beta * H * S - beta_p * P * S
     dE_dt = beta * I * S + l * beta * H * S + beta_p * P * S - k * E
-    dI_dt = k*rho1 * E - (gamma_a + gamma_i) * I - delta_i * I
-    dP_dt = k*rho2 * E - (gamma_a + gamma_i) * P - delta_p * P
-    dA_dt = k*(1 - rho1 - rho2) * E
+    dI_dt = k * rho1 * E - (gamma_a + gamma_i) * I - delta_i * I
+    dP_dt = k * rho2 * E - (gamma_a + gamma_i) * P - delta_p * P
+    dA_dt = k * (1 - rho1 - rho2) * E
     dH_dt = gamma_a * (I + P) - gamma_r * H - delta_h * H
     dR_dt = gamma_i * (I + P) + gamma_r * H
     dF_dt = delta_i * I + delta_p * P + delta_h * H
@@ -45,37 +59,46 @@ def get_cost(time_series: np.ndarray, infected, t_total, day_max, metric):
     return utils.cost_func(time_series[:, 0], inf_m, metric)
 
 
+@ac
 def seipahrf(
     time_series: numpy.ndarray,
     t_total: int,
     metric: str,
     n,
-    initial_exposed=0,
-    initial_infected=1,
-    initial_superspreader=5,
+    initial_exposed: Int(0, 20) = 0,
+    initial_infected: Int(0, 20) = 1,
+    initial_superspreader: Int(0, 20) = 5,
     initial_asymptomatic=0,
     initial_hospitalized=0,
     initial_recovered=0,
     initial_dead=0,
-    beta=0.4,
-    beta_p=0.4,
-    l=0.4,
-    k=0.4,
-    rho1=0.4,
-    rho2=0.4,
-    gamma_a=0.4,
-    gamma_i=0.4,
-    gamma_r=0.4,
-    delta_i=0.4,
-    delta_p=0.4,
-    delta_h=0.4,
+    beta: Real(0.01, 5.0) = 2.5,
+    beta_p: Real(0.01, 10.0) = 7.65,
+    l: Real(0.01, 3.0) = 1.56,
+    k: Real(0.01, 1.0) = 0.25,
+    rho1: Real(0.01, 1.0) = 0.580,
+    rho2: Real(0.001, 0.5) = 0.001,
+    gamma_a: Real(0.01, 1.5) = 0.94,
+    gamma_i: Real(0.01, 1.5) = 0.27,
+    gamma_r: Real(0.01, 5.0) = 0.5,
+    delta_i: Real(1.0, 5.0) = 3.5,
+    delta_p: Real(0.5, 1.5) = 1.0,
+    delta_h: Real(0.01, 1.0) = 0.3,
+    plot: bool = True,
 ):
     # Solve the ODE
     time = numpy.linspace(0, t_total - 0.01, num=t_total * 100)
 
-    initial_s = n - initial_exposed - initial_infected - initial_superspreader \
-        - initial_asymptomatic - initial_hospitalized - initial_recovered \
+    initial_s = (
+        n
+        - initial_exposed
+        - initial_infected
+        - initial_superspreader
+        - initial_asymptomatic
+        - initial_hospitalized
+        - initial_recovered
         - initial_dead
+    )
     initial_conditions = (
         initial_s,
         initial_exposed,
@@ -84,34 +107,40 @@ def seipahrf(
         initial_asymptomatic,
         initial_hospitalized,
         initial_recovered,
-        initial_dead
+        initial_dead,
     )
 
-    args = (beta, beta_p, l, k, rho1, rho2, gamma_a, gamma_i, gamma_r, delta_i,
-            delta_p, delta_h)
+    args = (
+        beta,
+        beta_p,
+        l,
+        k,
+        rho1,
+        rho2,
+        gamma_a,
+        gamma_i,
+        gamma_r,
+        delta_i,
+        delta_p,
+        delta_h,
+    )
 
     t_span = (time[0], time[-1])
     solution = solve_ivp(
-        fun=ode,
-        t_span=t_span, t_eval=time,
-        y0=initial_conditions, args=args)
+        fun=ode, t_span=t_span, t_eval=time, y0=initial_conditions, args=args
+    )
 
     prediction = solution.y.transpose()
-    total_infected = prediction[:, 2] + prediction[:, 3] + prediction[:, 5]
+    confirmed = prediction[:, 2] + prediction[:, 3] + prediction[:, 5]
 
-    deaths = np.zeros(t_total, dtype=int)
-    day_max = utils.day_data(time, prediction[:, -1], deaths, 0)
-    deaths_per_day = numpy.diff(prediction[:, -1], prepend=[0])
-
-    plt.plot(solution.t, total_infected, time_series[:, 0])
-    plt.show()
+    if plot:
+        plt.plot(solution.t, confirmed, time_series[:, 0])
+        plt.show()
 
     # Results per day
-    infected = np.zeros(t_total, dtype=int)
-    day_max = utils.day_data(time, total_infected, infected, 0)
-    print(total_infected[200])
-    print(infected)
-    cost = get_cost(time_series, infected, t_total, day_max, metric)
+    confirmed_by_day = np.zeros(t_total, dtype=int)
+    day_max = utils.day_data(time, confirmed, confirmed_by_day, 0)
+    cost = get_cost(time_series, confirmed_by_day, t_total, day_max, metric)
 
     print(f"GGA SUCCESS {cost}")
     return cost
@@ -147,5 +176,5 @@ def main(args):
         gamma_r=args.gamma_r,
         delta_i=args.delta_i,
         delta_p=args.delta_p,
-        delta_h=args.delta_h
+        delta_h=args.delta_h,
     )

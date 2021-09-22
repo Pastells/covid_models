@@ -3,6 +3,7 @@ import numpy
 from .sair import sair, net_sair
 from .utils import config
 from .sird import sird
+from .seipahrf import seipahrf
 
 
 RESULT_REGEX = r"Result: ([+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?)$"
@@ -77,10 +78,32 @@ def _auto_net_sair(dataset, seed):
     _report_result(cost)
 
 
+def _auto_seipahrf(dataset, seed):
+    del seed  # Not used
+
+    # Constants
+    day_min = 0
+    day_max = 66
+    n = 11000000 / 250
+
+    t_total = day_max - day_min
+    time_series = load_data(dataset, day_min, day_max)
+
+    cost = seipahrf.seipahrf(
+        time_series=time_series,
+        t_total=t_total,
+        metric="models.utils.utils.sum_sq",
+        n=n,
+        plot=False
+    )
+    _report_result(cost)
+
+
 _entrypoints = {
     "sird": (_auto_sird, [sird.sird]),
     "sair": (_auto_sair, [sair.sair]),
     "net_sair": (_auto_net_sair, [net_sair.net_sair]),
+    "seipahrf": (_auto_seipahrf, [seipahrf.seipahrf]),
 }
 
 

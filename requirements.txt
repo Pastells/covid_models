@@ -4,3 +4,5 @@ matplotlib
 oct2py
 optilog
 joblib
+pandas
+seaborn
