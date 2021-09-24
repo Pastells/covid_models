@@ -7,7 +7,7 @@ from .seipahrf import seipahrf
 
 
 RESULT_REGEX = r"Result: ([+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?)$"
-
+MAX_COST = 100000000000000000000
 
 def _report_result(cost):
     print(f"Result: {cost}")
