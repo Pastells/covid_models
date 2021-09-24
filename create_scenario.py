@@ -128,7 +128,7 @@ def get_configurator_kwargs(configurator, args) -> Dict:
             "cost_tolerance": 0.0,
             # "cancel": None,
             # "cancel_min_evals": None,
-            "instance_selector": "rlinear",
+            "instances_selector": "rlinear",
             "instances_min": 1,
             "instances_max": 0,
             "instances_gen_max": -2,
