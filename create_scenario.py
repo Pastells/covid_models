@@ -31,7 +31,7 @@ def create_scenario(
         global_cfgcalls=cfg_calls,
         input_data=list(data),
         runsolver_path=RUNSOLVER_PATH,
-        memory_limit=6 * 1024,
+        memory_limit=20 * 1024,
         run_obj="quality",
         data_kwarg="dataset",
         seed_kwarg="seed",
