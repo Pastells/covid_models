@@ -15,7 +15,7 @@ from collections import namedtuple
 import numpy as np
 from scipy.integrate import odeint
 
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 from optilog.autocfg import ac, Int, Real
 from ..utils import utils, config
 
@@ -122,8 +122,8 @@ def sir(
     day_max = utils.day_data(time, solution[:, 1], infected, day_max)
     cost = get_cost(time_series, infected, t_total, day_max, metric)
     print(f"GGA SUCCESS {cost}")
-    # plt.plot(time, solution)
-    # plt.show()
+    plt.plot(time, solution)
+    plt.show()
     return cost
 
 

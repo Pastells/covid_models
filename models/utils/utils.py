@@ -344,7 +344,6 @@ def cost_func(time_series, var_m, metric=sum_sq):
     cost = cost_return(time_series, var_m, metric)
     # Normalize with number of days
     # cost = cost / len(time_series) * 100
-    # TODO: borrar aquest print un cop estigui tot amb optilog
     print(f"GGA SUCCESS {cost}")
     return cost
 

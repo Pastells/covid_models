@@ -8,7 +8,7 @@
 --delta real [0.05,1.0]
 --delta_a real [0.01,1.0]
 --alpha real [0.05,2.0]
---epsilon real [0.2,1.0]
+--epsilon real [0.2,2.0]
 
 %MODULES
 python/3.6.5

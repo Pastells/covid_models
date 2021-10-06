@@ -38,16 +38,16 @@ def seair(
     n_t_steps: int,
     metric,
     n: Int(70000, 90000) = 70000,
-    initial_exposed: Int(0, 1) = 1,  # TODO
-    initial_asymptomatic: Int(0, 1) = 1,  # TODO
+    initial_exposed: Int(0, 1) = 1,
+    initial_asymptomatic: Int(0, 1) = 1,
     initial_infected: Int(410, 440) = 410,
     initial_recovered: Int(4, 6) = 4,
-    alpha: Real(0.0, 1.0) = 0.1,  # TODO
-    delta_a: Real(0.0, 1.0) = 0.1,  # TODO
-    epsilon: Real(0.0, 1.0) = 0.1,  # TODO
-    delta: Real(0.0, 1.0) = 0.1,  # TODO
-    beta_a: Real(0.0, 1.0) = 0.1,  # TODO
-    beta: Real(0.0, 1.0) = 0.1,  # TODO
+    alpha: Real(0.0, 2.0) = 1.8,
+    epsilon: Real(0.0, 2.0) = 1,
+    delta_a: Real(0.0, 1.0) = 0.6,
+    delta: Real(0.0, 1.0) = 0.2,
+    beta_a: Real(0.0, 1.0) = 0.3,
+    beta: Real(0.0, 1.0) = 0.6,
 ):
     # results per day and seed
     infected = np.zeros([n_seeds, t_total], dtype=int)
@@ -70,8 +70,8 @@ def seair(
             initial_recovered,
             t_total,
             alpha,
-            delta_a,
             epsilon,
+            delta_a,
             delta,
             beta_a,
             beta,

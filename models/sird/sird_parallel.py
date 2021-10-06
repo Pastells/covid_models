@@ -145,7 +145,7 @@ def sird(args) -> Tuple[float, pandas.DataFrame]:
         utils.saving(args, I_m, day_max)
 
     if args.plot:
-        from utils import plots
+        from ..utils import plots
 
         plots.plotting(args, day_max, I_m, R_m, D_m)
 

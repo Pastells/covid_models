@@ -2,14 +2,29 @@ import sys
 import traceback
 from argparse import ArgumentParser
 
+from models.seipahrf import seipahrf
 from .utils import config
 
-from .sir import sir, sir_erlang, sir_erlang_sections, net_sir, net_sir_sections
-from .sir import sir_ode, sir_sections_ode
+from .sir import (
+    sir,
+    sir_erlang,
+    sir_erlang_sections,
+    net_sir,
+    net_sir_sections,
+    sir_ode,
+    sir_sections_ode,
+)
 from .sird import sird, sird_discrete, sird_parallel
-from .sair import sair, net_sair, net_sair_sections, sair_erlang, sair_erlang_sections
+from .sair import (
+    sair,
+    net_sair,
+    net_sair_sections,
+    sair_erlang,
+    sair_erlang_sections,
+    sair_sections_ode,
+)
 from .seair import seair
-from .sidarthe import sidarthe
+from .sidarthe import sidarthe, sidarthe_sections
 
 # fmt: off
 
@@ -514,6 +529,92 @@ class SidartheParser(CommonParser):
                             help="last day to consider of the data series")
 
 
+# SIDARTHE sections
+class SidartheSectionsParser(CommonParser):
+    @classmethod
+    def add_arguments(cls, parser, function_to_run):
+        # noqa: E241
+        parser.set_defaults(run_fn=function_to_run)
+        parser.add_argument("--n", type=int, default=int(60e6))
+        parser.add_argument("--n_old", type=int, default=0)
+        parser.add_argument("--initial_infected", type=int, default=1000)
+        parser.add_argument("--initial_diagnosed", type=int, default=1000)
+        parser.add_argument("--initial_ailing", type=int, default=1000)
+        parser.add_argument("--initial_recovered", type=int, default=1000)
+        parser.add_argument("--alfa",    type=float, default=0.5)
+        parser.add_argument("--beta",    type=float, default=0.5)
+        parser.add_argument("--gamma",   type=float, default=0.5)
+        parser.add_argument("--delta",   type=float, default=0.5)
+        parser.add_argument("--epsilon", type=float, default=0.2)
+        parser.add_argument("--theta",   type=float, default=0.2)
+        parser.add_argument("--zeta",    type=float, default=0.2)
+        parser.add_argument("--eta",     type=float, default=0.2)
+        parser.add_argument("--mu",      type=float, default=0.02)
+        parser.add_argument("--nu",      type=float, default=0.02)
+        parser.add_argument("--tau",     type=float, default=0.02)
+        parser.add_argument("--lambd",   type=float, default=0.2)
+        parser.add_argument("--rho",     type=float, default=0.02)
+        parser.add_argument("--kappa",   type=float, default=0.02)
+        parser.add_argument("--xi",      type=float, default=0.02)
+        parser.add_argument("--sigma",   type=float, default=0.02)
+        parser.add_argument("--alfa_old",    type=float, default=0.5)
+        parser.add_argument("--beta_old",    type=float, default=0.5)
+        parser.add_argument("--gamma_old",   type=float, default=0.5)
+        parser.add_argument("--delta_old",   type=float, default=0.5)
+        parser.add_argument("--epsilon_old", type=float, default=0.2)
+        parser.add_argument("--theta_old",   type=float, default=0.2)
+        parser.add_argument("--zeta_old",    type=float, default=0.2)
+        parser.add_argument("--eta_old",     type=float, default=0.2)
+        parser.add_argument("--mu_old",      type=float, default=0.02)
+        parser.add_argument("--nu_old",      type=float, default=0.02)
+        parser.add_argument("--tau_old",     type=float, default=0.02)
+        parser.add_argument("--lambda_old",  type=float, default=0.2)
+        parser.add_argument("--rho_old",     type=float, default=0.02)
+        parser.add_argument("--kappa_old",   type=float, default=0.02)
+        parser.add_argument("--xi_old",      type=float, default=0.02)
+        parser.add_argument("--sigma_old",   type=float, default=0.02)
+        parser.add_argument("--data",     type=str)
+        parser.add_argument("--seed", type=int)
+        parser.add_argument("--timeout", type=int)
+        parser.add_argument("--limit_memory", action="store_true")
+        parser.add_argument("--day_min", type=int, default=config.DAY_MIN,
+                            help="first day to consider of the data series")
+        parser.add_argument("--day_max", type=int, default=config.DAY_MAX,
+                            help="last day to consider of the data series")
+
+
+class SeipahrfParser(CommonParser):
+    @classmethod
+    def initialize_parameters_group(cls, group):
+        super().initialize_parameters_group(group)
+
+        group.add_argument(
+            "--n", type=int, default=config.N,
+            help="fixed number of (effective) individuals [1000, 1000000]",
+        )
+
+        group.add_argument("--initial-exposed", type=int, default=0)
+        group.add_argument("--initial-infected", type=int, default=1)
+        group.add_argument("--initial-superspreader", type=int, default=6)
+        group.add_argument("--initial-asymptomatic", type=int, default=0)
+        group.add_argument("--initial-hospitalized", type=int, default=0)
+        group.add_argument("--initial-recovered", type=int, default=0)
+        group.add_argument("--initial-dead", type=int, default=0)
+
+        group.add_argument("--beta", type=float, default=0.4)
+        group.add_argument("--beta_p", type=float, default=0.4)
+        group.add_argument("--l", type=float, default=0.4)
+        group.add_argument("--k", type=float, default=0.4)
+        group.add_argument("--rho1", type=float, default=0.4)
+        group.add_argument("--rho2", type=float, default=0.4)
+        group.add_argument("--gamma_a", type=float, default=0.4)
+        group.add_argument("--gamma_i", type=float, default=0.4)
+        group.add_argument("--gamma_r", type=float, default=0.4)
+        group.add_argument("--delta_i", type=float, default=0.4)
+        group.add_argument("--delta_p", type=float, default=0.4)
+        group.add_argument("--delta_h", type=float, default=0.4)
+
+
 def parse_args():
     parser = ArgumentParser(allow_abbrev=False)
 
@@ -525,6 +626,7 @@ def parse_args():
         ("sair-network-sections", NetworkSairSectionsParser, net_sair_sections.main),
         ("sair-erlang", SairErlangParser, sair_erlang.main),
         ("sair-erlang-sections", SairErlangSectionsParser, sair_erlang_sections.main),
+        ("sair-sections-ode", SairErlangSectionsParser, sair_sections_ode.main),
 
         ("seair", SeairParser, seair.main),
 
@@ -541,6 +643,9 @@ def parse_args():
         ("sird-parallel", SirdParallelParser, sird_parallel.main),
 
         ("sidarthe", SidartheParser, sidarthe.main),
+        ("sidarthe-sections", SidartheSectionsParser, sidarthe_sections.main),
+
+        ("seipahrf", SeipahrfParser, seipahrf.main),
     ]
 
     for model_name, parser_class, run_fn in models:
