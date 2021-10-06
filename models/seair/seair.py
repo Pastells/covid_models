@@ -75,9 +75,8 @@ def seair(
             delta,
             beta_a,
             beta,
-            day_max,
         )
-        day_max = result.day_max
+        day_max = max(day_max, result.day_max)
         infected[mc_step] = result.infected
 
     cost = get_cost(time_series, infected, t_total, day_max, n_seeds, metric)
@@ -99,7 +98,6 @@ def gillespie_simulation(
     delta,
     beta_a,
     beta,
-    day_max: int,
 ):
     comp = Compartments(
         n=n,
@@ -110,7 +108,6 @@ def gillespie_simulation(
         initial_recovered=initial_recovered,
     )
 
-    infected = np.zeros(t_total, dtype=int)
     t_step, time = 0, 0
 
     # Time loop
@@ -119,7 +116,7 @@ def gillespie_simulation(
             t_step, time, comp, alpha, delta_a, epsilon, delta, beta_a, beta
         )
 
-    day_max = utils.day_data(comp.T[:t_step], comp.I[:t_step], infected, day_max)
+    day_max, infected = utils.day_data(comp.T[:t_step], comp.I[:t_step], t_total)
 
     return Result(infected, day_max)
 

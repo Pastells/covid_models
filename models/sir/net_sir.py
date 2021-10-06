@@ -69,9 +69,8 @@ def net_sir(
             initial_recovered,
             t_total,
             rates,
-            day_max,
         )
-        day_max = result.day_max
+        day_max = max(day_max, result.day_max)
 
         if check_successful_simulation(result, t_total):
             seeds.append(current_seed)
@@ -94,23 +93,18 @@ def event_driven_simulation(
     initial_recovered: int,
     t_total: int,
     rates: dict,
-    day_max: int,
 ) -> Result:
     random.seed(seed)
     np.random.seed(seed)
-
-    susceptible = np.zeros(t_total, dtype=int)
-    infected = np.zeros(t_total, dtype=int)
-    recovered = np.zeros(t_total, dtype=int)
 
     G = utils_net.choose_network(n, network, network_param)
     t, S, I, R = fast_sir.fast_SIR(
         G, rates, initial_infected, initial_recovered, tmax=t_total - 0.95
     )
 
-    day_max = utils.day_data(t, I, infected, day_max)
-    utils.day_data(t, S, susceptible, day_max)
-    utils.day_data(t, R, recovered, day_max)
+    _, susceptible = utils.day_data(t, S, t_total)
+    day_max, infected = utils.day_data(t, I, t_total)
+    _, recovered = utils.day_data(t, R, t_total)
     del t, R, I, S, G
     return Result(susceptible, infected, recovered, day_max)
 

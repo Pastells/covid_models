@@ -82,10 +82,9 @@ def sird(
             delta,
             beta,
             theta,
-            day_max,
         )
 
-        day_max = result.day_max
+        day_max = max(day_max, result.day_max)
 
         if check_successful_simulation(result, t_total):
             seeds.append(current_seed)
@@ -126,16 +125,11 @@ def gillespie_simulation(
     delta: float,
     beta: float,
     theta: float,
-    day_max: int,
 ) -> Result:
     random.seed(seed)
     np.random.seed(seed)
 
     comp = Compartments(n, n_t_steps, initial_infected, initial_recovered, initial_dead)
-
-    infected = np.zeros(t_total, dtype=int)
-    recovered = np.zeros(t_total, dtype=int)
-    dead = np.zeros(t_total, dtype=int)
 
     t_step, time = 0, 0
 
@@ -144,9 +138,9 @@ def gillespie_simulation(
         t_step, time = gillespie(t_step, time, comp, delta, beta, theta)
     # -------------------------
 
-    day_max = utils.day_data(comp.T[:t_step], comp.I[:t_step], infected, day_max)
-    day_max = utils.day_data(comp.T[:t_step], comp.R[:t_step], recovered, day_max)
-    day_max = utils.day_data(comp.T[:t_step], comp.D[:t_step], dead, day_max)
+    day_max, infected = utils.day_data(comp.T[:t_step], comp.I[:t_step], t_total)
+    _, recovered = utils.day_data(comp.T[:t_step], comp.R[:t_step], t_total)
+    _, dead = utils.day_data(comp.T[:t_step], comp.D[:t_step], t_total)
 
     return Result(infected, recovered, dead, day_max)
 

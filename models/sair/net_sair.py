@@ -82,9 +82,8 @@ def net_sair(
             initial_asymptomatic,
             t_total,
             rates,
-            day_max,
         )
-        day_max = result.day_max
+        day_max = max(day_max, result.day_max)
 
         if check_successful_simulation(result, t_total):
             mc_step += 1
@@ -108,12 +107,9 @@ def event_driven_simulation(
     initial_asymptomatic: int,
     t_total: int,
     rates: dict,
-    day_max: int,
 ) -> Result:
     random.seed(seed)
     np.random.seed(seed)
-
-    infected = np.zeros(t_total, dtype=int)
 
     G = utils_net.choose_network(n, network, network_param)
     t, I = fast_sair.fast_SAIR(
@@ -125,7 +121,7 @@ def event_driven_simulation(
         tmax=t_total - 0.95,
     )
 
-    day_max = utils.day_data(t, I, infected, day_max)
+    day_max, infected = utils.day_data(t, I, t_total)
     del t, I, G
     return Result(infected, day_max)
 

@@ -177,13 +177,12 @@ def main_loop(args, t_total, rates, last_day_inf):
     else:
         i_var = comp.I
 
-    day_max = 0
-    day_max = utils.day_data(comp.T[:t_step], i_var[:t_step], I_day, day_max)
-    day_max = utils.day_data(comp.T[:t_step], comp.R[:t_step], R_day, day_max)
-    day_max = utils.day_data(comp.T[:t_step], comp.D[:t_step], D_day, day_max)
+    day_max, infected = utils.day_data(comp.T[:t_step], i_var[:t_step], t_total)
+    _, recovered = utils.day_data(comp.T[:t_step], comp.R[:t_step], t_total)
+    _, dead = utils.day_data(comp.T[:t_step], comp.D[:t_step], t_total)
 
     bad_realization = 0
-    if I_day[-1] < last_day_inf / 2 or I_day[-1] > last_day_inf * 2:
+    if infected[-1] < last_day_inf / 2 or infected[-1] > last_day_inf * 2:
         bad_realization = 1
 
     return [I_day, R_day, D_day, day_max, bad_realization]

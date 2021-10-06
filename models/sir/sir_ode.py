@@ -37,7 +37,6 @@ def sir_ode(
 ):
     # Normalize beta for the number of individuals
     rates = (beta / n, delta)
-    day_max = 0
 
     # solve ODE
     time = np.linspace(0, t_total - 0.01, num=t_total * 100)
@@ -51,8 +50,7 @@ def sir_ode(
     plt.show()
 
     # results per day
-    infected = np.zeros(t_total, dtype=int)
-    day_max = utils.day_data(time, solution[:, 1], infected, day_max)
+    day_max, infected = utils.day_data(time, solution[:, 1], t_total)
     cost = get_cost(time_series, infected, t_total, day_max, metric)
     print(f"GGA SUCCESS {cost}")
     return cost

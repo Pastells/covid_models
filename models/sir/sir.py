@@ -68,9 +68,8 @@ def sir(
             t_total,
             beta,
             delta,
-            day_max,
         )
-        day_max = result.day_max
+        day_max = max(day_max, result.day_max)
 
         if check_successful_simulation(result, t_total):
             seeds.append(current_seed)
@@ -107,7 +106,6 @@ def gillespie_simulation(
     t_total: int,
     beta: float,
     delta: float,
-    day_max: int,
 ) -> Result:
     random.seed(seed)
     np.random.seed(seed)
@@ -115,8 +113,6 @@ def gillespie_simulation(
     # initialization
     comp = Compartments(n, n_t_steps, initial_infected, initial_recovered)
 
-    infected = np.zeros(t_total, dtype=int)
-    recovered = np.zeros(t_total, dtype=int)
     t_step, time = 0, 0
 
     while comp.I[t_step] > 0 and time < t_total:
@@ -128,8 +124,8 @@ def gillespie_simulation(
             delta=delta,
         )
 
-    day_max = utils.day_data(comp.T[:t_step], comp.R[:t_step], recovered, day_max)
-    day_max = utils.day_data(comp.T[:t_step], comp.I[:t_step], infected, day_max)
+    day_max, recovered = utils.day_data(comp.T[:t_step], comp.R[:t_step], t_total)
+    day_max, infected = utils.day_data(comp.T[:t_step], comp.I[:t_step], t_total)
 
     return Result(infected, recovered, day_max)
 

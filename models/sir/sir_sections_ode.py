@@ -70,7 +70,6 @@ def sir(
     delta_vect = np.array([delta1, delta2, delta3, delta4, delta5])
 
     section = 0
-    day_max = 0
     n, rates, section_day, rates_old, section_day_old, n_old = parameters_section(
         n_vect,
         beta_vect,
@@ -117,9 +116,8 @@ def sir(
             initial_cond = np.array(solution[-1])
 
     # results per day
-    infected = np.zeros(t_total, dtype=int)
     solution = np.array(solution)
-    day_max = utils.day_data(time, solution[:, 1], infected, day_max)
+    day_max, infected = utils.day_data(time, solution[:, 1], t_total)
     cost = get_cost(time_series, infected, t_total, day_max, metric)
     print(f"GGA SUCCESS {cost}")
     plt.plot(time, solution)

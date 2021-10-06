@@ -12,7 +12,6 @@ dI(t)/dt = - delta * I(t)                          + alpha*A(t)\n
 dR(t)/dt =   delta * I(t)                          + delta_a * A(t)
 """
 
-from collections import namedtuple
 import numpy as np
 from scipy.integrate import odeint
 
@@ -90,7 +89,6 @@ def sair(
     delta_vect = np.array([delta1, delta2, delta3, delta4, delta5])
 
     section = 0
-    day_max = 0
     n, rates, section_day, rates_old, section_day_old, n_old = parameters_section(
         n_vect,
         alpha_vect,
@@ -144,11 +142,12 @@ def sair(
             initial_cond = np.array(solution[-1])
 
     # results per day
-    infected = np.zeros(t_total, dtype=int)
     solution = np.array(solution)
-    day_max = utils.day_data(time, solution[:, 1], infected, day_max)
+    day_max, infected = utils.day_data(time, solution[:, 1], t_total)
+
     cost = get_cost(time_series, infected, t_total, day_max, metric)
     print(f"GGA SUCCESS {cost}")
+
     plt.plot(time, solution)
     plt.show()
     return cost
@@ -205,7 +204,7 @@ def parameters_section(
     }
     section_day = section_days[section + 1]
 
-    return (n, rates, section_day, rates_old, section_day_old + 1, n_old)
+    return n, rates, section_day, rates_old, section_day_old + 1, n_old
 
 
 def pad(var, length=5):

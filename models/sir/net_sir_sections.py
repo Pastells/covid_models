@@ -99,9 +99,8 @@ def net_sir_sections(
             initial_infected,
             initial_recovered,
             t_total,
-            day_max,
         )
-        day_max = result.day_max
+        day_max = max(day_max, result.day_max)
 
         if check_successful_simulation(result, t_total):
             mc_step += 1
@@ -130,7 +129,6 @@ def event_driven_simulation(
     initial_infected: int,
     initial_recovered: int,
     t_total: int,
-    day_max: int,
 ) -> Result:
     random.seed(seed)
     np.random.seed(seed)
@@ -142,8 +140,6 @@ def event_driven_simulation(
     )
 
     G = utils_net.choose_network(n, network, network_param)
-
-    infected = np.zeros(t_total, dtype=int)
 
     # Sections
     while section < n_sections:
@@ -176,7 +172,7 @@ def event_driven_simulation(
             # R will have jumps, given that the n
             initial_recovered = R[-1]
 
-    day_max = utils.day_data(t, I, infected, day_max)
+    day_max, infected = utils.day_data(t, I, t_total)
     del t, I, R, G
     return Result(infected, day_max)
 

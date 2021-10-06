@@ -128,9 +128,8 @@ def sair_erlang_sections(
             initial_asymptomatic,
             t_total,
             shapes,
-            day_max,
         )
-        day_max = result.day_max
+        day_max = max(day_max, result.day_max)
 
         if check_successful_simulation(result, t_total):
             mc_step += 1
@@ -163,7 +162,6 @@ def gillespie_simulation(
     initial_asymptomatic: int,
     t_total: int,
     shapes: dict,
-    day_max: int,
 ) -> Result:
 
     section = 0
@@ -182,7 +180,6 @@ def gillespie_simulation(
         n, n_t_steps, initial_asymptomatic, initial_infected, initial_recovered, shapes
     )
 
-    infected = np.zeros(t_total, dtype=int)
     t_step, time = 0, 0
     index_n = 1  # just to avoid pylint complaining
 
@@ -235,8 +232,10 @@ def gillespie_simulation(
                 comp.S[t_step, :-1] += n_ind[0, 0] / shapes["k_inf"]
             index_n = 1
 
-    day_max = utils.day_data(
-        comp.T[:t_step], comp.I[:t_step, :-1].sum(axis=1), infected, day_max
+    day_max, infected = utils.day_data(
+        comp.T[:t_step],
+        comp.I[:t_step, :-1].sum(axis=1),
+        t_total
     )
     return Result(infected, day_max)
 

@@ -70,9 +70,8 @@ def sir_erlang(
             t_total,
             rates,
             shapes,
-            day_max,
         )
-        day_max = result.day_max
+        day_max = max(day_max, result.day_max)
 
         if check_successful_simulation(result, t_total):
             mc_step += 1
@@ -98,7 +97,6 @@ def gillespie_simulation(
     t_total: int,
     rates: dict,
     shapes: dict,
-    day_max: int,
 ) -> Result:
     random.seed(seed)
     np.random.seed(seed)
@@ -106,14 +104,13 @@ def gillespie_simulation(
     # initialization
     comp = Compartments(n, n_t_steps, initial_infected, initial_recovered, shapes)
 
-    infected = np.zeros(t_total, dtype=int)
     t_step, time = 0, 0
 
     while comp.I[t_step, :-1].sum() > 0 and time < t_total:
         t_step, time = gillespie(t_step, time, comp, rates=rates, shapes=shapes)
 
-    day_max = utils.day_data(
-        comp.T[:t_step], comp.I[:t_step, :-1].sum(axis=1), infected, day_max
+    day_max, infected = utils.day_data(
+        comp.T[:t_step], comp.I[:t_step, :-1].sum(axis=1), t_total
     )
 
     return Result(infected, day_max)

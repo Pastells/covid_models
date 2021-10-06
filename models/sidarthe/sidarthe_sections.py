@@ -96,8 +96,9 @@ def sidarthe(
     plt.show()
 
     time_series = get_data(data, day_min, day_max)
-    infected = np.zeros(day_max - day_min + 1, dtype=int)
-    day_max = utils.day_data(time, solution[:, 1], infected, day_max)
+    # TODO review if it is needed
+    # infected = np.zeros(day_max - day_min + 1, dtype=int)
+    # day_max = utils.day_data(time, solution[:, 1], infected, day_max)
     cost = get_cost(time_series, solution)
 
     # last values as input for next section

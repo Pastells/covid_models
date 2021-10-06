@@ -138,8 +138,7 @@ def seipahrf(
         plt.show()
 
     # Results per day
-    confirmed_by_day = np.zeros(t_total, dtype=int)
-    day_max = utils.day_data(time, confirmed, confirmed_by_day, 0)
+    day_max, confirmed_by_day = utils.day_data(time, confirmed, t_total)
     cost = get_cost(time_series, confirmed_by_day, t_total, day_max, metric)
 
     print(f"GGA SUCCESS {cost}")

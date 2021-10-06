@@ -2,6 +2,9 @@
 
 import sys
 import random
+from typing import Tuple
+
+import numpy
 import numpy as np
 from . import config
 
@@ -71,19 +74,28 @@ def time_dist(lambd):
 # -------------------------
 
 
-def day_data(times, var, var_day, day_max):
-    """Values per day instead of event"""
+def day_data(event_timestamps, events_sequence, t_total) -> Tuple[int, numpy.ndarray]:
+    """
+    Converts values per event to values per day.
+    Parameters:
+        event_timestamps: Sequence of the timestamps for the events
+        events_sequence: Sequence of values per event
+        time_total: Amount of days to contemplate
 
-    _day_max = int(times[-1]) + 1
+    Return:
+        A tuple containing the max day used, and the daily sequence
+    """
+    daily_sequence = numpy.zeros(t_total)
 
-    for day in range(_day_max):
-        var_day[day] = var[np.searchsorted(times, day)]
+    available_day_max = int(event_timestamps[-1]) + 1
+    for day in range(available_day_max):
+        daily_sequence[day] = events_sequence[np.searchsorted(event_timestamps, day)]
 
-    for day in range(1, _day_max - 1):
-        if var_day[day] == var_day[day + 1]:
-            var_day[day] = var_day[day - 1]
+    for day in range(1, available_day_max - 1):
+        if daily_sequence[day] == daily_sequence[day + 1]:
+            daily_sequence[day] = daily_sequence[day - 1]
 
-    return max(day_max, _day_max)
+    return available_day_max, daily_sequence
 
 
 # -------------------------

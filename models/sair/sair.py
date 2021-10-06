@@ -20,7 +20,7 @@ from optilog.autocfg import ac, Int, Real
 from ..utils import utils, config
 
 
-Result = namedtuple("Result", "infected day_max")
+Result = namedtuple("Result", "susceptible asymptomatic infected recovered day_max")
 
 
 def check_successful_simulation(result: Result, time_total: int):
@@ -76,22 +76,28 @@ def sair(
             initial_recovered,
             t_total,
             rates,
-            day_max,
         )
-        day_max = result.day_max
+        day_max = max(day_max, result.day_max)
 
         if check_successful_simulation(result, t_total):
             mc_step += 1
             results.append(result)
 
     # results per day and seed
+    susceptible = np.zeros([n_seeds, t_total], dtype=int)
+    asymptomatic = np.zeros([n_seeds, t_total], dtype=int)
     infected = np.zeros([n_seeds, t_total], dtype=int)
+    recovered = np.zeros([n_seeds, t_total], dtype=int)
 
     for mc_step, result in enumerate(results):
+        susceptible[mc_step] = result.susceptible
+        asymptomatic[mc_step] = result.asymptomatic
         infected[mc_step] = result.infected
+        recovered[mc_step] = result.recovered
 
     cost = get_cost(time_series, infected, t_total, day_max, n_seeds, metric)
     print(f"GGA SUCCESS {cost}")
+
     return cost
 
 
@@ -104,7 +110,6 @@ def gillespie_simulation(
     initial_recovered: int,
     t_total: int,
     rates: dict,
-    day_max: int,
 ) -> Result:
     random.seed(seed)
     np.random.seed(seed)
@@ -114,7 +119,6 @@ def gillespie_simulation(
         n, n_t_steps, initial_asymptomatic, initial_infected, initial_recovered
     )
 
-    infected = np.zeros(t_total, dtype=int)
     t_step, time = 0, 0
 
     while comp.I[t_step] > 0 and time < t_total:
@@ -125,9 +129,13 @@ def gillespie_simulation(
             rates=rates,
         )
 
-    day_max = utils.day_data(comp.T[:t_step], comp.I[:t_step], infected, day_max)
+    event_timestamps = comp.T[:t_step]
+    _, susceptible = utils.day_data(event_timestamps, comp.S[:t_step], t_total)
+    _, asymptomatic = utils.day_data(event_timestamps, comp.A[:t_step], t_total)
+    day_max, infected = utils.day_data(event_timestamps, comp.I[:t_step], t_total)
+    _, recovered = utils.day_data(event_timestamps, comp.R[:t_step], t_total)
 
-    return Result(infected, day_max)
+    return Result(susceptible, asymptomatic, infected, recovered, day_max)
 
 
 class Compartments:
