@@ -15,6 +15,7 @@ dR(t)/dt =   delta * I(t)                          + delta_a * A(t)
 """
 
 import random
+import sys
 from collections import namedtuple
 
 import numpy as np
@@ -24,7 +25,7 @@ from . import fast_sair_sections
 from ..utils import utils, utils_net, config
 
 
-Result = namedtuple("Result", "infected day_max")
+Result = namedtuple("Result", "susceptible asymptomatic infected recovered day_max")
 
 
 def check_successful_simulation(result: Result, time_total: int):
@@ -108,7 +109,8 @@ def net_sair_sections(
     day_max = 0
     current_seed = seed - 1  # we increase the seed at the start of the loop
 
-    results = list()
+    seeds = list()
+    evolution = np.zeros([4, n_seeds, t_total])
 
     while mc_step < n_seeds:
         current_seed += 1
@@ -132,18 +134,24 @@ def net_sair_sections(
         day_max = max(day_max, result.day_max)
 
         if check_successful_simulation(result, t_total):
+            seeds.append(current_seed)
+            evolution[0, mc_step] = result.susceptible
+            evolution[1, mc_step] = result.asymptomatic
+            evolution[2, mc_step] = result.infected
+            evolution[3, mc_step] = result.recovered
+
             mc_step += 1
-            results.append(result)
+        else:
+            print(f"Skipping realization for seed {current_seed} due to failed simulation...",
+                  file=sys.stderr)
 
     # results per day and seed
-    infected = np.zeros([n_seeds, t_total], dtype=int)
+    evolution_df = utils.evolution_to_dataframe(
+        evolution, ["susceptible", "asymptomatic", "infected", "recovered"], seeds)
 
-    for mc_step, result in enumerate(results):
-        infected[mc_step] = result.infected
-
-    cost = get_cost(time_series, infected, t_total, day_max, n_seeds, metric)
+    cost = get_cost(time_series, evolution[2], t_total, day_max, n_seeds, metric)
     print(f"GGA SUCCESS {cost}")
-    return cost
+    return cost, evolution_df
 
 
 def event_driven_simulation(
@@ -218,9 +226,13 @@ def event_driven_simulation(
             # R will have jumps
             initial_recovered = R[-1]
 
+    S = n - A - I - R
+    _, susceptible = utils.day_data(t, S, t_total)
+    _, asymptomatic = utils.day_data(t, A, t_total)
     day_max, infected = utils.day_data(t, I, t_total)
-    del t, A, I, R, G
-    return Result(infected, day_max)
+    _, recovered = utils.day_data(t, R, t_total)
+    del t, S, A, I, R, G
+    return Result(susceptible, asymptomatic, infected, recovered, day_max)
 
 
 # -------------------------
@@ -288,7 +300,7 @@ def parameters_init(args):
 
 def main(args):
     t_total, time_series, n_sections = parameters_init(args)
-    net_sair_sections(
+    return net_sair_sections(
         time_series,
         args.seed,
         args.mc_nseed,

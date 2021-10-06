@@ -2,6 +2,8 @@ import sys
 import traceback
 from argparse import ArgumentParser
 
+from matplotlib import pyplot as plt
+
 from models.seipahrf import seipahrf
 from .utils import config
 
@@ -118,6 +120,14 @@ class CommonParser:
         group.add_argument(
             "--save", type=str, default=None,
             help="specify a name for outputfile",
+        )
+        group.add_argument(
+            "--print", action="store_true",
+            help="Print the evolution. When using stochastic methods, print all the realizations."
+        )
+        group.add_argument(
+            "--plot", action="store_true",
+            help="Plot the evolution."
         )
         group.add_argument(
             "--limit_memory", action="store_true",
@@ -657,6 +667,33 @@ def parse_args():
     return parser.parse_args()
 
 
+def plot(evolution):
+    if evolution.columns.nlevels:
+        evolution = evolution.mean(axis=1, level=0)
+
+    times = evolution.index
+    # Lines plot:
+    # plt.plot(evolution)
+
+    # Stack plot:
+    plt.stackplot(
+        times,
+        *[evolution[c] for c in evolution.columns],
+        labels=evolution.columns,
+        alpha=0.4
+    )
+
+    # Error bars:
+    # TODO missing real data
+    # plt.errorbar(
+    #     times,
+    #     evolution["infected"],
+    # )
+
+    plt.legend(evolution.columns)
+    plt.show()
+
+
 def main():
     args = parse_args()
     if args.limit_memory:
@@ -666,7 +703,10 @@ def main():
         resource.setrlimit(resource.RLIMIT_AS, (int(1024 ** 3 * 5.5), hard))
 
     try:
-        evolution = args.run_fn(args)
+        _, evolution = args.run_fn(args)
+
+        if args.plot:
+            plot(evolution)
 
         if args.save:
             try:
@@ -674,6 +714,8 @@ def main():
                 print(f"Saved evolution at {args.save}", file=sys.stderr)
             except AttributeError:
                 print(f"Model {args.model} does not support saving", file=sys.stderr)
+        if args.print:
+            print(evolution)
 
     except MemoryError as ex:
         sys.stderr.write(f"{repr(ex)}\n")

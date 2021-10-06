@@ -11,11 +11,9 @@ dA(t)/dt =   beta_a/N*A(t)*S(t) + beta/N*I(t)*S(t) -(alpha+delta_a)*A(t)\n
 dI(t)/dt = - delta * I(t)                          + alpha*A(t)\n
 dR(t)/dt =   delta * I(t)                          + delta_a * A(t)
 """
-
 import numpy as np
 from scipy.integrate import odeint
 
-import matplotlib.pyplot as plt
 from optilog.autocfg import ac, Int, Real
 from ..utils import utils, config
 
@@ -141,16 +139,23 @@ def sair(
             )
             initial_cond = np.array(solution[-1])
 
+    evolution = np.array(solution).T
+
     # results per day
-    solution = np.array(solution)
-    day_max, infected = utils.day_data(time, solution[:, 1], t_total)
+    _, susceptible = utils.day_data(time, evolution[0], t_total)
+    _, asymptomatic = utils.day_data(time, evolution[1], t_total)
+    day_max, infected = utils.day_data(time, evolution[2], t_total)
+    _, recovered = utils.day_data(time, evolution[3], t_total)
+
+    evolution_df = utils.evolution_to_dataframe(
+        [susceptible, asymptomatic, infected, recovered],
+        ["susceptible", "asymptomatic", "infected", "recovered"]
+    )
 
     cost = get_cost(time_series, infected, t_total, day_max, metric)
     print(f"GGA SUCCESS {cost}")
 
-    plt.plot(time, solution)
-    plt.show()
-    return cost
+    return cost, evolution_df
 
 
 def SAIR_ODE(x, time, *params, transition_days=config.TRANSITION_DAYS):
@@ -242,7 +247,7 @@ def parameters_init(args):
 
 def main(args):
     t_total, time_series, n_sections = parameters_init(args)
-    sair(
+    return sair(
         time_series,
         t_total,
         args.metric,

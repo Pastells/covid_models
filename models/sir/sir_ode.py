@@ -10,10 +10,8 @@ dI(t)/dt =   beta/N*I(t)*S(t) - delta * I(t) \n
 dR(t)/dt =                      delta * I(t)
 """
 
-from collections import namedtuple
 import numpy as np
 from scipy.integrate import odeint
-import matplotlib.pyplot as plt
 from optilog.autocfg import ac, Int, Real
 from ..utils import utils
 
@@ -46,14 +44,21 @@ def sir_ode(
         initial_recovered,
     )
     solution = odeint(SIR_ODE, initial_cond, time, args=tuple(rates))
-    plt.plot(time, solution)
-    plt.show()
 
     # results per day
+    _, susceptible = utils.day_data(time, solution[:, 0], t_total)
     day_max, infected = utils.day_data(time, solution[:, 1], t_total)
+    _, recovered = utils.day_data(time, solution[:, 2], t_total)
+
+    evolution_df = utils.evolution_to_dataframe(
+        [susceptible, infected, recovered],
+        ["susceptible", "asymptomatic", "recovered"]
+    )
+
     cost = get_cost(time_series, infected, t_total, day_max, metric)
     print(f"GGA SUCCESS {cost}")
-    return cost
+
+    return cost, evolution_df
 
 
 def SIR_ODE(x, t, *rates):
@@ -73,7 +78,7 @@ def parameters_init(args):
 
 def main(args):
     t_total, time_series = parameters_init(args)
-    sir_ode(
+    return sir_ode(
         time_series,
         t_total,
         args.metric,

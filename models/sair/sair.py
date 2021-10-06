@@ -12,9 +12,11 @@ dR(t)/dt =   delta * I(t)                          + delta_a * A(t)
 """
 
 import random
+import sys
 from collections import namedtuple
 
 import numpy as np
+import pandas
 from optilog.autocfg import ac, Int, Real
 
 from ..utils import utils, config
@@ -27,7 +29,8 @@ def check_successful_simulation(result: Result, time_total: int):
     return not result.infected[time_total - 1] == 0
 
 
-def get_cost(time_series: np.ndarray, infected, t_total, day_max, n_seeds, metric):
+def get_cost(time_series: np.ndarray, infected, t_total, day_max, metric):
+    n_seeds = infected.shape[0]
     var_m = utils.mean_alive(infected, t_total, day_max, n_seeds)
     return utils.cost_func(time_series[:, 0], var_m, metric)
 
@@ -63,7 +66,8 @@ def sair(
     day_max = 0
     current_seed = seed - 1  # we increase the seed at the start of the loop
 
-    results = list()
+    seeds = list()
+    evolution = np.zeros([4, n_seeds, t_total])
 
     while mc_step < n_seeds:
         current_seed += 1
@@ -80,25 +84,25 @@ def sair(
         day_max = max(day_max, result.day_max)
 
         if check_successful_simulation(result, t_total):
+            seeds.append(current_seed)
+            evolution[0, mc_step, :] = result.susceptible
+            evolution[1, mc_step, :] = result.asymptomatic
+            evolution[2, mc_step, :] = result.infected
+            evolution[3, mc_step, :] = result.recovered
+
             mc_step += 1
-            results.append(result)
+        else:
+            print(f"Skipping realization for seed {current_seed} due to failed simulation...",
+                  file=sys.stderr)
 
     # results per day and seed
-    susceptible = np.zeros([n_seeds, t_total], dtype=int)
-    asymptomatic = np.zeros([n_seeds, t_total], dtype=int)
-    infected = np.zeros([n_seeds, t_total], dtype=int)
-    recovered = np.zeros([n_seeds, t_total], dtype=int)
+    evolution_df = utils.evolution_to_dataframe(
+        evolution, ["susceptible", "asymptomatic", "infected", "recovered"], seeds)
 
-    for mc_step, result in enumerate(results):
-        susceptible[mc_step] = result.susceptible
-        asymptomatic[mc_step] = result.asymptomatic
-        infected[mc_step] = result.infected
-        recovered[mc_step] = result.recovered
-
-    cost = get_cost(time_series, infected, t_total, day_max, n_seeds, metric)
+    cost = get_cost(time_series, evolution[2], t_total, day_max, metric)
     print(f"GGA SUCCESS {cost}")
 
-    return cost
+    return cost, evolution_df
 
 
 def gillespie_simulation(
@@ -245,7 +249,7 @@ def parameters_init(args):
 
 def main(args):
     t_total, time_series = parameters_init(args)
-    sair(
+    return sair(
         time_series,
         args.seed,
         args.mc_nseed,

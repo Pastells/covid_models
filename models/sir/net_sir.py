@@ -79,9 +79,12 @@ def net_sir(
             evolution[2, mc_step, :] = result.recovered
             mc_step += 1
 
+    evolution_df = utils.evolution_to_dataframe(
+        evolution, ["susceptible", "infected", "recovered"], seeds)
+
     cost = get_cost(time_series, evolution[1], t_total, day_max, n_seeds, metric)
     print(f"GGA SUCCESS {cost}")
-    return cost
+    return cost, evolution_df
 
 
 def event_driven_simulation(
@@ -117,7 +120,7 @@ def parameters_init(args):
 
 def main(args):
     t_total, time_series = parameters_init(args)
-    net_sir(
+    return net_sir(
         time_series,
         args.seed,
         args.mc_nseed,

@@ -12,6 +12,7 @@ dD(t)/dt =   delta*theta * I(t)
 """
 
 import random
+import sys
 from collections import namedtuple
 from typing import Tuple
 
@@ -34,11 +35,11 @@ def get_cost(time_series, infected, recovered, dead, metric):
     mean_dead = utils.mean_std(dead)
 
     infected_cost = utils.cost_return(time_series[:, 0], mean_infected, metric)
-    print(f"cost_infected = {infected_cost}")
+    print(f"cost_infected = {infected_cost}", file=sys.stderr)
     recovered_cost = utils.cost_return(time_series[:, 1], mean_recovered, metric)
-    print(f"cost_recovered = {recovered_cost}")
+    print(f"cost_recovered = {recovered_cost}", file=sys.stderr)
     dead_cost = utils.cost_return(time_series[:, 2], mean_dead, metric)
-    print(f"cost_dead = {dead_cost}")
+    print(f"cost_dead = {dead_cost}", file=sys.stderr)
 
     return infected_cost + recovered_cost + dead_cost
 
@@ -228,10 +229,11 @@ def parameters_init(args):
 
 def main(args):
     t_total, time_series, rates = parameters_init(args)
-    print(f"r = {rates['beta']}")
-    print(f"a = {rates['delta']*(1-rates['theta'])}")
-    print(f"d = {rates['delta']*rates['theta']}")
-    _, evolution = sird(
+    print(f"r = {rates['beta']}", file=sys.stderr)
+    print(f"a = {rates['delta']*(1-rates['theta'])}", file=sys.stderr)
+    print(f"d = {rates['delta']*rates['theta']}", file=sys.stderr)
+
+    return sird(
         time_series,
         args.seed,
         args.mc_nseed,
@@ -246,4 +248,3 @@ def main(args):
         beta=rates["beta"],
         theta=rates["theta"],
     )
-    return evolution

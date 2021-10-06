@@ -15,13 +15,14 @@ dR(t)/dt =                      delta * I(t)
 import random
 from collections import namedtuple
 
+import numpy
 import numpy as np
 from optilog.autocfg import ac, Int, Real
 
-from ..utils import utils, config
+from ..utils import utils
 from . import sir_erlang
 
-Result = namedtuple("Result", "infected day_max")
+Result = namedtuple("Result", "susceptible infected recovered day_max")
 
 
 def check_successful_simulation(result: Result, time_total: int):
@@ -86,7 +87,8 @@ def sir_erlang_sections(
     day_max = 0
     current_seed = seed - 1  # we increase the seed at the start of the loop
 
-    results = list()
+    seeds = list()
+    evolution = numpy.zeros([3, n_seeds, t_total])
 
     while mc_step < n_seeds:
         current_seed += 1
@@ -106,18 +108,20 @@ def sir_erlang_sections(
         day_max = max(day_max, result.day_max)
 
         if check_successful_simulation(result, t_total):
+            seeds.append(current_seed)
+            evolution[0, mc_step] = result.susceptible
+            evolution[1, mc_step] = result.infected
+            evolution[2, mc_step] = result.recovered
+
             mc_step += 1
-            results.append(result)
 
     # results per day and seed
-    infected = np.zeros([n_seeds, t_total], dtype=int)
+    evolution_df = utils.evolution_to_dataframe(
+        evolution, ["susceptible", "infected", "recovered"], seeds)
 
-    for mc_step, result in enumerate(results):
-        infected[mc_step] = result.infected
-
-    cost = get_cost(time_series, infected, t_total, day_max, n_seeds, metric)
+    cost = get_cost(time_series, evolution[1], t_total, day_max, n_seeds, metric)
     print(f"GGA SUCCESS {cost}")
-    return cost
+    return cost, evolution_df
 
 
 def gillespie_simulation(
@@ -199,11 +203,14 @@ def gillespie_simulation(
                 comp.S[t_step, :-1] += n_ind[0, 0] / shapes["k_inf"]
             index_n = 1
 
+    _, susceptible = utils.day_data(
+        comp.T[:t_step], comp.S[:t_step, :-1].sum(axis=1), t_total)
     day_max, infected = utils.day_data(
-        comp.T[:t_step], comp.I[:t_step, :-1].sum(axis=1), t_total
-    )
+        comp.T[:t_step], comp.I[:t_step, :-1].sum(axis=1), t_total)
+    _, recovered = utils.day_data(
+        comp.T[:t_step], comp.R[:t_step], t_total)
 
-    return Result(infected, day_max)
+    return Result(susceptible, infected, recovered, day_max)
 
 
 def parameters_section(
@@ -272,7 +279,7 @@ def parameters_init(args):
 
 def main(args):
     t_total, time_series, n_sections = parameters_init(args)
-    sir_erlang_sections(
+    return sir_erlang_sections(
         time_series,
         args.seed,
         args.mc_nseed,

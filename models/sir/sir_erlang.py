@@ -19,7 +19,7 @@ from optilog.autocfg import ac, Int, Real
 
 from ..utils import utils, config
 
-Result = namedtuple("Result", "infected day_max")
+Result = namedtuple("Result", "susceptible infected recovered day_max")
 
 
 def check_successful_simulation(result: Result, time_total: int):
@@ -57,7 +57,8 @@ def sir_erlang(
     day_max = 0
     current_seed = seed - 1  # we increase the seed at the start of the loop
 
-    results = list()
+    seeds = list()
+    evolution = np.zeros([3, n_seeds, t_total])
 
     while mc_step < n_seeds:
         current_seed += 1
@@ -74,18 +75,20 @@ def sir_erlang(
         day_max = max(day_max, result.day_max)
 
         if check_successful_simulation(result, t_total):
+            seeds.append(current_seed)
+            evolution[0, mc_step] = result.susceptible
+            evolution[1, mc_step] = result.infected
+            evolution[2, mc_step] = result.recovered
+
             mc_step += 1
-            results.append(result)
 
     # results per day and seed
-    infected = np.zeros([n_seeds, t_total], dtype=int)
+    evolution_df = utils.evolution_to_dataframe(
+        evolution, ["susceptible", "infected", "recovered"], seeds)
 
-    for mc_step, result in enumerate(results):
-        infected[mc_step] = result.infected
-
-    cost = get_cost(time_series, infected, t_total, day_max, n_seeds, metric)
+    cost = get_cost(time_series, evolution[1], t_total, day_max, n_seeds, metric)
     print(f"GGA SUCCESS {cost}")
-    return cost
+    return cost, evolution_df
 
 
 def gillespie_simulation(
@@ -109,11 +112,16 @@ def gillespie_simulation(
     while comp.I[t_step, :-1].sum() > 0 and time < t_total:
         t_step, time = gillespie(t_step, time, comp, rates=rates, shapes=shapes)
 
+    # Note that compartments S and I have an extra section used only to have a clearer
+    # notation, but it is not relevant to the final result
+    _, susceptible = utils.day_data(
+        comp.T[:t_step], comp.S[:t_step, :-1].sum(axis=1), t_total)
     day_max, infected = utils.day_data(
-        comp.T[:t_step], comp.I[:t_step, :-1].sum(axis=1), t_total
-    )
+        comp.T[:t_step], comp.I[:t_step, :-1].sum(axis=1), t_total)
+    _, recovered = utils.day_data(
+        comp.T[:t_step], comp.R[:t_step], t_total)
 
-    return Result(infected, day_max)
+    return Result(susceptible, infected, recovered, day_max)
 
 
 class Compartments:
@@ -231,7 +239,7 @@ def parameters_init(args):
 
 def main(args):
     t_total, time_series = parameters_init(args)
-    sir_erlang(
+    return sir_erlang(
         time_series,
         args.seed,
         args.mc_nseed,

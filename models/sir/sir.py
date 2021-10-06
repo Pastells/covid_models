@@ -79,16 +79,8 @@ def sir(
             evolution[2, mc_step, :] = result.recovered
             mc_step += 1
 
-    evolution_df = pandas.DataFrame(
-        [],
-        columns=pandas.MultiIndex.from_product(
-            [["susceptible", "infected", "recovered"], seeds]
-        ),
-    )
-    for step, seed in enumerate(seeds):
-        evolution_df[("susceptible", seed)] = evolution[0, step]
-        evolution_df[("infected", seed)] = evolution[1, step]
-        evolution_df[("recovered", seed)] = evolution[2, step]
+    evolution_df = utils.evolution_to_dataframe(
+        evolution, ["susceptible", "infected", "recovered"], seeds)
 
     cost = get_cost(time_series, evolution[1], t_total, day_max, n_seeds, metric)
     # Report to optilog the cost
@@ -196,9 +188,9 @@ def parameters_init(args):
     return t_total, time_series
 
 
-def main(args) -> pandas.DataFrame:
+def main(args) -> Tuple[float, pandas.DataFrame]:
     t_total, time_series = parameters_init(args)
-    _, evolution = sir(
+    return sir(
         time_series,
         args.seed,
         args.mc_nseed,
@@ -211,7 +203,3 @@ def main(args) -> pandas.DataFrame:
         delta=args.delta,
         beta=args.beta,
     )
-    print(evolution)
-
-    print(evolution.mean(level=0, axis=1))
-    return evolution

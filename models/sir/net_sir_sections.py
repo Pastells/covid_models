@@ -18,9 +18,10 @@ import numpy as np
 from optilog.autocfg import ac, Int, Real, Categorical
 
 from . import fast_sir_sections
-from ..utils import utils, utils_net, config
+from ..utils import utils, utils_net
 
-Result = namedtuple("Result", "infected day_max")
+
+Result = namedtuple("Result", "susceptible infected recovered day_max")
 
 
 def check_successful_simulation(result: Result, time_total: int):
@@ -83,7 +84,8 @@ def net_sir_sections(
     day_max = 0
     current_seed = seed - 1  # we increase the seed at the start of the loop
 
-    results = list()
+    seeds = list()
+    evolution = np.zeros([3, n_seeds, t_total])
 
     while mc_step < n_seeds:
         current_seed += 1
@@ -103,18 +105,21 @@ def net_sir_sections(
         day_max = max(day_max, result.day_max)
 
         if check_successful_simulation(result, t_total):
+            seeds.append(current_seed)
+
+            evolution[0, mc_step, :] = result.susceptible
+            evolution[1, mc_step, :] = result.infected
+            evolution[2, mc_step, :] = result.recovered
+
             mc_step += 1
-            results.append(result)
 
     # results per day and seed
-    infected = np.zeros([n_seeds, t_total], dtype=int)
+    evolution_df = utils.evolution_to_dataframe(
+        evolution, ["susceptible", "infected", "recovered"], seeds)
 
-    for mc_step, result in enumerate(results):
-        infected[mc_step] = result.infected
-
-    cost = get_cost(time_series, infected, t_total, day_max, n_seeds, metric)
+    cost = get_cost(time_series, evolution[1], t_total, day_max, n_seeds, metric)
     print(f"GGA SUCCESS {cost}")
-    return cost
+    return cost, evolution_df
 
 
 def event_driven_simulation(
@@ -172,9 +177,11 @@ def event_driven_simulation(
             # R will have jumps, given that the n
             initial_recovered = R[-1]
 
+    _, susceptible = utils.day_data(t, n - I - R, t_total)
     day_max, infected = utils.day_data(t, I, t_total)
+    _, recovered = utils.day_data(t, R, t_total)
     del t, I, R, G
-    return Result(infected, day_max)
+    return Result(susceptible, infected, recovered, day_max)
 
 
 def parameters_section(
@@ -225,7 +232,7 @@ def parameters_init(args):
 
 def main(args):
     t_total, time_series, n_sections = parameters_init(args)
-    net_sir_sections(
+    return net_sir_sections(
         time_series,
         args.seed,
         args.mc_nseed,
