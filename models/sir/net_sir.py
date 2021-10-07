@@ -9,9 +9,8 @@ dS(t)/dt = - beta/N*I(t)*S(t) \n
 dI(t)/dt =   beta/N*I(t)*S(t) - delta * I(t) \n
 dR(t)/dt =                      delta * I(t)
 """
-
+import functools
 import random
-from collections import namedtuple
 from typing import Tuple
 
 import numpy as np
@@ -19,18 +18,8 @@ import pandas
 from optilog.autocfg import ac, Int, Real, Categorical
 
 from . import fast_sir
+from .sir import get_cost, simulate_evolution, Result
 from ..utils import utils, utils_net
-
-Result = namedtuple("Result", "susceptible infected recovered day_max")
-
-
-def check_successful_simulation(result: Result, time_total: int):
-    return not result.infected[time_total - 1] == 0
-
-
-def get_cost(time_series: np.ndarray, infected, t_total, day_max, n_seeds, metric):
-    var_m = utils.mean_alive(infected, t_total, day_max, n_seeds)
-    return utils.cost_func(time_series[:, 0], var_m, metric)
 
 
 @ac
@@ -51,38 +40,20 @@ def net_sir(
     # Normalize beta for the number of individuals
     rates = {"beta": beta / network_param, "delta": delta}
 
-    mc_step = 0
-    day_max = 0
-    current_seed = seed - 1  # we increase the seed at the start of the loop
+    func = functools.partial(
+        event_driven_simulation,
+        n=n,
+        network=network,
+        network_param=network_param,
+        initial_infected=initial_infected,
+        initial_recovered=initial_recovered,
+        t_total=t_total,
+        rates=rates,
+    )
 
-    seeds = list()
-    evolution = np.zeros([3, n_seeds, t_total])
+    evolution_df, day_max = simulate_evolution(func, n_seeds, seed, t_total)
 
-    while mc_step < n_seeds:
-        current_seed += 1
-        result = event_driven_simulation(
-            current_seed,
-            n,
-            network,
-            network_param,
-            initial_infected,
-            initial_recovered,
-            t_total,
-            rates,
-        )
-        day_max = max(day_max, result.day_max)
-
-        if check_successful_simulation(result, t_total):
-            seeds.append(current_seed)
-            evolution[0, mc_step, :] = result.susceptible
-            evolution[1, mc_step, :] = result.infected
-            evolution[2, mc_step, :] = result.recovered
-            mc_step += 1
-
-    evolution_df = utils.evolution_to_dataframe(
-        evolution, ["susceptible", "infected", "recovered"], seeds)
-
-    cost = get_cost(time_series, evolution[1], t_total, day_max, n_seeds, metric)
+    cost = get_cost(time_series, evolution_df.infected, t_total, day_max, metric)
     print(f"GGA SUCCESS {cost}")
     return cost, evolution_df
 

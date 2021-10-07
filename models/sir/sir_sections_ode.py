@@ -121,8 +121,7 @@ def sir(
     _, recovered = utils.day_data(time, evolution[2], t_total)
 
     evolution_df = utils.evolution_to_dataframe(
-        [susceptible, infected, recovered],
-        ["susceptible", "infected", "recovered"]
+        [susceptible, infected, recovered], ["susceptible", "infected", "recovered"]
     )
 
     cost = get_cost(time_series, infected, t_total, day_max, metric)

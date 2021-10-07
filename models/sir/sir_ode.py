@@ -51,8 +51,7 @@ def sir_ode(
     _, recovered = utils.day_data(time, solution[:, 2], t_total)
 
     evolution_df = utils.evolution_to_dataframe(
-        [susceptible, infected, recovered],
-        ["susceptible", "asymptomatic", "recovered"]
+        [susceptible, infected, recovered], ["susceptible", "asymptomatic", "recovered"]
     )
 
     cost = get_cost(time_series, infected, t_total, day_max, metric)

@@ -10,25 +10,14 @@ dS(t)/dt = - beta/N*I(t)*S(t) \n
 dI(t)/dt =   beta/N*I(t)*S(t) - delta * I(t) \n
 dR(t)/dt =                      delta * I(t)
 """
-
+import functools
 import random
-from collections import namedtuple
 
 import numpy as np
 from optilog.autocfg import ac, Int, Real
 
-from ..utils import utils, config
-
-Result = namedtuple("Result", "susceptible infected recovered day_max")
-
-
-def check_successful_simulation(result: Result, time_total: int):
-    return not result.infected[time_total - 1] == 0
-
-
-def get_cost(time_series: np.ndarray, infected, t_total, day_max, n_seeds, metric):
-    var_m = utils.mean_alive(infected, t_total, day_max, n_seeds)
-    return utils.cost_func(time_series[:, 0], var_m, metric)
+from .sir import simulate_evolution, get_cost, Result
+from ..utils import utils
 
 
 @ac
@@ -53,40 +42,20 @@ def sir_erlang(
     shapes = {"k_inf": k_inf, "k_rec": k_rec}
     rates = {"beta": beta / n * k_inf, "delta": delta * k_rec}
 
-    mc_step = 0
-    day_max = 0
-    current_seed = seed - 1  # we increase the seed at the start of the loop
+    func = functools.partial(
+        gillespie_simulation,
+        n=n,
+        n_t_steps=n_t_steps,
+        initial_infected=initial_infected,
+        initial_recovered=initial_recovered,
+        t_total=t_total,
+        rates=rates,
+        shapes=shapes,
+    )
 
-    seeds = list()
-    evolution = np.zeros([3, n_seeds, t_total])
+    evolution_df, day_max = simulate_evolution(func, n_seeds, seed, t_total)
 
-    while mc_step < n_seeds:
-        current_seed += 1
-        result = gillespie_simulation(
-            current_seed,
-            n,
-            n_t_steps,
-            initial_infected,
-            initial_recovered,
-            t_total,
-            rates,
-            shapes,
-        )
-        day_max = max(day_max, result.day_max)
-
-        if check_successful_simulation(result, t_total):
-            seeds.append(current_seed)
-            evolution[0, mc_step] = result.susceptible
-            evolution[1, mc_step] = result.infected
-            evolution[2, mc_step] = result.recovered
-
-            mc_step += 1
-
-    # results per day and seed
-    evolution_df = utils.evolution_to_dataframe(
-        evolution, ["susceptible", "infected", "recovered"], seeds)
-
-    cost = get_cost(time_series, evolution[1], t_total, day_max, n_seeds, metric)
+    cost = get_cost(time_series, evolution_df.infected, t_total, day_max, metric)
     print(f"GGA SUCCESS {cost}")
     return cost, evolution_df
 
@@ -115,11 +84,12 @@ def gillespie_simulation(
     # Note that compartments S and I have an extra section used only to have a clearer
     # notation, but it is not relevant to the final result
     _, susceptible = utils.day_data(
-        comp.T[:t_step], comp.S[:t_step, :-1].sum(axis=1), t_total)
+        comp.T[:t_step], comp.S[:t_step, :-1].sum(axis=1), t_total
+    )
     day_max, infected = utils.day_data(
-        comp.T[:t_step], comp.I[:t_step, :-1].sum(axis=1), t_total)
-    _, recovered = utils.day_data(
-        comp.T[:t_step], comp.R[:t_step], t_total)
+        comp.T[:t_step], comp.I[:t_step, :-1].sum(axis=1), t_total
+    )
+    _, recovered = utils.day_data(comp.T[:t_step], comp.R[:t_step], t_total)
 
     return Result(susceptible, infected, recovered, day_max)
 
