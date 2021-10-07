@@ -11,27 +11,19 @@ dA(t)/dt =   beta_a/N*A(t)*S(t) + beta/N*I(t)*S(t) -(alpha+delta_a)*A(t)\n
 dI(t)/dt = - delta * I(t)                          + alpha*A(t)\n
 dR(t)/dt =   delta * I(t)                          + delta_a * A(t)
 """
-
+import functools
 import random
-from collections import namedtuple
 
 import numpy as np
 from optilog.autocfg import ac, Int, Real, Categorical
 
 from . import fast_sair
-from ..utils import utils, utils_net, config
-
-
-Result = namedtuple("Result", "infected day_max")
+from .sair import simulate_evolution, get_cost, Result
+from ..utils import utils, utils_net
 
 
 def check_successful_simulation(result: Result, time_total: int):
     return not result.infected[time_total - 1] == 0
-
-
-def get_cost(time_series: np.ndarray, infected, t_total, day_max, n_seeds, metric):
-    var_m = utils.mean_alive(infected, t_total, day_max, n_seeds)
-    return utils.cost_func(time_series[:, 0], var_m, metric)
 
 
 @ac
@@ -61,40 +53,24 @@ def net_sair(
         "alpha": alpha,
     }
 
+    func = functools.partial(
+        event_driven_simulation,
+        n=n,
+        network=network,
+        network_param=network_param,
+        initial_infected=initial_infected,
+        initial_recovered=initial_recovered,
+        initial_asymptomatic=initial_asymptomatic,
+        t_total=t_total,
+        rates=rates,
+    )
+
     # results per day and seed
-    infected = np.zeros([n_seeds, t_total], dtype=np.uint32)
+    evolution_df, day_max = simulate_evolution(func, n_seeds, seed, t_total)
 
-    mc_step = 0
-    day_max = 0
-    current_seed = seed - 1  # we increase the seed at the start of the loop
-
-    results = list()
-
-    while mc_step < n_seeds:
-        current_seed += 1
-        result = event_driven_simulation(
-            current_seed,
-            n,
-            network,
-            network_param,
-            initial_infected,
-            initial_recovered,
-            initial_asymptomatic,
-            t_total,
-            rates,
-        )
-        day_max = max(day_max, result.day_max)
-
-        if check_successful_simulation(result, t_total):
-            mc_step += 1
-            results.append(result)
-
-    for mc_step, result in enumerate(results):
-        infected[mc_step] = result.infected
-
-    cost = get_cost(time_series, infected, t_total, day_max, n_seeds, metric)
+    cost = get_cost(time_series, evolution_df.infected, t_total, day_max, metric)
     print(f"GGA SUCCESS {cost}")
-    return cost
+    return cost, evolution_df
 
 
 def event_driven_simulation(
@@ -123,7 +99,8 @@ def event_driven_simulation(
 
     day_max, infected = utils.day_data(t, I, t_total)
     del t, I, G
-    return Result(infected, day_max)
+    # TODO compute Susceptible, Asymptomatic, and Recovered
+    return Result(None, None, infected, None, day_max)
 
 
 def parameters_init(args):
@@ -134,7 +111,7 @@ def parameters_init(args):
 
 def main(args):
     t_total, time_series = parameters_init(args)
-    net_sair(
+    return net_sair(
         time_series,
         args.seed,
         args.mc_nseed,

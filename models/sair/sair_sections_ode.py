@@ -149,7 +149,7 @@ def sair(
 
     evolution_df = utils.evolution_to_dataframe(
         [susceptible, asymptomatic, infected, recovered],
-        ["susceptible", "asymptomatic", "infected", "recovered"]
+        ["susceptible", "asymptomatic", "infected", "recovered"],
     )
 
     cost = get_cost(time_series, infected, t_total, day_max, metric)

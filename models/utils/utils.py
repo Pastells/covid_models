@@ -11,22 +11,15 @@ import pandas
 from . import config
 
 
-def evolution_to_dataframe(evolution: numpy.ndarray,
-                           compartments: List[str],
-                           seeds: Optional[List[int]]=None) -> pandas.DataFrame:
+def evolution_to_dataframe(
+    evolution: numpy.ndarray, compartments: List[str], seeds: Optional[List[int]] = None
+) -> pandas.DataFrame:
     if seeds:
-        evolution_df = pandas.DataFrame(
-            [],
-            columns=pandas.MultiIndex.from_product(
-                [compartments, seeds]
-            )
-        )
+        columns = pandas.MultiIndex.from_product([compartments, seeds])
     else:
-        evolution_df = pandas.DataFrame(
-            [],
-            columns=compartments
-        )
+        columns = compartments
 
+    evolution_df = pandas.DataFrame([], columns=columns)
     for i, compartment in enumerate(compartments):
         if seeds:
             for step, seed in enumerate(seeds):
@@ -35,6 +28,7 @@ def evolution_to_dataframe(evolution: numpy.ndarray,
             evolution_df[compartment] = evolution[i]
 
     return evolution_df
+
 
 # -------------------------
 
