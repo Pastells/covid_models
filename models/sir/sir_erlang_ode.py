@@ -13,7 +13,6 @@ dR(t)/dt =                      delta * I(t)
 from collections import namedtuple
 import numpy as np
 from scipy.integrate import odeint
-import matplotlib.pyplot as plt
 from optilog.autocfg import ac, Int, Real
 from ..utils import utils
 
@@ -47,6 +46,8 @@ def sir_ode(
         initial_recovered,
     )
     solution = odeint(SIR_ODE, initial_cond, time, args=tuple(params))
+
+    import matplotlib.pyplot as plt
     plt.plot(time, solution)
     plt.show()
 

@@ -2,8 +2,6 @@ import sys
 import traceback
 from argparse import ArgumentParser
 
-from matplotlib import pyplot as plt
-
 from models.seipahrf import seipahrf
 from .utils import config
 
@@ -668,6 +666,8 @@ def parse_args():
 
 
 def plot(evolution):
+    from matplotlib import pyplot as plt
+
     if evolution.columns.nlevels:
         evolution = evolution.mean(axis=1, level=0)
 

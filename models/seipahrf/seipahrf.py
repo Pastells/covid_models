@@ -1,6 +1,5 @@
 import numpy
 import numpy as np
-from matplotlib import pyplot as plt
 from scipy.integrate import solve_ivp
 from optilog.autocfg import ac, Int, Real
 

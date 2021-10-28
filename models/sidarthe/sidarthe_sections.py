@@ -10,7 +10,6 @@ import numpy as np
 import pandas as pd
 from scipy.integrate import odeint
 from optilog.autocfg import ac, Int, Real
-import matplotlib.pyplot as plt
 from ..utils import utils, config
 
 
@@ -92,6 +91,8 @@ def sidarthe(
     time = np.linspace(day_min, day_max, num=(day_max - day_min + 1) * 1000)
 
     solution = odeint(SIDARTHE_ODE, initial_cond, time, args=tuple(params))
+
+    import matplotlib.pyplot as plt
     plt.plot(time, solution)
     plt.show()
 
