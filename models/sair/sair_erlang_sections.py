@@ -12,27 +12,15 @@ dA(t)/dt =   beta_a/N*A(t)*S(t) + beta/N*I(t)*S(t) -(alpha+delta_a)*A(t)\n
 dI(t)/dt = - delta * I(t)                          + alpha*A(t)\n
 dR(t)/dt =   delta * I(t)                          + delta_a * A(t)
 """
-
+import functools
 import random
-from collections import namedtuple
 
 import numpy as np
 from optilog.autocfg import ac, Int, Real
 
-from ..utils import utils, config
-from . import sair_erlang
-
-
-Result = namedtuple("Result", "infected day_max")
-
-
-def check_successful_simulation(result: Result, time_total: int):
-    return not result.infected[time_total - 1] == 0
-
-
-def get_cost(time_series: np.ndarray, infected, t_total, day_max, n_seeds, metric):
-    var_m = utils.mean_alive(infected, t_total, day_max, n_seeds)
-    return utils.cost_func(time_series[:, 0], var_m, metric)
+from .sair import simulate_evolution, get_cost, Result
+from .sair_erlang import Compartments, gillespie_step
+from ..utils import utils
 
 
 @ac
@@ -96,55 +84,30 @@ def sair_erlang_sections(
         section_day5,
     ]
 
-    n_vect = [n1, n2, n3, n4, n5]
-    alpha_vect = np.array([alpha1, alpha2, alpha3, alpha4, alpha5]) * k_asym
-    beta_a_vect = np.array([beta_a1, beta_a2, beta_a3, beta_a4, beta_a5]) * k_inf
-    beta_vect = np.array([beta1, beta2, beta3, beta4, beta5]) * k_inf
-    delta_a_vect = np.array([delta_a1, delta_a2, delta_a3, delta_a4, delta_a5]) * k_rec
-    delta_vect = np.array([delta1, delta2, delta3, delta4, delta5]) * k_rec
-    shapes = {"k_inf": k_inf, "k_rec": k_rec, "k_asym": k_asym}
+    func = functools.partial(
+        gillespie_simulation,
+        n_vect=[n1, n2, n3, n4, n5],
+        alpha_vect=np.array([alpha1, alpha2, alpha3, alpha4, alpha5]) * k_asym,
+        delta_a_vect=np.array([delta_a1, delta_a2, delta_a3, delta_a4, delta_a5])
+        * k_rec,
+        delta_vect=np.array([delta1, delta2, delta3, delta4, delta5]) * k_rec,
+        beta_a_vect=np.array([beta_a1, beta_a2, beta_a3, beta_a4, beta_a5]) * k_inf,
+        beta_vect=np.array([beta1, beta2, beta3, beta4, beta5]) * k_inf,
+        section_days=section_days,
+        n_sections=n_sections,
+        n_t_steps=n_t_steps,
+        initial_infected=initial_infected,
+        initial_recovered=initial_recovered,
+        initial_asymptomatic=initial_asymptomatic,
+        t_total=t_total,
+        shapes={"k_inf": k_inf, "k_rec": k_rec, "k_asym": k_asym},
+    )
 
-    mc_step = 0
-    day_max = 0
-    current_seed = seed - 1  # we increase the seed at the start of the loop
+    evolution_df, day_max = simulate_evolution(func, n_seeds, seed, t_total)
 
-    results = list()
-
-    while mc_step < n_seeds:
-        current_seed += 1
-        result = gillespie_simulation(
-            current_seed,
-            n_vect,
-            alpha_vect,
-            delta_a_vect,
-            delta_vect,
-            beta_a_vect,
-            beta_vect,
-            section_days,
-            n_sections,
-            n_t_steps,
-            initial_infected,
-            initial_recovered,
-            initial_asymptomatic,
-            t_total,
-            shapes,
-            day_max,
-        )
-        day_max = result.day_max
-
-        if check_successful_simulation(result, t_total):
-            mc_step += 1
-            results.append(result)
-
-    # results per day and seed
-    infected = np.zeros([n_seeds, t_total], dtype=int)
-
-    for mc_step, result in enumerate(results):
-        infected[mc_step] = result.infected
-
-    cost = get_cost(time_series, infected, t_total, day_max, n_seeds, metric)
+    cost = get_cost(time_series, evolution_df.infected, t_total, day_max, metric)
     print(f"GGA SUCCESS {cost}")
-    return cost
+    return cost, evolution_df
 
 
 def gillespie_simulation(
@@ -163,8 +126,9 @@ def gillespie_simulation(
     initial_asymptomatic: int,
     t_total: int,
     shapes: dict,
-    day_max: int,
 ) -> Result:
+    random.seed(seed)
+    np.random.seed(seed)
 
     section = 0
     (n, rates, section_day, rates_old, section_day_old, n_ind,) = parameters_section(
@@ -178,11 +142,10 @@ def gillespie_simulation(
         section,
     )
 
-    comp = sair_erlang.Compartments(
+    comp = Compartments(
         n, n_t_steps, initial_asymptomatic, initial_infected, initial_recovered, shapes
     )
 
-    infected = np.zeros(t_total, dtype=int)
     t_step, time = 0, 0
     index_n = 1  # just to avoid pylint complaining
 
@@ -235,10 +198,11 @@ def gillespie_simulation(
                 comp.S[t_step, :-1] += n_ind[0, 0] / shapes["k_inf"]
             index_n = 1
 
-    day_max = utils.day_data(
-        comp.T[:t_step], comp.I[:t_step, :-1].sum(axis=1), infected, day_max
+    day_max, infected = utils.day_data(
+        comp.T[:t_step], comp.I[:t_step, :-1].sum(axis=1), t_total
     )
-    return Result(infected, day_max)
+    # TODO fill missing compartments
+    return Result(None, None, infected, None, day_max)
 
 
 def parameters_section(
@@ -318,7 +282,7 @@ def gillespie(
     if time > t_total:
         return t_step, True  # rare,  but sometimes long times may appear
 
-    sair_erlang.gillespie_step(t_step, comp, probs, shapes)
+    gillespie_step(t_step, comp, probs, shapes)
     return t_step, time
 
 
@@ -355,7 +319,7 @@ def parameters_init(args):
 
 def main(args):
     t_total, time_series, n_sections = parameters_init(args)
-    sair_erlang_sections(
+    return sair_erlang_sections(
         time_series,
         args.seed,
         args.mc_nseed,

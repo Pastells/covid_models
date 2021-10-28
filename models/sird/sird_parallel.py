@@ -14,14 +14,21 @@ dD(t)/dt =                   delta*theta * I(t)
 
 import random
 import sys
+from typing import Tuple
+
 import numpy as np
+import pandas
 from joblib import Parallel, delayed
 from ..utils import utils, config
+from .sird import sird as sird_sequential
 
 
-def sird(args):
+def sird(args) -> Tuple[float, pandas.DataFrame]:
+    if args.sequential:
+        return sird_sequential(args)
+
     t_total, time_series, rates = parameters_init(args)
-    # print(args)
+
     sys.stdout.write(f"r = {rates['beta']}\n")
     sys.stdout.write(f"a = {rates['delta']*(1-rates['theta'])}\n")
     sys.stdout.write(f"d = {rates['delta']*rates['theta']}\n")
@@ -39,59 +46,46 @@ def sird(args):
     # MC loop
     # =========================
 
-    if args.sequential:
+    # Obtain number of cores from machine (doesn't check if they are available)
+    # num_cores = multiprocessing.cpu_count()
+    num_cores = 6
+
+    # Reuse pool of workers in batches with size a multiple of num_cores
+    BATCH_SIZE = 2
+    # Threshold to stop
+    BAD_REALIZATIONS_THRES = BATCH_SIZE * num_cores // 2 * 3
+    with Parallel(n_jobs=num_cores) as parallel:
+        accum = 0
         results = []
-        mc_step = 0
-        while mc_step < args.mc_nseed:
-            _results = main_loop(args, t_total, rates, time_series[-1, 0])
-            if _results[0][check_realization_alive] != 0:
-                mc_step += 1
-                results.append(_results)
+        while (1 + accum) * num_cores + 1 < args.mc_nseed:
+            # print(accum)
+            ran = range(
+                args.seed + accum * BATCH_SIZE * num_cores,
+                min(
+                    args.seed + (accum + 1) * BATCH_SIZE * num_cores,
+                    args.seed + args.mc_nseed,
+                ),
+            )
 
-    # Parallel execution
-    else:
-        import multiprocessing
+            _results = parallel(
+                delayed(main_loop)(args, t_total, rates, time_series[-1, 0])
+                for mc_seed in ran
+            )
+            results.extend(_results)
 
-        # Obtain number of cores from machine (doesn't check if they are available)
-        # num_cores = multiprocessing.cpu_count()
-        num_cores = 6
-
-        # Reuse pool of workers in batches with size a multiple of num_cores
-        BATCH_SIZE = 2
-        # Threshold to stop
-        BAD_REALIZATIONS_THRES = BATCH_SIZE * num_cores // 2 * 3
-        with Parallel(n_jobs=num_cores) as parallel:
-            accum = 0
-            results = []
-            while (1 + accum) * num_cores + 1 < args.mc_nseed:
-                # print(accum)
-                ran = range(
-                    args.seed + accum * BATCH_SIZE * num_cores,
-                    min(
-                        args.seed + (accum + 1) * BATCH_SIZE * num_cores,
-                        args.seed + args.mc_nseed,
-                    ),
+            bad_realizations = 0
+            for mc_seed, result in enumerate(_results):
+                bad_realizations += result[4]
+            if bad_realizations >= BAD_REALIZATIONS_THRES:
+                sys.stdout.write(
+                    f"{bad_realizations} bad realizations out of {BATCH_SIZE * num_cores}\n"
                 )
+                break
+                # raise ValueError(
+                # "Bad realizations: (I_day_max < I_data / 2) or (I_day_max > I_data x 2)"
+                # )
 
-                _results = parallel(
-                    delayed(main_loop)(args, t_total, rates, time_series[-1, 0])
-                    for mc_seed in ran
-                )
-                results.extend(_results)
-
-                bad_realizations = 0
-                for mc_seed, result in enumerate(_results):
-                    bad_realizations += result[4]
-                if bad_realizations >= BAD_REALIZATIONS_THRES:
-                    sys.stdout.write(
-                        f"{bad_realizations} bad realizations out of {BATCH_SIZE * num_cores}\n"
-                    )
-                    break
-                    # raise ValueError(
-                    # "Bad realizations: (I_day_max < I_data / 2) or (I_day_max > I_data x 2)"
-                    # )
-
-                accum += 1
+            accum += 1
 
     # get daily data from results list
     days_max = []
@@ -183,13 +177,12 @@ def main_loop(args, t_total, rates, last_day_inf):
     else:
         i_var = comp.I
 
-    day_max = 0
-    day_max = utils.day_data(comp.T[:t_step], i_var[:t_step], I_day, day_max)
-    day_max = utils.day_data(comp.T[:t_step], comp.R[:t_step], R_day, day_max)
-    day_max = utils.day_data(comp.T[:t_step], comp.D[:t_step], D_day, day_max)
+    day_max, infected = utils.day_data(comp.T[:t_step], i_var[:t_step], t_total)
+    _, recovered = utils.day_data(comp.T[:t_step], comp.R[:t_step], t_total)
+    _, dead = utils.day_data(comp.T[:t_step], comp.D[:t_step], t_total)
 
     bad_realization = 0
-    if I_day[-1] < last_day_inf / 2 or I_day[-1] > last_day_inf * 2:
+    if infected[-1] < last_day_inf / 2 or infected[-1] > last_day_inf * 2:
         bad_realization = 1
 
     return [I_day, R_day, D_day, day_max, bad_realization]

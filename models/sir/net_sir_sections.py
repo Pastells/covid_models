@@ -10,26 +10,15 @@ dS(t)/dt = - beta/N*I(t)*S(t) \n
 dI(t)/dt =   beta/N*I(t)*S(t) - delta * I(t) \n
 dR(t)/dt =                      delta * I(t)
 """
-
+import functools
 import random
-from collections import namedtuple
 
 import numpy as np
 from optilog.autocfg import ac, Int, Real, Categorical
 
+from .sir import simulate_evolution, Result, get_cost
 from . import fast_sir_sections
-from ..utils import utils, utils_net, config
-
-Result = namedtuple("Result", "infected day_max")
-
-
-def check_successful_simulation(result: Result, time_total: int):
-    return not result.infected[time_total - 1] == 0
-
-
-def get_cost(time_series: np.ndarray, infected, t_total, day_max, n_seeds, metric):
-    var_m = utils.mean_alive(infected, t_total, day_max, n_seeds)
-    return utils.cost_func(time_series[:, 0], var_m, metric)
+from ..utils import utils, utils_net
 
 
 @ac
@@ -79,43 +68,25 @@ def net_sir_sections(
     beta_vect = np.array([beta1, beta2, beta3, beta4, beta5]) / network_param
     delta_vect = [delta1, delta2, delta3, delta4, delta5]
 
-    mc_step = 0
-    day_max = 0
-    current_seed = seed - 1  # we increase the seed at the start of the loop
+    func = functools.partial(
+        event_driven_simulation,
+        n_vect=n_vect,
+        beta_vect=beta_vect,
+        delta_vect=delta_vect,
+        section_days=section_days,
+        n_sections=n_sections,
+        network=network,
+        network_param=network_param,
+        initial_infected=initial_infected,
+        initial_recovered=initial_recovered,
+        t_total=t_total,
+    )
 
-    results = list()
+    evolution_df, day_max = simulate_evolution(func, n_seeds, seed, t_total)
 
-    while mc_step < n_seeds:
-        current_seed += 1
-        result = event_driven_simulation(
-            current_seed,
-            n_vect,
-            beta_vect,
-            delta_vect,
-            section_days,
-            n_sections,
-            network,
-            network_param,
-            initial_infected,
-            initial_recovered,
-            t_total,
-            day_max,
-        )
-        day_max = result.day_max
-
-        if check_successful_simulation(result, t_total):
-            mc_step += 1
-            results.append(result)
-
-    # results per day and seed
-    infected = np.zeros([n_seeds, t_total], dtype=int)
-
-    for mc_step, result in enumerate(results):
-        infected[mc_step] = result.infected
-
-    cost = get_cost(time_series, infected, t_total, day_max, n_seeds, metric)
+    cost = get_cost(time_series, evolution_df.infected, t_total, day_max, metric)
     print(f"GGA SUCCESS {cost}")
-    return cost
+    return cost, evolution_df
 
 
 def event_driven_simulation(
@@ -130,7 +101,6 @@ def event_driven_simulation(
     initial_infected: int,
     initial_recovered: int,
     t_total: int,
-    day_max: int,
 ) -> Result:
     random.seed(seed)
     np.random.seed(seed)
@@ -142,8 +112,6 @@ def event_driven_simulation(
     )
 
     G = utils_net.choose_network(n, network, network_param)
-
-    infected = np.zeros(t_total, dtype=int)
 
     # Sections
     while section < n_sections:
@@ -176,9 +144,11 @@ def event_driven_simulation(
             # R will have jumps, given that the n
             initial_recovered = R[-1]
 
-    day_max = utils.day_data(t, I, infected, day_max)
+    _, susceptible = utils.day_data(t, n - I - R, t_total)
+    day_max, infected = utils.day_data(t, I, t_total)
+    _, recovered = utils.day_data(t, R, t_total)
     del t, I, R, G
-    return Result(infected, day_max)
+    return Result(susceptible, infected, recovered, day_max)
 
 
 def parameters_section(
@@ -229,7 +199,7 @@ def parameters_init(args):
 
 def main(args):
     t_total, time_series, n_sections = parameters_init(args)
-    net_sir_sections(
+    return net_sir_sections(
         time_series,
         args.seed,
         args.mc_nseed,

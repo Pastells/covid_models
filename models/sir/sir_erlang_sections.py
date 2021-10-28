@@ -11,26 +11,16 @@ dS(t)/dt = - beta/N*I(t)*S(t) \n
 dI(t)/dt =   beta/N*I(t)*S(t) - delta * I(t) \n
 dR(t)/dt =                      delta * I(t)
 """
-
+import functools
 import random
-from collections import namedtuple
 
+import numpy
 import numpy as np
 from optilog.autocfg import ac, Int, Real
 
-from ..utils import utils, config
+from .sir import Result, simulate_evolution, get_cost
+from ..utils import utils
 from . import sir_erlang
-
-Result = namedtuple("Result", "infected day_max")
-
-
-def check_successful_simulation(result: Result, time_total: int):
-    return not result.infected[time_total - 1] == 0
-
-
-def get_cost(time_series: np.ndarray, infected, t_total, day_max, n_seeds, metric):
-    var_m = utils.mean_alive(infected, t_total, day_max, n_seeds)
-    return utils.cost_func(time_series[:, 0], var_m, metric)
 
 
 @ac
@@ -82,43 +72,25 @@ def sir_erlang_sections(
     delta_vect = np.array([delta1, delta2, delta3, delta4, delta5]) * k_rec
     shapes = {"k_inf": k_inf, "k_rec": k_rec}
 
-    mc_step = 0
-    day_max = 0
-    current_seed = seed - 1  # we increase the seed at the start of the loop
+    func = functools.partial(
+        gillespie_simulation,
+        n_vect=n_vect,
+        beta_vect=beta_vect,
+        delta_vect=delta_vect,
+        section_days=section_days,
+        n_sections=n_sections,
+        n_t_steps=n_t_steps,
+        initial_infected=initial_infected,
+        initial_recovered=initial_recovered,
+        t_total=t_total,
+        shapes=shapes,
+    )
 
-    results = list()
+    evolution_df, day_max = simulate_evolution(func, n_seeds, seed, t_total)
 
-    while mc_step < n_seeds:
-        current_seed += 1
-        result = gillespie_simulation(
-            current_seed,
-            n_vect,
-            beta_vect,
-            delta_vect,
-            section_days,
-            n_sections,
-            n_t_steps,
-            initial_infected,
-            initial_recovered,
-            t_total,
-            shapes,
-            day_max,
-        )
-        day_max = result.day_max
-
-        if check_successful_simulation(result, t_total):
-            mc_step += 1
-            results.append(result)
-
-    # results per day and seed
-    infected = np.zeros([n_seeds, t_total], dtype=int)
-
-    for mc_step, result in enumerate(results):
-        infected[mc_step] = result.infected
-
-    cost = get_cost(time_series, infected, t_total, day_max, n_seeds, metric)
+    cost = get_cost(time_series, evolution_df.infected, t_total, day_max, metric)
     print(f"GGA SUCCESS {cost}")
-    return cost
+    return cost, evolution_df
 
 
 def gillespie_simulation(
@@ -133,7 +105,6 @@ def gillespie_simulation(
     initial_recovered: int,
     t_total: int,
     shapes: dict,
-    day_max: int,
 ) -> Result:
     random.seed(seed)
     np.random.seed(seed)
@@ -152,7 +123,6 @@ def gillespie_simulation(
         n, n_t_steps, initial_infected, initial_recovered, shapes
     )
 
-    infected = np.zeros(t_total, dtype=int)
     t_step, time = 0, 0
     index_n = 1  # just to avoid pylint complaining
 
@@ -202,11 +172,15 @@ def gillespie_simulation(
                 comp.S[t_step, :-1] += n_ind[0, 0] / shapes["k_inf"]
             index_n = 1
 
-    day_max = utils.day_data(
-        comp.T[:t_step], comp.I[:t_step, :-1].sum(axis=1), infected, day_max
+    _, susceptible = utils.day_data(
+        comp.T[:t_step], comp.S[:t_step, :-1].sum(axis=1), t_total
     )
+    day_max, infected = utils.day_data(
+        comp.T[:t_step], comp.I[:t_step, :-1].sum(axis=1), t_total
+    )
+    _, recovered = utils.day_data(comp.T[:t_step], comp.R[:t_step], t_total)
 
-    return Result(infected, day_max)
+    return Result(susceptible, infected, recovered, day_max)
 
 
 def parameters_section(
@@ -275,7 +249,7 @@ def parameters_init(args):
 
 def main(args):
     t_total, time_series, n_sections = parameters_init(args)
-    sir_erlang_sections(
+    return sir_erlang_sections(
         time_series,
         args.seed,
         args.mc_nseed,

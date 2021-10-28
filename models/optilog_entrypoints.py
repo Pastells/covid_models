@@ -28,7 +28,7 @@ def _auto_sird(dataset, seed):
     t_total = day_max - day_min
     time_series = load_data(dataset, day_min, day_max)
 
-    cost = sird.sird(
+    cost, _ = sird.sird(
         time_series=time_series,
         seed=seed,
         n_seeds=mc_nseed,
@@ -48,7 +48,7 @@ def _auto_sair(dataset, seed):
     t_total = day_max - day_min
     time_series = load_data(dataset, day_min, day_max)
 
-    cost = sair.sair(
+    cost, _ = sair.sair(
         time_series=time_series,
         seed=seed,
         n_seeds=mc_nseed,
@@ -68,7 +68,7 @@ def _auto_net_sair(dataset, seed):
     t_total = day_max - day_min
     time_series = load_data(dataset, day_min, day_max)
 
-    cost = net_sair.net_sair(
+    cost, _ = net_sair.net_sair(
         time_series=time_series,
         seed=seed,
         n_seeds=mc_nseed,
@@ -89,7 +89,7 @@ def _auto_seipahrf(dataset, seed):
     t_total = day_max - day_min
     time_series = load_data(dataset, day_min, day_max)
 
-    cost = seipahrf.seipahrf(
+    cost, _ = seipahrf.seipahrf(
         time_series=time_series,
         t_total=t_total,
         metric="models.utils.utils.sum_sq",

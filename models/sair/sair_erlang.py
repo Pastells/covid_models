@@ -11,26 +11,14 @@ dA(t)/dt =   beta_a/N*A(t)*S(t) + beta/N*I(t)*S(t) -(alpha+delta_a)*A(t)\n
 dI(t)/dt = - delta * I(t)                          + alpha*A(t)\n
 dR(t)/dt =   delta * I(t)                          + delta_a * A(t)
 """
-
+import functools
 import random
-from collections import namedtuple
 
 import numpy as np
 from optilog.autocfg import ac, Int, Real
 
-from ..utils import utils, config
-
-
-Result = namedtuple("Result", "infected day_max")
-
-
-def check_successful_simulation(result: Result, time_total: int):
-    return not result.infected[time_total - 1] == 0
-
-
-def get_cost(time_series: np.ndarray, infected, t_total, day_max, n_seeds, metric):
-    var_m = utils.mean_alive(infected, t_total, day_max, n_seeds)
-    return utils.cost_func(time_series[:, 0], var_m, metric)
+from .sair import simulate_evolution, Result, get_cost
+from ..utils import utils
 
 
 @ac
@@ -63,41 +51,23 @@ def sair_erlang(
     }
     shapes = {"k_inf": k_inf, "k_rec": k_rec, "k_asym": k_asym}
 
-    mc_step = 0
-    day_max = 0
-    current_seed = seed - 1  # we increase the seed at the start of the loop
+    func = functools.partial(
+        gillespie_simulation,
+        n=n,
+        n_t_steps=n_t_steps,
+        initial_asymptomatic=initial_asymptomatic,
+        initial_infected=initial_infected,
+        initial_recovered=initial_recovered,
+        t_total=t_total,
+        rates=rates,
+        shapes=shapes,
+    )
+    evolution_df, day_max = simulate_evolution(func, n_seeds, seed, t_total)
 
-    results = list()
-
-    while mc_step < n_seeds:
-        current_seed += 1
-        result = gillespie_simulation(
-            current_seed,
-            n,
-            n_t_steps,
-            initial_asymptomatic,
-            initial_infected,
-            initial_recovered,
-            t_total,
-            rates,
-            shapes,
-            day_max,
-        )
-        day_max = result.day_max
-
-        if check_successful_simulation(result, t_total):
-            mc_step += 1
-            results.append(result)
-
-    # results per day and seed
-    infected = np.zeros([n_seeds, t_total], dtype=int)
-
-    for mc_step, result in enumerate(results):
-        infected[mc_step] = result.infected
-
-    cost = get_cost(time_series, infected, t_total, day_max, n_seeds, metric)
+    cost = get_cost(time_series, evolution_df.infected, t_total, day_max, metric)
     print(f"GGA SUCCESS {cost}")
-    return cost
+
+    return cost, evolution_df
 
 
 def gillespie_simulation(
@@ -110,7 +80,6 @@ def gillespie_simulation(
     t_total: int,
     rates: dict,
     shapes: dict,
-    day_max: int,
 ) -> Result:
     random.seed(seed)
     np.random.seed(seed)
@@ -123,7 +92,6 @@ def gillespie_simulation(
         shapes,
     )
 
-    infected = np.zeros(t_total, dtype=int)
     t_step, time = 0, 0
 
     # Time loop
@@ -139,11 +107,25 @@ def gillespie_simulation(
         if time is True:
             break
 
-    day_max = utils.day_data(
-        comp.T[:t_step], comp.I[:t_step, :-1].sum(axis=1), infected, day_max
-    )
+    event_timestamps = comp.T[:t_step]
 
-    return Result(infected, day_max)
+    # Note that S, A, and I compartments have an extra
+    # dimension not relevant for the results, used only
+    # for an easier notation
+    _, susceptible = utils.day_data(
+        event_timestamps, comp.S[:t_step, :-1].sum(axis=1), t_total
+    )
+    # TODO asymptomatic has an extra dimension
+    _, asymptomatic = (
+        None,
+        None,
+    )  # utils.day_data(event_timestamps, comp.A[:t_step, :-1].sum(axis=1), t_total)
+    day_max, infected = utils.day_data(
+        event_timestamps, comp.I[:t_step, :-1].sum(axis=1), t_total
+    )
+    _, recovered = utils.day_data(event_timestamps, comp.R[:t_step], t_total)
+
+    return Result(susceptible, asymptomatic, infected, recovered, day_max)
 
 
 class Compartments:
@@ -332,7 +314,7 @@ def parameters_init(args):
 
 def main(args):
     t_total, time_series = parameters_init(args)
-    sair_erlang(
+    return sair_erlang(
         time_series,
         args.seed,
         args.mc_nseed,

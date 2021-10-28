@@ -16,11 +16,17 @@ global_confirmed = pandas.read_csv(GLOBAL_CONFIRMED_URL)
 available_countries = global_confirmed["Country/Region"].unique()
 
 countries = sys.argv[1:]
+
+
+def quote(str):
+    return '"' + str + '"'
+
+
 if len(countries) == 0:
     print("At least one country should be specified", file=sys.stderr)
     print(f"Usage: {sys.argv[0]} country1 country2 ...", file=sys.stderr)
     print("\nAvailable countries are:", file=sys.stderr)
-    print(", ".join(available_countries))
+    print(" ".join(map(quote, available_countries)), file=sys.stderr)
     sys.exit(-1)
 
 logging.info("Creating countries directory if not found...")
@@ -66,9 +72,19 @@ def parse_country(country):
         index=["#infected", "recovered", "dead", "cumulative"],
     ).transpose()
     df["date"] = list(map(change_dateformat, days))
+    df.index = pandas.to_datetime(df.index)
 
-    first_day_str = first_day.replace("/", "_")
-    last_day_str = last_day.replace("/", "_")
+    days_with_infected = df[df["#infected"] > 0].index
+    first_day = days_with_infected[0]
+    last_day = days_with_infected[-1]
+
+    df = df[(df.index >= first_day) & (df.index < last_day)]
+
+    # Output file
+    first_day_str = df["date"][0].replace("/", "_")
+    last_day_str = df["date"][-1].replace("/", "_")
+    
+    country = country.replace(" ", "_")
     out_file = f"{country}__{first_day_str}__{last_day_str}.csv"
     out_file = os.path.join(target_directory, out_file)
     df.to_csv(out_file, index=False)

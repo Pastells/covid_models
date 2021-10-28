@@ -1,6 +1,5 @@
 import numpy
 import numpy as np
-from matplotlib import pyplot as plt
 from scipy.integrate import solve_ivp
 from optilog.autocfg import ac, Int, Real
 
@@ -84,7 +83,6 @@ def seipahrf(
     delta_i: Real(1.0, 5.0) = 3.5,
     delta_p: Real(0.5, 1.5) = 1.0,
     delta_h: Real(0.01, 1.0) = 0.3,
-    plot: bool = True,
 ):
     # Solve the ODE
     time = numpy.linspace(0, t_total - 0.01, num=t_total * 100)
@@ -130,20 +128,33 @@ def seipahrf(
         fun=ode, t_span=t_span, t_eval=time, y0=initial_conditions, args=args
     )
 
-    prediction = solution.y.transpose()
-    confirmed = prediction[:, 2] + prediction[:, 3] + prediction[:, 5]
+    prediction = solution.y
+    confirmed_seq = prediction[2] + prediction[3] + prediction[5]
 
-    if plot:
-        plt.plot(solution.t, confirmed, time_series[:, 0])
-        plt.show()
+    # confirmed is used for the cost calculation
+    day_max, confirmed = utils.day_data(time, confirmed_seq, t_total)
+
+    _, susceptible = utils.day_data(time, prediction[0], t_total)
+    _, exposed = utils.day_data(time, prediction[1], t_total)
+    _, infected = utils.day_data(time, prediction[2], t_total)
+    _, superspreader = utils.day_data(time, prediction[3], t_total)
+    _, asymptomatic = utils.day_data(time, prediction[4], t_total)
+    _, hospitalized = utils.day_data(time, prediction[5], t_total)
+    _, recovered = utils.day_data(time, prediction[6], t_total)
+    _, fatal = utils.day_data(time, prediction[7], t_total)
 
     # Results per day
-    confirmed_by_day = np.zeros(t_total, dtype=int)
-    day_max = utils.day_data(time, confirmed, confirmed_by_day, 0)
-    cost = get_cost(time_series, confirmed_by_day, t_total, day_max, metric)
+    evolution_df = utils.evolution_to_dataframe(
+        [susceptible, exposed, infected, superspreader, asymptomatic,
+         hospitalized, recovered, fatal],
+        ["susceptible", "exposed", "infected", "superspreader", "asymptomatic",
+         "hospitalized", "recovered", "fatal"],
+    )
+
+    cost = get_cost(time_series, confirmed, t_total, day_max, metric)
 
     print(f"GGA SUCCESS {cost}")
-    return cost
+    return cost, evolution_df
 
 
 def parameters_init(args):
@@ -153,7 +164,7 @@ def parameters_init(args):
 
 def main(args):
     t_total, time_series = parameters_init(args)
-    seipahrf(
+    return seipahrf(
         time_series,
         t_total,
         args.metric,

@@ -21,7 +21,7 @@ from optilog.autocfg import ac, Int, Real
 from ..utils import utils
 
 
-Result = namedtuple("Result", "infected day_max")
+Result = namedtuple("Result", "susceptible exposed asymptomatic infected recovered day_max")
 
 
 def get_cost(time_series, infected, t_total, day_max, n_seeds, metric):
@@ -49,18 +49,17 @@ def seair(
     beta_a: Real(0.0, 1.0) = 0.3,
     beta: Real(0.0, 1.0) = 0.6,
 ):
-    # results per day and seed
-    infected = np.zeros([n_seeds, t_total], dtype=int)
-
+    mc_step = 0
     day_max = 0
-    # =========================
-    # MC loop
-    # =========================
+    current_seed = seed - 1  # we increase the seed at the start of the loop
 
-    for mc_seed in range(seed, seed + n_seeds):
-        random.seed(mc_seed)
-        np.random.seed(mc_seed)
-        mc_step = mc_seed - seed
+    seeds = list()
+    evolution = np.zeros([5, n_seeds, t_total])
+
+    while mc_step < n_seeds:
+        current_seed += 1
+        random.seed(current_seed)
+        np.random.seed(current_seed)
         result = gillespie_simulation(
             n,
             n_t_steps,
@@ -75,14 +74,25 @@ def seair(
             delta,
             beta_a,
             beta,
-            day_max,
         )
-        day_max = result.day_max
-        infected[mc_step] = result.infected
+        day_max = max(day_max, result.day_max)
+        # TODO check for successful simulations
+        seeds.append(current_seed)
+        evolution[0, mc_step, :] = result.susceptible
+        evolution[1, mc_step, :] = result.exposed
+        evolution[2, mc_step, :] = result.asymptomatic
+        evolution[3, mc_step, :] = result.infected
+        evolution[4, mc_step, :] = result.recovered
 
-    cost = get_cost(time_series, infected, t_total, day_max, n_seeds, metric)
+        mc_step += 1
+
+    # results per day and seed
+    evolution_df = utils.evolution_to_dataframe(
+        evolution, ["susceptible", "exposed", "asymptomatic", "infected", "recovered"], seeds)
+
+    cost = get_cost(time_series, evolution[3], t_total, day_max, n_seeds, metric)
     print(f"GGA SUCCESS {cost}")
-    return cost
+    return cost, evolution_df
 
 
 def gillespie_simulation(
@@ -99,7 +109,6 @@ def gillespie_simulation(
     delta,
     beta_a,
     beta,
-    day_max: int,
 ):
     comp = Compartments(
         n=n,
@@ -110,7 +119,6 @@ def gillespie_simulation(
         initial_recovered=initial_recovered,
     )
 
-    infected = np.zeros(t_total, dtype=int)
     t_step, time = 0, 0
 
     # Time loop
@@ -119,9 +127,13 @@ def gillespie_simulation(
             t_step, time, comp, alpha, delta_a, epsilon, delta, beta_a, beta
         )
 
-    day_max = utils.day_data(comp.T[:t_step], comp.I[:t_step], infected, day_max)
+    _, susceptible = utils.day_data(comp.T[:t_step], comp.S[:t_step], t_total)
+    _, exposed = utils.day_data(comp.T[:t_step], comp.E[:t_step], t_total)
+    _, asymptomatic = utils.day_data(comp.T[:t_step], comp.A[:t_step], t_total)
+    day_max, infected = utils.day_data(comp.T[:t_step], comp.I[:t_step], t_total)
+    _, recovered = utils.day_data(comp.T[:t_step], comp.R[:t_step], t_total)
 
-    return Result(infected, day_max)
+    return Result(susceptible, exposed, asymptomatic, infected, recovered, day_max)
 
 
 class Compartments:
@@ -269,7 +281,7 @@ def parameters_init(args):
 def main(args):
     t_total, time_series, rates = parameters_init(args)
 
-    seair(
+    return seair(
         time_series=time_series,
         seed=args.seed,
         n_seeds=args.mc_nseed,

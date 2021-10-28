@@ -6,3 +6,4 @@ optilog
 joblib
 pandas
 seaborn
+scipy

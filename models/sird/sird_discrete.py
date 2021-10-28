@@ -14,11 +14,8 @@ Delta_D(t) =                   theta * I(t)
 import sys
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
 from optilog.autocfg import ac, Int, Real
 
-sns.set()
 
 N = 59.3e6
 
@@ -66,6 +63,10 @@ def sird(
 
 
 def plots(left, right, day_range):
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+    sns.set()
+
     t = np.arange(day_range)
     titles = ["Susceptible", "Infected", "Recovered", "Dead"]
     for i, title in enumerate(titles):
