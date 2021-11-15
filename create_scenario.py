@@ -15,9 +15,18 @@ RUNSOLVER_PATH = shutil.which(
 
 
 def create_scenario(
-    configurator_choice, scenario_path, model, data, configurator_kwargs
+    configurator_choice,
+    scenario_path,
+    model,
+    dataset,
+    day_min,
+    day_max,
+    mc_nseed,
+    configurator_kwargs
 ):
-    entrypoint, cfg_calls = optilog_entrypoints.get_entrypoint_for_model(model)
+    entrypoint = optilog_entrypoints.get_entrypoint_for_model(model)
+
+    data_file = os.path.realpath(os.path.join(scenario_path, "data.dat"))
 
     if configurator_choice == "gga":
         configurator_class = GGAConfigurator
@@ -27,18 +36,26 @@ def create_scenario(
         raise ValueError(f"Unknown configurator {configurator_choice}")
 
     configurator = configurator_class(
-        entrypoint=entrypoint,
-        global_cfgcalls=cfg_calls,
-        input_data=list(data),
+        entrypoint=entrypoint.entrypoint,
+        global_cfgcalls=entrypoint.CFG_CALLS,
+        input_data=[data_file],
         runsolver_path=RUNSOLVER_PATH,
         memory_limit=20 * 1024,
         run_obj="quality",
-        data_kwarg="dataset",
+        data_kwarg="data",
         seed_kwarg="seed",
-        quality_regex=optilog_entrypoints.RESULT_REGEX,
+        quality_regex=optilog_entrypoints.Entrypoint.RESULT_REGEX,
         **configurator_kwargs,
     )
     configurator.generate_scenario(scenario_path)
+
+    entrypoint.create_data(
+        data_file,
+        os.path.realpath(dataset),
+        day_min,
+        day_max,
+        mc_nseed
+    )
 
 
 def remove_old_scenario(scenario_path):
@@ -70,11 +87,25 @@ def parse_args():
     )
     parser.add_argument(
         "--data",
-        help="The data files that will be used to configure the"
-        " model. At least one is required",
-        required=True,
-        nargs="+",
+        help="The data file that will be used to configure the model.",
+        required=True
     )
+    parser.add_argument(
+        "--day-min",
+        type=int,
+        default=0,
+    )
+    parser.add_argument(
+        "--day-max",
+        type=int,
+        default=54
+    )
+    parser.add_argument(
+        "--mc-nseed",
+        type=int,
+        default=100
+    )
+
     parser.add_argument(
         "--remove-old",
         help="If set, remove the scenario_path before creating" " the new one",
@@ -124,7 +155,7 @@ def get_configurator_kwargs(configurator, args) -> Dict:
             "use_elite_group": True,
             "objective": "sum",
             "cost_min": 0,
-            "cost_max": optilog_entrypoints.MAX_COST,
+            "cost_max": optilog_entrypoints.Entrypoint.MAX_COST,
             "cost_tolerance": 0.0,
             # "cancel": None,
             # "cancel_min_evals": None,
@@ -148,11 +179,11 @@ def main():
         print("Deleting old scenario...", file=sys.stderr)
         remove_old_scenario(args.scenario_path)
 
-    data = map(os.path.realpath, args.data)
-
     configurator_kwargs = get_configurator_kwargs(args.configurator, args)
     create_scenario(
-        args.configurator, args.scenario_path, args.model, data, configurator_kwargs
+        args.configurator, args.scenario_path,
+        args.model, args.data, args.day_min, args.day_max, args.mc_nseed,
+        configurator_kwargs
     )
 
     if args.run:

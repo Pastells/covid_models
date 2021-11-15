@@ -63,7 +63,7 @@ def seipahrf(
     time_series: numpy.ndarray,
     t_total: int,
     metric: str,
-    n,
+    n: Int(70000, 90000) = 70000,
     initial_exposed: Int(0, 20) = 0,
     initial_infected: Int(0, 20) = 1,
     initial_superspreader: Int(0, 20) = 5,
