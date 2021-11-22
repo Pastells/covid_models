@@ -627,6 +627,7 @@ def parse_args():
     parser = ArgumentParser(allow_abbrev=False)
 
     model_parser = parser.add_subparsers(help="model to use", dest="model")
+    model_parser.required = True
 
     models = [
         ("sair", SairParser, sair.main),
