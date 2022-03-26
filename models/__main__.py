@@ -706,16 +706,16 @@ def main():
     try:
         _, evolution = args.run_fn(args)
 
-        if args.plot:
+        if hasattr(args, "plot") and args.plot:
             plot(evolution)
 
-        if args.save:
+        if hasattr(args, "save") and args.save:
             try:
                 evolution.to_csv(args.save)
                 print(f"Saved evolution at {args.save}", file=sys.stderr)
             except AttributeError:
                 print(f"Model {args.model} does not support saving", file=sys.stderr)
-        if args.print:
+        if hasattr(args, "print") and args.print:
             print(evolution)
 
     except MemoryError as ex:
