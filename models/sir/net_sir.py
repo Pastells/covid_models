@@ -15,7 +15,7 @@ from typing import Tuple
 
 import numpy as np
 import pandas
-from optilog.autocfg import ac, Int, Real, Categorical
+from optilog.tuning import ac, Int, Real, Categorical
 
 from . import fast_sir
 from .sir import get_cost, simulate_evolution, Result

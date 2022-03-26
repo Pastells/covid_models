@@ -15,7 +15,7 @@ import functools
 import random
 
 import numpy as np
-from optilog.autocfg import ac, Int, Real, Categorical
+from optilog.tuning import ac, Int, Real, Categorical
 
 from . import fast_sair
 from .sair import simulate_evolution, get_cost, Result

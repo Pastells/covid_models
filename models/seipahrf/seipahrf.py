@@ -1,7 +1,7 @@
 import numpy
 import numpy as np
 from scipy.integrate import solve_ivp
-from optilog.autocfg import ac, Int, Real
+from optilog.tuning import ac, Int, Real
 
 from models.utils import utils
 

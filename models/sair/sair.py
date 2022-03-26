@@ -17,7 +17,7 @@ from collections import namedtuple
 
 import numpy as np
 import pandas
-from optilog.autocfg import ac, Int, Real
+from optilog.tuning import ac, Int, Real
 
 from ..utils import utils
 

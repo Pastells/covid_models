@@ -10,10 +10,9 @@ dI(t)/dt =   beta/N*I(t)*S(t) - delta * I(t) \n
 dR(t)/dt =                      delta * I(t)
 """
 
-from collections import namedtuple
 import numpy as np
 from scipy.integrate import odeint
-from optilog.autocfg import ac, Int, Real
+from optilog.tuning import ac, Int, Real
 from ..utils import utils
 
 

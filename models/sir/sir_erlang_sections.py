@@ -14,9 +14,8 @@ dR(t)/dt =                      delta * I(t)
 import functools
 import random
 
-import numpy
 import numpy as np
-from optilog.autocfg import ac, Int, Real
+from optilog.tuning import ac, Int, Real
 
 from .sir import Result, simulate_evolution, get_cost
 from ..utils import utils

@@ -14,7 +14,7 @@ dR(t)/dt =   delta * I(t)                          + delta_a * A(t)
 import numpy as np
 from scipy.integrate import odeint
 
-from optilog.autocfg import ac, Int, Real
+from optilog.tuning import ac, Int, Real
 from ..utils import utils, config
 
 

@@ -1,6 +1,6 @@
 import sys
 from oct2py import Oct2Py
-from optilog.autocfg import ac, Real
+from optilog.tuning import ac, Real
 
 # fmt: off
 
@@ -71,10 +71,11 @@ def sidarthe(
     cost = oc.sidarthe(params1, params2, params3, params4, params5, params6, cost_days)
     sys.stdout.write(f"GGA SUCCESS {cost}\n")
 
+    return cost, None  # TODO return evolution
+
 
 def main(args):
-
-    sidarthe(
+    return sidarthe(
         args.day_min, args.day_max,
         args.alfa1, args.beta1, args.gamma1, args.epsilon1, args.theta1,
         args.zeta1, args.mu1, args.nu1, args.tau1, args.lambda1,

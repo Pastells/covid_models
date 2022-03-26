@@ -9,7 +9,7 @@ import sys
 import numpy as np
 import pandas as pd
 from scipy.integrate import odeint
-from optilog.autocfg import ac, Int, Real
+from optilog.tuning import ac, Int, Real
 from ..utils import utils, config
 
 

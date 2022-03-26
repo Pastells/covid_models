@@ -19,7 +19,7 @@ import sys
 from collections import namedtuple
 
 import numpy as np
-from optilog.autocfg import ac, Int, Real, Categorical
+from optilog.tuning import ac, Int, Real, Categorical
 
 from . import fast_sair_sections
 from .sair import simulate_evolution, get_cost, Result

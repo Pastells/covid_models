@@ -14,7 +14,7 @@ Delta_D(t) =                   theta * I(t)
 import sys
 import numpy as np
 import pandas as pd
-from optilog.autocfg import ac, Int, Real
+from optilog.tuning import ac, Int, Real
 
 
 N = 59.3e6
@@ -60,6 +60,7 @@ def sird(
 
     if plot:
         plots(left, right, day_range)
+    return cost, None  # TODO return the evolution
 
 
 def plots(left, right, day_range):
@@ -88,7 +89,7 @@ def get_data(data, day_min, day_max):
 def main(args):
     # TODO: extend to work with other models
     # Renamed nu -> theta
-    sird(
+    return sird(
         args.data,
         args.day_min,
         args.day_max,

@@ -14,7 +14,7 @@ import functools
 import random
 
 import numpy as np
-from optilog.autocfg import ac, Int, Real
+from optilog.tuning import ac, Int, Real
 
 from .sir import simulate_evolution, get_cost, Result
 from ..utils import utils
