@@ -452,6 +452,14 @@ class SirdParser(SirParser):
             help="initial number of dead individuals",
         )
 
+    @classmethod
+    def initialize_configuration_group(cls, group):
+        super().initialize_configuration_group(group)
+        group.add_argument(  # TODO add it to other models
+            "--scale-cost", action="store_true",
+            help="Scale the cost by (cost / numDays) * 100"
+        )
+
 
 class SirdDiscreteParser(SirdParser):
     @classmethod

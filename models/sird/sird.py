@@ -52,6 +52,7 @@ def sird(
     t_total: int,
     n_t_steps: int,
     metric,
+    scale_cost: bool,
     n: Int(70000, 90000) = 70000,
     initial_infected: Int(410, 440) = 410,
     initial_recovered: Int(4, 6) = 4,
@@ -109,6 +110,8 @@ def sird(
         evolution_df[("dead", seed)] = evolution[3, step]
 
     cost = get_cost(time_series, evolution[1], evolution[2], evolution[3], metric)
+    if scale_cost:
+        cost = cost / len(time_series) * 100
     # Report to optilog the cost
     print(f"GGA SUCCESS {cost}")
 
@@ -240,6 +243,7 @@ def main(args):
         t_total,
         args.n_t_steps,
         args.metric,
+        args.scale_cost,
         n=args.n,  # due to a bug, naming the configurable parameters is mandatory
         initial_infected=args.initial_infected,
         initial_recovered=args.initial_recovered,
