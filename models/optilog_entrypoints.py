@@ -210,7 +210,6 @@ class SirdEntrypoint(Entrypoint):
             seed=seed,
             n_seeds=mc_nseed,
             t_total=t_total,
-            n_t_steps=config.N_T_STEPS,
             metric="models.utils.utils.sum_sq"
         )
         cls.report_result(cost)
