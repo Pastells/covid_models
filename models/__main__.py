@@ -461,10 +461,9 @@ class SirdParser(SirParser):
         )
 
 
-class SirdDiscreteParser(SirdParser):
+class SirdDiscreteParser(CommonParser):
     @classmethod
     def initialize_parameters_group(cls, group):
-        super().initialize_parameters_group(group)
         group.add_argument(
             "--q",
             type=float,
@@ -476,6 +475,32 @@ class SirdDiscreteParser(SirdParser):
             type=float,
             default=0.9,
             help="Forgetting factor, weight for cost sum (0,1]",
+        )
+        group.add_argument(
+            "--beta",
+            type=float,
+            default=config.BETA,
+            help="Infectivity due to infected [0.05, 1.0]"
+        )
+        group.add_argument(
+            "--gamma",
+            type=float,
+            default=0.02,
+            help="TODO"
+        )
+        group.add_argument(
+            "--nu",
+            type=float,
+            default=0.02,
+            help="TODO"
+        )
+    
+    @classmethod
+    def initialize_initial_conditions_group(cls, group):
+        super().initialize_initial_conditions_group(group)
+        group.add_argument(
+            "--initial_dead", type=int, default=config.initial_dead,
+            help="initial number of dead individuals",
         )
 
 

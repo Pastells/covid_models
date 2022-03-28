@@ -17,7 +17,7 @@ import pandas as pd
 from optilog.tuning import ac, Int, Real
 
 
-N = 59.3e6
+N = int(59.3e6)
 
 
 @ac
@@ -29,9 +29,9 @@ def sird(
     # n: Int(1000, int(1e8)) = int(59.3e6),
     q: Real(0, 1) = 0.1,
     w: Real(0, 1) = 0.9,
-    delta: Real(0.01, 1.0) = 0.3,
     beta: Real(0.01, 1.0) = 0.5,
-    theta: Real(0.001, 0.1) = 0.005,
+    gamma: Real(0.01, 1.0) = 0.3,
+    nu: Real(0.001, 0.1) = 0.005,
 ):
     I, R, D = get_data(data, day_min, day_max)
     S = q * N - I - R - D
@@ -42,15 +42,15 @@ def sird(
 
     cost = np.zeros(4)
     day_range = 1 + day_max - day_min
-    left = np.zeros([4, day_range])
-    right = np.zeros([4, day_range])
+    left = np.zeros([4, day_range])  # contains the variation of the real data
+    right = np.zeros([4, day_range])  # contains the variation computed by the args
     for t in range(day_range):
         left[:, t] = data[:, t + 1] - data[:, t]
         r = beta * S[t] * I[t] / (S[t] + I[t])
         right[0, t] = -r
-        right[1, t] = r - (delta + theta) * I[t]
-        right[2, t] = delta * I[t]
-        right[3, t] = theta * I[t]
+        right[1, t] = r - (gamma + nu) * I[t]
+        right[2, t] = gamma * I[t]
+        right[3, t] = nu * I[t]
         cost += w ** (day_range - t) * (left[:, t] - right[:, t]) ** 2
 
     cost *= 1 / (day_range * 1e3)
@@ -88,7 +88,6 @@ def get_data(data, day_min, day_max):
 
 def main(args):
     # TODO: extend to work with other models
-    # Renamed nu -> theta
     return sird(
         args.data,
         args.day_min,
@@ -97,7 +96,7 @@ def main(args):
         # n=args.n,
         q=args.q,
         w=args.w,
-        delta=args.delta,
         beta=args.beta,
-        theta=args.theta,
+        gamma=args.gamma,
+        nu=args.nu,
     )
