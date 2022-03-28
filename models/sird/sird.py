@@ -232,7 +232,7 @@ def parameters_init(args):
 
 def main(args):
     t_total, time_series, rates = parameters_init(args)
-    print(f"r = {rates['beta']}", file=sys.stderr)
+    print(f"r = {rates['beta'] / args.n}", file=sys.stderr)
     print(f"a = {rates['delta']*(1-rates['theta'])}", file=sys.stderr)
     print(f"d = {rates['delta']*rates['theta']}", file=sys.stderr)
 
