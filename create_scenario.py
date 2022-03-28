@@ -5,14 +5,26 @@ import shutil
 import subprocess
 import sys
 from typing import Dict
+from inspect import signature
 
 from optilog.autocfg.configurators import SMACConfigurator, GGAConfigurator
+from optilog.autocfg.basis import Parameter as ConfigurableParameter
 from models import optilog_entrypoints
 
 RUNSOLVER_PATH = shutil.which(
     "runsolver"
 )  # Note: change if the binary is not in the path.
 
+
+def get_number_of_configurable_parameters(entrypoint):
+    count = 0
+    for configurable in entrypoint.CFG_CALLS:
+        sig = signature(configurable)
+        for par in sig.parameters.values():
+            if isinstance(par.annotation, ConfigurableParameter):
+                count += 1
+    return count
+    
 
 def create_scenario(
     configurator_choice,
@@ -25,6 +37,14 @@ def create_scenario(
     configurator_kwargs
 ):
     entrypoint = optilog_entrypoints.get_entrypoint_for_model(model)
+
+    if configurator_choice == "gga":
+        # Mutate at least one parameter
+        n_params = get_number_of_configurable_parameters(entrypoint)
+        min_mutation_prob = 1 / n_params
+        current_mut = configurator_kwargs["mutation_probability"]
+        new_mut = max(current_mut, min_mutation_prob)
+        configurator_kwargs["mutation_probability"] = new_mut
 
     data_file = os.path.realpath(os.path.join(scenario_path, "data.dat"))
 
