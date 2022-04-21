@@ -14,8 +14,10 @@ dR(t)/dt =   delta * I(t)  + delta_a * A(t)
 
 import random
 from collections import namedtuple
+import sys
 
 import numpy as np
+import pandas
 from optilog.tuning import ac, Int, Real
 
 from ..utils import utils
@@ -24,8 +26,18 @@ from ..utils import utils
 Result = namedtuple("Result", "susceptible exposed asymptomatic infected recovered day_max")
 
 
-def get_cost(time_series, infected, t_total, day_max, n_seeds, metric):
-    mean_infected = utils.mean_alive(infected, t_total, day_max, n_seeds)
+def check_successful_simulation(result: Result, time_total: int):
+    return not result.infected[time_total - 1] == 0
+
+def get_cost(
+    time_series: np.ndarray,
+    infected: pandas.DataFrame,
+    t_total: int,
+    day_max: int,
+    metric
+):
+    n_seeds = infected.shape[1]
+    mean_infected = utils.mean_alive(infected.values.T, t_total, day_max, n_seeds)
     return utils.cost_func(time_series[:, 0], mean_infected, metric)
 
 
@@ -76,21 +88,25 @@ def seair(
             beta,
         )
         day_max = max(day_max, result.day_max)
-        # TODO check for successful simulations
-        seeds.append(current_seed)
-        evolution[0, mc_step, :] = result.susceptible
-        evolution[1, mc_step, :] = result.exposed
-        evolution[2, mc_step, :] = result.asymptomatic
-        evolution[3, mc_step, :] = result.infected
-        evolution[4, mc_step, :] = result.recovered
 
-        mc_step += 1
+        if check_successful_simulation(result, t_total):
+            seeds.append(current_seed)
+            evolution[0, mc_step, :] = result.susceptible
+            evolution[1, mc_step, :] = result.exposed
+            evolution[2, mc_step, :] = result.asymptomatic
+            evolution[3, mc_step, :] = result.infected
+            evolution[4, mc_step, :] = result.recovered
+
+            mc_step += 1
+        else:
+            print(f"Skipping realization for seed {current_seed} due to failed simulation...", file=sys.stderr)
+    print(t_total, day_max, evolution.shape)
 
     # results per day and seed
     evolution_df = utils.evolution_to_dataframe(
         evolution, ["susceptible", "exposed", "asymptomatic", "infected", "recovered"], seeds)
 
-    cost = get_cost(time_series, evolution[3], t_total, day_max, n_seeds, metric)
+    cost = get_cost(time_series, evolution_df.infected, t_total, day_max, metric)
     print(f"GGA SUCCESS {cost}")
     return cost, evolution_df
 
