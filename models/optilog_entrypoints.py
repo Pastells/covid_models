@@ -36,7 +36,7 @@ class Entrypoint:
         cls._run_model(time_series, seed, t_total, mc_nseed)
 
     @classmethod
-    def _run_model(cls, time_series, seed, t_total, mc_nseed):
+    def _run_model(cls, time_series, seed, t_total, mc_nseed, **kwargs):
         raise NotImplementedError
 
     @classmethod
@@ -71,16 +71,18 @@ class SairEntrypoint(Entrypoint):
     CFG_CALLS = [sair.sair]
 
     @classmethod
-    def _run_model(cls, time_series, seed, t_total, mc_nseed):
-        cost, _ = sair.sair(
+    def _run_model(cls, time_series, seed, t_total, mc_nseed, **kwargs):
+        cost, evolution = sair.sair(
             time_series=time_series,
             seed=seed,
             n_seeds=mc_nseed,
             t_total=t_total,
             n_t_steps=config.N_T_STEPS,
-            metric="models.utils.utils.sum_sq"
+            metric="models.utils.utils.sum_sq",
+            **kwargs
         )
         cls.report_result(cost)
+        return evolution
 
 
 class SairErlangEntrypoint(Entrypoint):
@@ -88,16 +90,18 @@ class SairErlangEntrypoint(Entrypoint):
     CFG_CALLS = [sair_erlang.sair_erlang]
 
     @classmethod
-    def _run_model(cls, time_series, seed, t_total, mc_nseed):
-        cost, _ = sair_erlang.sair_erlang(
+    def _run_model(cls, time_series, seed, t_total, mc_nseed, **kwargs):
+        cost, evolution = sair_erlang.sair_erlang(
             time_series=time_series,
             seed=seed,
             n_seeds=mc_nseed,
             t_total=t_total,
             n_t_steps=config.N_T_STEPS,
-            metric="models.utils.utils.sum_sq"
+            metric="models.utils.utils.sum_sq",
+            **kwargs
         )
         cls.report_result(cost)
+        return evolution
 
 
 class SairNetworkEntrypoint(Entrypoint):
@@ -105,15 +109,17 @@ class SairNetworkEntrypoint(Entrypoint):
     CFG_CALLS = [net_sair.net_sair]
 
     @classmethod
-    def _run_model(cls, time_series, seed, t_total, mc_nseed):
-        cost, _ = net_sair.net_sair(
+    def _run_model(cls, time_series, seed, t_total, mc_nseed, **kwargs):
+        cost, evolution = net_sair.net_sair(
             time_series=time_series,
             seed=seed,
             n_seeds=mc_nseed,
             t_total=t_total,
             metric="models.utils.utils.sum_sq",
+            **kwargs
         )
         cls.report_result(cost)
+        return evolution
 
 
 class SeairEntrypoint(Entrypoint):
@@ -121,16 +127,18 @@ class SeairEntrypoint(Entrypoint):
     CFG_CALLS = [seair.seair]
 
     @classmethod
-    def _run_model(cls, time_series, seed, t_total, mc_nseed):
-        cost, _ = seair.seair(
+    def _run_model(cls, time_series, seed, t_total, mc_nseed, **kwargs):
+        cost, evolution = seair.seair(
             time_series=time_series,
             seed=seed,
             n_seeds=mc_nseed,
             t_total=t_total,
             n_t_steps=config.N_T_STEPS,
-            metric="models.utils.utils.sum_sq"
+            metric="models.utils.utils.sum_sq",
+            **kwargs
         )
         cls.report_result(cost)
+        return evolution
 
 
 class SeipahrfEntrypoint(Entrypoint):
@@ -138,15 +146,18 @@ class SeipahrfEntrypoint(Entrypoint):
     CFG_CALLS = [seipahrf.seipahrf]
 
     @classmethod
-    def _run_model(cls, time_series, seed, t_total, mc_nseed):
+    def _run_model(cls, time_series, seed, t_total, mc_nseed, **kwargs):
         del seed  # Not used
+        del mc_nseed
 
-        cost, _ = seipahrf.seipahrf(
+        cost, evolution = seipahrf.seipahrf(
             time_series=time_series,
             t_total=t_total,
             metric="models.utils.utils.sum_sq",
+            **kwargs
         )
         cls.report_result(cost)
+        return evolution
 
 
 class SirEntrypoint(Entrypoint):
@@ -154,16 +165,18 @@ class SirEntrypoint(Entrypoint):
     CFG_CALLS = [sir.sir]
 
     @classmethod
-    def _run_model(cls, time_series, seed, t_total, mc_nseed):
-        cost, _ = sir.sir(
+    def _run_model(cls, time_series, seed, t_total, mc_nseed, **kwargs):
+        cost, evolution = sir.sir(
             time_series=time_series,
             seed=seed,
             n_seeds=mc_nseed,
             t_total=t_total,
             n_t_steps=config.N_T_STEPS,
-            metric="models.utils.utils.sum_sq"
+            metric="models.utils.utils.sum_sq",
+            **kwargs
         )
         cls.report_result(cost)
+        return evolution
 
 
 class SirErlangEntrypoint(Entrypoint):
@@ -171,16 +184,18 @@ class SirErlangEntrypoint(Entrypoint):
     CFG_CALLS = [sir_erlang.sir_erlang]
 
     @classmethod
-    def _run_model(cls, time_series, seed, t_total, mc_nseed):
-        cost, _ = sir_erlang.sir_erlang(
+    def _run_model(cls, time_series, seed, t_total, mc_nseed, **kwargs):
+        cost, evolution = sir_erlang.sir_erlang(
             time_series=time_series,
             seed=seed,
             n_seeds=mc_nseed,
             t_total=t_total,
             n_t_steps=config.N_T_STEPS,
-            metric="models.utils.utils.sum_sq"
+            metric="models.utils.utils.sum_sq",
+            **kwargs
         )
         cls.report_result(cost)
+        return evolution
 
 
 class SirNetworkEntrypoint(Entrypoint):
@@ -188,15 +203,17 @@ class SirNetworkEntrypoint(Entrypoint):
     CFG_CALLS = [net_sir.net_sir]
 
     @classmethod
-    def _run_model(cls, time_series, seed, t_total, mc_nseed):
-        cost, _ = net_sir.net_sir(
+    def _run_model(cls, time_series, seed, t_total, mc_nseed, **kwargs):
+        cost, evolution = net_sir.net_sir(
             time_series=time_series,
             seed=seed,
             n_seeds=mc_nseed,
             t_total=t_total,
-            metric="models.utils.utils.sum_sq"
+            metric="models.utils.utils.sum_sq",
+            **kwargs
         )
         cls.report_result(cost)
+        return evolution
 
 
 class SirdEntrypoint(Entrypoint):
@@ -204,15 +221,19 @@ class SirdEntrypoint(Entrypoint):
     CFG_CALLS = [sird.sird]
 
     @classmethod
-    def _run_model(cls, time_series, seed, t_total, mc_nseed):
-        cost, _ = sird.sird(
+    def _run_model(cls, time_series, seed, t_total, mc_nseed, **kwargs):
+        cost, evolution = sird.sird(
             time_series=time_series,
             seed=seed,
             n_seeds=mc_nseed,
             t_total=t_total,
-            metric="models.utils.utils.sum_sq"
+            n_t_steps=config.N_T_STEPS,
+            scale_cost=False,
+            metric="models.utils.utils.sum_sq",
+            **kwargs
         )
         cls.report_result(cost)
+        return evolution
 
 
 _entrypoints = {
