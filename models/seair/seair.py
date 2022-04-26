@@ -49,7 +49,7 @@ def seair(
     t_total: int,
     n_t_steps: int,
     metric,
-    n: Int(70000, 90000) = 70000,
+    n: Int(70_000, 500_000) = 70_000,
     initial_exposed: Int(0, 1) = 1,
     initial_asymptomatic: Int(0, 1) = 1,
     initial_infected: Int(410, 440) = 410,

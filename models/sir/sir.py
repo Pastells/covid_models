@@ -83,7 +83,7 @@ def sir(
     t_total: int,
     n_t_steps: int,
     metric: str,
-    n: Int(70000, 90000) = 70000,
+    n: Int(70_000, 500_000) = 70_000,
     initial_infected: Int(1, 1000) = 10,
     initial_recovered: Int(0, 1000) = 4,
     delta: Real(0.1, 1.0) = 0.2,
