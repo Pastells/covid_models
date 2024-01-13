@@ -23,18 +23,21 @@ from optilog.tuning import ac, Int, Real
 from ..utils import utils
 
 
-Result = namedtuple("Result", "susceptible exposed asymptomatic infected recovered day_max")
+Result = namedtuple(
+    "Result", "susceptible exposed asymptomatic infected recovered day_max"
+)
 
 
 def check_successful_simulation(result: Result, time_total: int):
     return not result.infected[time_total - 1] == 0
+
 
 def get_cost(
     time_series: np.ndarray,
     infected: pandas.DataFrame,
     t_total: int,
     day_max: int,
-    metric
+    metric,
 ):
     n_seeds = infected.shape[1]
     mean_infected = utils.mean_alive(infected.values.T, t_total, day_max, n_seeds)
@@ -99,12 +102,18 @@ def seair(
 
             mc_step += 1
         else:
-            print(f"Skipping realization for seed {current_seed} due to failed simulation...", file=sys.stderr)
+            print(
+                f"Skipping realization for seed {current_seed} due to failed simulation...",
+                file=sys.stderr,
+            )
     print(t_total, day_max, evolution.shape)
 
     # results per day and seed
     evolution_df = utils.evolution_to_dataframe(
-        evolution, ["susceptible", "exposed", "asymptomatic", "infected", "recovered"], seeds)
+        evolution,
+        ["susceptible", "exposed", "asymptomatic", "infected", "recovered"],
+        seeds,
+    )
 
     cost = get_cost(time_series, evolution_df.infected, t_total, day_max, metric)
     print(f"GGA SUCCESS {cost}")

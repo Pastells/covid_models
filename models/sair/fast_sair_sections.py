@@ -67,7 +67,6 @@ def _process_trans_SAIR_(
     if (e_or_i == "A" and status[target] == "S") or (
         e_or_i == "I" and status[target] == "A"
     ):  # nothing happens if already infected.
-
         times.append(time)
         R.append(R[-1])
 

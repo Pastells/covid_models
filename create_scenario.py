@@ -24,7 +24,7 @@ def get_number_of_configurable_parameters(entrypoint):
             if isinstance(par.annotation, ConfigurableParameter):
                 count += 1
     return count
-    
+
 
 def create_scenario(
     configurator_choice,
@@ -34,7 +34,7 @@ def create_scenario(
     day_min,
     day_max,
     mc_nseed,
-    configurator_kwargs
+    configurator_kwargs,
 ):
     entrypoint = optilog_entrypoints.get_entrypoint_for_model(model)
 
@@ -70,11 +70,7 @@ def create_scenario(
     configurator.generate_scenario(scenario_path)
 
     entrypoint.create_data(
-        data_file,
-        os.path.realpath(dataset),
-        day_min,
-        day_max,
-        mc_nseed
+        data_file, os.path.realpath(dataset), day_min, day_max, mc_nseed
     )
 
 
@@ -108,23 +104,15 @@ def parse_args():
     parser.add_argument(
         "--data",
         help="The data file that will be used to configure the model.",
-        required=True
+        required=True,
     )
     parser.add_argument(
         "--day-min",
         type=int,
         default=0,
     )
-    parser.add_argument(
-        "--day-max",
-        type=int,
-        default=54
-    )
-    parser.add_argument(
-        "--mc-nseed",
-        type=int,
-        default=100
-    )
+    parser.add_argument("--day-max", type=int, default=54)
+    parser.add_argument("--mc-nseed", type=int, default=100)
 
     parser.add_argument(
         "--remove-old",
@@ -201,9 +189,14 @@ def main():
 
     configurator_kwargs = get_configurator_kwargs(args.configurator, args)
     create_scenario(
-        args.configurator, args.scenario_path,
-        args.model, args.data, args.day_min, args.day_max, args.mc_nseed,
-        configurator_kwargs
+        args.configurator,
+        args.scenario_path,
+        args.model,
+        args.data,
+        args.day_min,
+        args.day_max,
+        args.mc_nseed,
+        configurator_kwargs,
     )
 
     if args.run:

@@ -129,7 +129,6 @@ def gillespie_simulation(
     while section < n_sections:
         # Time loop
         while comp.I[t_step, :-1].sum() > 0 and time < section_day:
-
             # add individuals
             if (n_ind is not None) and (time // n_ind[index_n, 1] == 1):
                 comp.S[t_step] += n_ind[index_n, 0] / shapes["k_inf"]

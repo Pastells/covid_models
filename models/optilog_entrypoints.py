@@ -22,7 +22,9 @@ class Entrypoint:
 
     @staticmethod
     def load_dataset(dataset, day_min, day_max):
-        time_series = numpy.loadtxt(dataset, delimiter=",", dtype=int, usecols=(0, 1, 2, 3))
+        time_series = numpy.loadtxt(
+            dataset, delimiter=",", dtype=int, usecols=(0, 1, 2, 3)
+        )
         time_series = time_series[day_min:day_max]
         return time_series
 
@@ -42,12 +44,14 @@ class Entrypoint:
     @classmethod
     def create_data(cls, file, dataset, day_min, day_max, mc_nseed):
         with open(file, "w+") as file_:
-            file_.writelines([
-                f"dataset={dataset}\n",
-                f"day_min={day_min}\n",
-                f"day_max={day_max}\n",
-                f"mc_nseed={mc_nseed}\n"
-            ])
+            file_.writelines(
+                [
+                    f"dataset={dataset}\n",
+                    f"day_min={day_min}\n",
+                    f"day_max={day_max}\n",
+                    f"mc_nseed={mc_nseed}\n",
+                ]
+            )
 
     @classmethod
     def load_data(cls, file) -> Tuple[str, int, int, int]:
@@ -79,7 +83,7 @@ class SairEntrypoint(Entrypoint):
             t_total=t_total,
             n_t_steps=config.N_T_STEPS,
             metric="models.utils.utils.sum_sq",
-            **kwargs
+            **kwargs,
         )
         cls.report_result(cost)
         return evolution
@@ -98,7 +102,7 @@ class SairErlangEntrypoint(Entrypoint):
             t_total=t_total,
             n_t_steps=config.N_T_STEPS,
             metric="models.utils.utils.sum_sq",
-            **kwargs
+            **kwargs,
         )
         cls.report_result(cost)
         return evolution
@@ -116,7 +120,7 @@ class SairNetworkEntrypoint(Entrypoint):
             n_seeds=mc_nseed,
             t_total=t_total,
             metric="models.utils.utils.sum_sq",
-            **kwargs
+            **kwargs,
         )
         cls.report_result(cost)
         return evolution
@@ -135,7 +139,7 @@ class SeairEntrypoint(Entrypoint):
             t_total=t_total,
             n_t_steps=config.N_T_STEPS,
             metric="models.utils.utils.sum_sq",
-            **kwargs
+            **kwargs,
         )
         cls.report_result(cost)
         return evolution
@@ -154,7 +158,7 @@ class SeipahrfEntrypoint(Entrypoint):
             time_series=time_series,
             t_total=t_total,
             metric="models.utils.utils.sum_sq",
-            **kwargs
+            **kwargs,
         )
         cls.report_result(cost)
         return evolution
@@ -173,7 +177,7 @@ class SirEntrypoint(Entrypoint):
             t_total=t_total,
             n_t_steps=config.N_T_STEPS,
             metric="models.utils.utils.sum_sq",
-            **kwargs
+            **kwargs,
         )
         cls.report_result(cost)
         return evolution
@@ -192,7 +196,7 @@ class SirErlangEntrypoint(Entrypoint):
             t_total=t_total,
             n_t_steps=config.N_T_STEPS,
             metric="models.utils.utils.sum_sq",
-            **kwargs
+            **kwargs,
         )
         cls.report_result(cost)
         return evolution
@@ -210,7 +214,7 @@ class SirNetworkEntrypoint(Entrypoint):
             n_seeds=mc_nseed,
             t_total=t_total,
             metric="models.utils.utils.sum_sq",
-            **kwargs
+            **kwargs,
         )
         cls.report_result(cost)
         return evolution
@@ -230,14 +234,15 @@ class SirdEntrypoint(Entrypoint):
             n_t_steps=config.N_T_STEPS,
             scale_cost=False,
             metric="models.utils.utils.sum_sq",
-            **kwargs
+            **kwargs,
         )
         cls.report_result(cost)
         return evolution
 
 
 _entrypoints = {
-    e.NAME: e for e in [
+    e.NAME: e
+    for e in [
         SairEntrypoint,
         SairErlangEntrypoint,
         SairNetworkEntrypoint,

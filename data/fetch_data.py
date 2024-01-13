@@ -83,7 +83,7 @@ def parse_country(country):
     # Output file
     first_day_str = df["date"][0].replace("/", "_")
     last_day_str = df["date"][-1].replace("/", "_")
-    
+
     country = country.replace(" ", "_")
     out_file = f"{country}__{first_day_str}__{last_day_str}.csv"
     out_file = os.path.join(target_directory, out_file)

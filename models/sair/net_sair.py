@@ -1,5 +1,4 @@
 """
-
 Stochastic SAIR model with a social network using the event-driven algorithm
 
 Pol Pastells, 2020
@@ -15,11 +14,11 @@ import functools
 import random
 
 import numpy as np
-from optilog.tuning import ac, Int, Real, Categorical
+from optilog.tuning import Categorical, Int, Real, ac
 
-from . import fast_sair
-from .sair import simulate_evolution, get_cost, Result
 from ..utils import utils, utils_net
+from . import fast_sair
+from .sair import Result, get_cost, simulate_evolution
 
 
 def check_successful_simulation(result: Result, time_total: int):

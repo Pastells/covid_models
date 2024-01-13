@@ -107,7 +107,13 @@ def event_driven_simulation(
 
     # initialization
     section = 0
-    (n, rates, section_day, rates_old, section_day_old,) = parameters_section(
+    (
+        n,
+        rates,
+        section_day,
+        rates_old,
+        section_day_old,
+    ) = parameters_section(
         n_vect, beta_vect, delta_vect, section_days, section, network_param
     )
 
@@ -127,7 +133,13 @@ def event_driven_simulation(
         )
         section += 1
         if section < n_sections:
-            (n, rates, section_day, rates_old, section_day_old,) = parameters_section(
+            (
+                n,
+                rates,
+                section_day,
+                rates_old,
+                section_day_old,
+            ) = parameters_section(
                 n_vect,
                 beta_vect,
                 delta_vect,

@@ -362,7 +362,7 @@ def sum_sq_scaled(var_m, time_series, *day):
         try:
             cost += (var_m[day, 0] - time_series[day]) ** 2 / time_series[day] ** 2
         except RuntimeWarning:
-            cost += var_m ** 2
+            cost += var_m**2
     return cost
 
 

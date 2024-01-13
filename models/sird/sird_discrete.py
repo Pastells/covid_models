@@ -66,6 +66,7 @@ def sird(
 def plots(left, right, day_range):
     import matplotlib.pyplot as plt
     import seaborn as sns
+
     sns.set()
 
     t = np.arange(day_range)

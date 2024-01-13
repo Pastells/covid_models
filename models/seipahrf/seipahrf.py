@@ -145,10 +145,26 @@ def seipahrf(
 
     # Results per day
     evolution_df = utils.evolution_to_dataframe(
-        [susceptible, exposed, infected, superspreader, asymptomatic,
-         hospitalized, recovered, fatal],
-        ["susceptible", "exposed", "infected", "superspreader", "asymptomatic",
-         "hospitalized", "recovered", "fatal"],
+        [
+            susceptible,
+            exposed,
+            infected,
+            superspreader,
+            asymptomatic,
+            hospitalized,
+            recovered,
+            fatal,
+        ],
+        [
+            "susceptible",
+            "exposed",
+            "infected",
+            "superspreader",
+            "asymptomatic",
+            "hospitalized",
+            "recovered",
+            "fatal",
+        ],
     )
 
     cost = get_cost(time_series, confirmed, t_total, day_max, metric)

@@ -93,6 +93,7 @@ def sidarthe(
     solution = odeint(SIDARTHE_ODE, initial_cond, time, args=tuple(params))
 
     import matplotlib.pyplot as plt
+
     plt.plot(time, solution)
     plt.show()
 

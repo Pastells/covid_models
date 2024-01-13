@@ -131,7 +131,14 @@ def gillespie_simulation(
     np.random.seed(seed)
 
     section = 0
-    (n, rates, section_day, rates_old, section_day_old, n_ind,) = parameters_section(
+    (
+        n,
+        rates,
+        section_day,
+        rates_old,
+        section_day_old,
+        n_ind,
+    ) = parameters_section(
         n_vect,
         alpha_vect,
         delta_a_vect,
